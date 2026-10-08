@@ -1,0 +1,9 @@
+{
+  "name": "ftv-pipeline-tools",
+  "private": true,
+  "description": "Node-based glTF tools used by the Python pipeline (gltfpack for meshopt compression, glTF-Transform for decoding, inspection and validation).",
+  "devDependencies": {
+    "@gltf-transform/cli": "4.5.0",
+    "gltfpack": "1.2.0"
+  }
+}

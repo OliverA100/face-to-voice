@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "tuned": true,
+  "note": "Hand-built from the slider labels and checked in rendered close-ups; the shapes below are solved to these measurements and checked against the animation caps on random faces. aa/e/i/ss: upper incisors show ~2 mm, the lower lip covers most of the lower teeth, ee spreads ~6 mm; jaw, lip gap, corners and protrusion held, centred. o/u: lips pushed forward (o +2.5 mm, u +5 mm, both lips), round openings (lip gap 8/12 mm out from the middle), u corners in 15 mm. ppr: a p/b/m with the lips rounded, blended in before and after U and O (LIPSYNC.roundAhead). ff: labiodental, the lower lip's inner edge level with the upper incisor tips and tucked just behind them, upper teeth ~1.8 mm, lower teeth hidden, the lopsided component 012 left out. pp: lips pressed, the red of both lips 1.3-1.5 mm thinner, seal and width held. th puts the tongue tip between the incisor edges (dental, nothing inside the teeth); dd raises it to the ridge behind the upper teeth. Tune in /dev/visemes.",
+  "visemes": {
+    "aa": {
+      "lower_face_region_009": 1.078,
+      "lower_face_region_000": -0.845,
+      "lower_face_region_006": -0.283,
+      "lower_face_region_003": -0.121
+    },
+    "e": {
+      "lower_face_region_013": -0.705,
+      "lower_face_region_017": -0.662,
+      "lower_face_region_004": -0.394,
+      "lower_face_region_000": -0.369,
+      "lower_face_region_005": -0.36,
+      "lower_face_region_003": -0.132,
+      "lower_face_region_006": -0.05,
+      "lower_face_region_009": 0.047
+    },
+    "i": {
+      "lower_face_region_005": -0.725,
+      "lower_face_region_016": 0.5,
+      "lower_face_region_013": -0.263,
+      "lower_face_region_009": 0.185,
+      "lower_face_region_010": 0.181,
+      "lower_face_region_006": 0.165,
+      "lower_face_region_001": -0.155,
+      "lower_face_region_008": 0.12,
+      "lower_face_region_003": -0.107,
+      "lower_face_region_000": -0.082,
+      "lower_face_region_011": -0.025
+    },
+    "o": {
+      "lower_face_region_004": -1.2,
+      "lower_face_region_009": 1.2,
+      "lower_face_region_011": 1.2,
+      "lower_face_region_006": -0.893,
+      "lower_face_region_001": 0.785,
+      "lower_face_region_003": 0.379,
+      "lower_face_region_008": 0.336,
+      "lower_face_region_005": 0.324,
+      "lower_face_region_000": -0.282,
+      "lower_face_region_010": -0.127,
+      "lower_face_region_013": 0.082
+    },
+    "u": {
+      "lower_face_region_006": -0.957,
+      "lower_face_region_001": 0.918,
+      "lower_face_region_009": 0.843,
+      "lower_face_region_004": -0.821,
+      "lower_face_region_011": 0.735,
+      "lower_face_region_005": 0.348,
+      "lower_face_region_019": -0.3,
+      "lower_face_region_003": 0.287,
+      "lower_face_region_008": -0.247,
+      "lower_face_region_010": -0.187
+    },
+    "pp": {
+      "lower_face_region_017": 0.7,
+      "lower_face_region_009": 0.491,
+      "lower_face_region_011": -0.414,
+      "lower_face_region_013": 0.303,
+      "lower_face_region_014": 0.3,
+      "lower_face_region_008": 0.219,
+      "lower_face_region_018": 0.2,
+      "lower_face_region_003": 0.169,
+      "lower_face_region_010": -0.084,
+      "lower_face_region_000": -0.059,
+      "lower_face_region_005": 0.059,
+      "lower_face_region_006": -0.035
+    },
+    "ppr": {
+      "lower_face_region_017": 0.7,
+      "lower_face_region_006": -0.469,
+      "lower_face_region_001": 0.353,
+      "lower_face_region_003": -0.336,
+      "lower_face_region_014": 0.3,
+      "lower_face_region_008": -0.299,
+      "lower_face_region_000": 0.202,
+      "lower_face_region_018": 0.2,
+      "lower_face_region_004": 0.157,
+      "lower_face_region_005": 0.108
+    },
+    "ff": {
+      "lower_face_region_010": 0.975,
+      "lower_face_region_009": -0.666,
+      "lower_face_region_011": -0.638,
+      "lower_face_region_005": 0.457,
+      "lower_face_region_004": -0.232,
+      "lower_face_region_013": -0.163,
+      "lower_face_region_006": 0.119,
+      "lower_face_region_003": -0.085,
+      "lower_face_region_008": -0.033
+    },
+    "th": {
+      "tongue_mean": 0.5,
+      "lower_face_region_000": -0.25,
+      "tongue_000": 0.25,
+      "lower_face_region_004": -0.2,
+      "tongue_001": 0.167
+    },
+    "dd": {
+      "tongue_001": 0.667,
+      "lower_face_region_013": 0.5,
+      "tongue_mean": 0.5,
+      "lower_face_region_000": -0.3,
+      "tongue_000": 0.083
+    },
+    "ss": {
+      "lower_face_region_016": 0.479,
+      "lower_face_region_005": -0.45,
+      "lower_face_region_004": -0.242,
+      "lower_face_region_009": 0.086,
+      "lower_face_region_003": -0.041,
+      "lower_face_region_000": -0.031,
+      "lower_face_region_006": 0.022
+    }
+  },
+  "roles": {
+    "blinkLeft": {
+      "left_eye_region_000": -1.0
+    },
+    "blinkRight": {
+      "right_eye_region_000": -1.0
+    },
+    "jawOpen": {
+      "lower_face_region_000": -1.0
+    },
+    "pupils": {
+      "pupils_000": 1.0
+    }
+  }
+}

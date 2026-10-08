@@ -1,0 +1,90 @@
+# Face to Voice — which GNM Head components become morph targets in web/public/models/head.glb
+#
+# Edit this file, then run from /pipeline:
+#     uv run list-components     # prints every GNM component name by region
+#     uv run export              # writes the .glb, the manifest and out/report.md
+#     uv run verify              # decodes the compressed .glb and checks it against the source
+#
+# Components are PCA modes ordered by variance inside each region, so "the first N" is the
+# natural selection rule (head: first 24 ≈ 97% of identity variance; lower_face: first 20 ≈ 98%).
+# Every target costs GPU memory on the phone (≈ vertices × 16 bytes) and three.js starts failing on
+# low-end Android above ~200 targets per mesh, so keep the total under ~120.
+
+[export]
+# Morph weight 1.0 in the browser == this many standard deviations of the component.
+# Sliders therefore run -1..+1 (== -3σ..+3σ). Baking at 3σ keeps 16-bit quantisation precise.
+sigma_scale = 3.0
+
+# Per-component overrides of sigma_scale (components whose natural range is not ±3σ).
+# tongue_mean is a pseudo-component: 0 = tongue retracted, 1 = mean protruded tongue.
+[export.scale_overrides]
+tongue_mean = 1.0
+
+[export.parts]
+# Which parts of the head to ship. Each part becomes its own small mesh with its own material
+# (so eyes can be glossy while skin is matte). The cornea is GNM's clear eye shell (eye_exteriors); the web draws
+# only its reflections (the wet highlight). Dropping an interior part leaves a hole.
+include = ["skin", "mouth", "teeth", "gums", "tongue", "sclera", "iris", "pupil", "cornea"]
+# Close the open neck loop with a flat cap so the bust has no hole at the bottom.
+cap_neck = true
+# A target is attached to a part only if it moves at least one of the part's vertices by more
+# than this (millimetres, at weight 1.0). Keeps eye/teeth meshes from carrying useless targets.
+min_delta_mm = 0.01
+
+[identity]
+# 30 identity components. head_* shape the whole head; eyes_* the eyeballs; teeth_* the teeth.
+components = [
+  "head_000", "head_001", "head_002", "head_003", "head_004", "head_005",
+  "head_006", "head_007", "head_008", "head_009", "head_010", "head_011",
+  "head_012", "head_013", "head_014", "head_015", "head_016", "head_017",
+  "head_018", "head_019", "head_020", "head_021", "head_022", "head_023",
+  "eyes_000", "eyes_001", "eyes_002",
+  "teeth_000", "teeth_001", "teeth_002",
+]
+
+[expression]
+# 40 expression components. lower_face_region_* drive the mouth (visemes are built from these),
+# *_eye_region_* drive eyelids and brows (blinks), tongue_* the tongue, pupils_000 pupil size.
+components = [
+  "lower_face_region_000", "lower_face_region_001", "lower_face_region_002", "lower_face_region_003",
+  "lower_face_region_004", "lower_face_region_005", "lower_face_region_006", "lower_face_region_007",
+  "lower_face_region_008", "lower_face_region_009", "lower_face_region_010", "lower_face_region_011",
+  "lower_face_region_012", "lower_face_region_013", "lower_face_region_014", "lower_face_region_015",
+  "lower_face_region_016", "lower_face_region_017", "lower_face_region_018", "lower_face_region_019",
+  "lower_face_region_020", "lower_face_region_021", "lower_face_region_022", "lower_face_region_023",
+  "left_eye_region_000", "left_eye_region_001", "left_eye_region_002",
+  "left_eye_region_003", "left_eye_region_004", "left_eye_region_005",
+  "right_eye_region_000", "right_eye_region_001", "right_eye_region_002",
+  "right_eye_region_003", "right_eye_region_004", "right_eye_region_005",
+  "tongue_mean", "tongue_000", "tongue_001",
+  "pupils_000",
+]
+
+[presets]
+# Optional: named coefficient vectors baked as ONE extra morph target each. Values are in sigma
+# units (like the sliders before scaling). Use this only for shapes that need components that are
+# not shipped above; visemes and blinks are normally tuned in the web app's /dev/visemes page as
+# combinations of the shipped targets instead.
+# Example:
+# jaw_open = { lower_face_region_000 = -2.5, lower_face_region_002 = 0.8 }
+
+[semantic]
+# Semantic identity sliders ("sem_<id>", one feature each), solved from config/semantic_sliders.toml.
+enabled = true
+
+[emotions]
+# Emotion targets ("emo_<id>_upper" / "emo_<id>_lower"), resolved from config/emotions.json.
+enabled = true
+
+[export.ranges]
+# Morph-weight range of a slider when it is not the default [-1, 1]. Also drives the render
+# samples (min, mid, max) used for naming. tongue_mean only makes sense from retracted to protruded.
+tongue_mean = [0.0, 1.0]
+
+[render.context]
+# Extra morph weights applied while rendering components of these regions so the part is
+# visible at all (teeth and tongue hide behind closed lips). Weights are in slider units.
+# lower_face_region_000 at -0.8 opens the jaw about two thirds.
+teeth = { lower_face_region_000 = -0.8 }
+tongue = { lower_face_region_000 = -0.8, tongue_mean = 1.0 }
+pupils = {}

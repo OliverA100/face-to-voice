@@ -1,0 +1,203 @@
+# Face to Voice — published adult head and face measurements (mm), the yardstick for slider ends
+# (src/ftv_pipeline/validate/anthro.py measures the same things on the model; `uv run slider-ranges` compares them).
+#
+# Rules: adults only; men and women POOLED (mean = midpoint of the two sexes, sd = pooled spread incl. the gap between
+# the sexes); NO ethnicity or race anywhere: sources that pool everyone are preferred, and nothing here is split by group.
+# low / high = rare-but-real extremes:
+#   "min/max"   the smallest and largest value measured in a large survey (both sexes together)
+#   "derived"   only mean and SD are published: mean ± 4.5 SD (the min/max of the large surveys below sit 3–5 SD out)
+#
+# Sources:
+#   A  Gordon CC et al. 2014, 2012 Anthropometric Survey of U.S. Army Personnel (ANSUR II), NATICK/TR-15/007,
+#      N = 4082 M / 1986 F. http://tools.openlab.psu.edu/publicData/ANSURII-TR15-007.pdf
+#   N  Zhuang Z, Bradtmiller B 2005, Head-and-Face Anthropometric Survey of U.S. Respirator Users, JOEH 2:567–576,
+#      Table VI, N = 2543 M / 1454 F. https://stacks.cdc.gov/view/cdc/190020/cdc_190020_DS1.pdf
+#   F  Kesterke MJ et al. 2016, 3D Facial Norms database, Biol Sex Differ 7:23, Table S6, N ≈ 220 M / 360 F (3D scans).
+#   K  Karaca Saygili O et al. 2016, Folia Morphol 75(4):512–517, Table 2, N = 100 M / 100 F (calipers).
+#   R  Rhee SC et al. 2012, Aesthetic Plast Surg, literature summary of eyelid dimensions (mostly small samples).
+#   Wide- / close-set eyes: Hall BD et al. 2009, Elements of Morphology (periorbital), Am J Med Genet A 149A:27–48:
+#   interpupillary or inner-canthal distance beyond 2 SD of the mean (≈ 55–71 mm IPD, 26–39 mm en-en).
+
+[measure.head_breadth]
+mean = 151.1
+sd = 6.3
+low = 131
+high = 180
+extremes = "min/max, A"
+source = "A: M 154.3±5.5, F 147.8±5.2"
+
+[measure.head_length]
+mean = 194.7
+sd = 8.7
+low = 168
+high = 225
+extremes = "min/max, A"
+source = "A: M 199.5±7.0, F 189.8±7.4 (N's 152 mm minimum looks like an outlier)"
+
+[measure.neck_circumference]
+mean = 363.7
+sd = 40.8
+low = 260
+high = 570
+extremes = "min/max, A+N"
+source = "A: M 397.6±25.8, F 329.8±19.2 (at the Adam's apple); N: 260–570"
+
+[measure.face_width]
+mean = 138.2
+sd = 7.4
+low = 115
+high = 174
+extremes = "min/max, A+N"
+source = "A: M 142.6±6.2, F 133.8±5.6; N min 115"
+
+[measure.jaw_width]
+mean = 115.3
+sd = 11.0
+low = 88
+high = 160
+extremes = "min/max, N"
+source = "N (calipers): M 120.4±10.4, F 110.1±8.9; 3D scans read ~15 mm smaller (F: M 103.9±5.5, F 96.6±5.9)"
+
+[measure.face_height]
+mean = 122.5
+sd = 7.5
+low = 95
+high = 160
+extremes = "min/max of A sellion–menton (91–156) + 4 mm (sellion sits ~4 mm below nasion)"
+source = "F (3D n-gn): M 126.6±6.4, F 118.4±6.1"
+
+[measure.forehead_height]
+mean = 67.9
+sd = 8.9
+low = 42.7
+high = 95.8
+extremes = "min/max, K (N = 200; a 156-person clinic sample: 44–92)"
+source = "K tr-n: M 68.8±9.6, F 66.9±8.1. Our trichion is the top of GNM's forehead region, not a hairline"
+
+[measure.intercanthal]
+mean = 32.2
+sd = 3.0
+low = 18.6
+high = 45.8
+extremes = "derived ±4.5 SD (wide-set beyond ~39, Elements of Morphology)"
+source = "F en-en: M 33.0±3.0, F 31.3±2.8"
+
+[measure.biocular]
+mean = 87.2
+sd = 4.2
+low = 68.1
+high = 106.2
+extremes = "derived ±4.5 SD"
+source = "F ex-ex: M 88.9±3.9, F 85.4±3.8"
+
+[measure.fissure_length]
+mean = 28.2
+sd = 2.0
+low = 19.4
+high = 36.9
+extremes = "derived ±4.5 SD (calipers read ~5 mm longer: K 27.0–38.4)"
+source = "F en-ex: M 28.6±1.8, F 27.7±2.0"
+
+[measure.fissure_height]
+mean = 10.6
+sd = 1.3
+low = 4.8
+high = 16.5
+extremes = "derived ±4.5 SD (uncertain: no pooled survey; textbook 9–13 mm)"
+source = "R: group means 9.5–11.7, SD 0.9–1.6"
+
+[measure.interpupillary]
+mean = 62.9
+sd = 3.7
+low = 51
+high = 79
+extremes = "min/max, A+N"
+source = "A: M 64.0±3.4, F 61.7±3.6; N: 52–79"
+
+[measure.nose_width]
+mean = 34.9
+sd = 4.4
+low = 22
+high = 58
+extremes = "min/max, N"
+source = "N al-al: M 36.6±4.1, F 33.2±3.9"
+
+[measure.nose_height]
+mean = 55.6
+sd = 4.0
+low = 37.8
+high = 73.4
+extremes = "derived ±4.5 SD (N sellion–subnasale 32–66, its minimum looks like an outlier)"
+source = "F n-sn: M 56.7±3.7, F 54.5±3.9"
+
+[measure.nasal_tip_protrusion]
+mean = 20.5
+sd = 2.8
+low = 11
+high = 32
+extremes = "min/max, N"
+source = "N sn-prn: M 21.1±2.7, F 19.8±2.7"
+
+[measure.mouth_width]
+mean = 49.6
+sd = 4.4
+low = 35
+high = 70
+extremes = "min/max, N"
+source = "N ch-ch: M 51.1±4.2, F 48.0±4.0"
+
+[measure.upper_vermilion]
+mean = 7.6
+sd = 1.6
+low = 0.5
+high = 14.9
+extremes = "derived ±4.5 SD (low end floored at 0.5 mm)"
+source = "F ls-sto: M 7.6±1.8, F 7.6±1.4"
+
+[measure.lower_vermilion]
+mean = 9.0
+sd = 2.1
+low = 1.0
+high = 18.2
+extremes = "derived ±4.5 SD (low end floored at 1 mm)"
+source = "F sto-li: M 9.0±2.2, F 8.9±1.9"
+
+[measure.upper_lip_height]
+mean = 21.3
+sd = 2.8
+low = 8.8
+high = 33.7
+extremes = "derived ±4.5 SD"
+source = "F sn-sto: M 22.0±2.8, F 20.5±2.5"
+
+[measure.philtrum]
+mean = 14.9
+sd = 2.6
+low = 3.0
+high = 26.7
+extremes = "derived ±4.5 SD"
+source = "F sn-ls: M 15.7±2.6, F 14.0±2.4"
+
+[measure.chin_height]
+mean = 48.2
+sd = 5.6
+low = 23
+high = 73
+extremes = "derived ±4.5 SD (uncertain: means are sn-gn minus sn-sto, SD taken from sn-gn)"
+source = "F: sn-gn M 72.3±5.3, F 66.5±5.0; sn-sto M 22.0, F 20.5"
+
+[measure.ear_length]
+mean = 61.8
+sd = 4.9
+low = 46
+high = 81
+extremes = "min/max, A"
+source = "A: M 64.2±4.5, F 59.4±3.9"
+
+[measure.ear_protrusion]
+mean = 21.8
+sd = 3.2
+low = 13
+high = 34
+extremes = "min/max, A (mastoid to the outer rim)"
+source = "A: M 23.2±3.0, F 20.4±2.7. Ours: sideways distance from where the ear joins the head to its rim"

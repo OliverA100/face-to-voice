@@ -1,0 +1,170 @@
+# `uv run brow-strands` (src/ftv_pipeline/brow_strands.py): eyebrows as strands, shaped by MakeHuman's brow cards.
+# Millimetres. guide = the saved brow card (config/guides/brows/<guide>.npz, guides.py) whose painted alpha gives the
+# outline, density and hair direction.
+
+[grow]
+points = 8
+candidates = 12            # candidate roots per kept hair (kept by the texture's alpha)
+cutoff = 0.12              # alpha below this: no hair
+gamma = 2.0                # root density ∝ alpha^gamma (high: dense in the brow's middle, sparse at its soft edges)
+tensor_sigma_px = 4.0      # smoothing of the painted strokes' orientation (texture pixels)
+clear = [0.15, 0.45]       # strokes clearer than this are trusted fully (below the first: the brow's own direction)
+head = [0.1, 0.25]         # the inner head (hairs point up) … fading out by here along the brow
+field_k = 8                # neighbours a hair's direction is averaged with
+follow = 0.6               # how much a growing hair turns to follow the flow (vs. carrying straight on)
+jitter_deg = 9             # each hair this far off the flow (they cross: each reads as its own strand)
+own = 0.5                  # how much a growing hair keeps its own angle rather than the flow under it
+standoff_mm = [0.1, 0.7]   # height above the skin: root … tip (brow hair lies close)
+fair = 2
+length_jitter = 0.2
+young_share = 0.15         # short hairs under the long ones (the brow's body): 40–85 % of the length
+islands = { link_mm = 1.5, share = 0.05 }
+gap_reach = 0.85           # a notch: hairs before it run at most this much across (|x|) per mm of length
+# shaping (off: side by side, the brows look better without it). On, it gives a clean lower edge, an upper
+# edge that feathers out (top_thin, top_short), an inner head that fades in (head_thin, head_fan), a thin tail
+# (tail_thin) and hair-to-hair tone (tone_var); thin_keep < 1 oversamples for the thinning
+across_bin = 0.06
+thin_keep = 1.0
+top_thin = 0.0
+top_short = 0.0
+head_thin = 0.0
+head_fan = 0.0
+tail_thin = 0.0
+tone_var = 0.0
+
+[render]
+width_mm = 0.05
+tip_width = 0.15
+children = [0, 0, 0]       # no extra strands: each hair is its own, with skin between
+child_radius_mm = 0.35
+natural = ["#2a1e17", "#4a372a"]
+shine = 0.35
+ramp_mm = 0                # root → tip colour over this length (0: the hair's default; brow hairs are short)
+cover_min = 0.9            # a hair finer than a pixel fades (as real ones do at a distance): soft, not bold (drawn with
+                           # buildGroom's `fine` blending, or faded hairs read pale)
+
+# Picker order = this order: everyday brows, then the finer ones, the arched ones, the heavy ones, and the special
+# shapes (unibrow, notch).
+# The ids are what the voice prompt reads ("natural eyebrows", "notch eyebrows" …).
+# count ≈ 9.5 hairs per mm² of the card's painted brow (natural: 137 mm²); length_mm = inner head, body, tail.
+
+[style.natural]
+label = "Natural"
+guide = "natural"
+count = 1300
+length_mm = [5.0, 7.0, 5.5]
+
+[style.soft]
+label = "Soft"
+guide = "soft"
+count = 1650
+length_mm = [5.0, 6.5, 5.0]
+
+[style.straight]
+label = "Straight"
+guide = "straight"
+count = 1100
+length_mm = [5.5, 7.0, 5.5]
+
+[style.low]
+label = "Low"
+guide = "low"
+count = 1550
+length_mm = [5.0, 7.0, 5.5]
+
+[style.feathered]
+label = "Feathered"
+guide = "feathered"
+count = 900
+length_mm = [5.5, 7.5, 6.0]
+
+[style.wispy]
+label = "Wispy"
+guide = "wispy"
+count = 750
+length_mm = [5.0, 7.0, 6.0]
+
+[style.sparse]
+label = "Sparse"
+guide = "natural"
+# few hairs, shorter (fair or thinning brows)
+count = 520
+length_mm = [4.5, 6.0, 4.5]
+grow = { young_share = 0.3, gamma = 1.4 }
+islands = { link_mm = 2.0, share = 0.15 }
+
+[style.thin]
+label = "Thin"
+guide = "thin"
+count = 600
+length_mm = [4.0, 5.5, 4.5]
+
+[style.pencil]
+label = "Pencil"
+guide = "pencil"
+count = 420
+length_mm = [3.5, 4.5, 3.5]
+grow = { cutoff = 0.06 }
+
+[style.arched]
+label = "Arched"
+guide = "arched"
+count = 1100
+length_mm = [4.5, 6.5, 5.0]
+grow = { cutoff = 0.05, gamma = 1.5 }   # its tail is painted faint: keep it joined
+
+[style.angular]
+label = "Angular"
+guide = "arched"
+# the arch pulled up into a sharp peak two-thirds of the way out
+peak = { at = 0.62, height_mm = 3.5, width = 0.45 }
+count = 1150
+length_mm = [4.5, 6.5, 5.0]
+grow = { cutoff = 0.05, gamma = 1.5 }
+
+[style.full]
+label = "Full"
+guide = "full"
+count = 2000
+length_mm = [6.0, 8.0, 6.0]
+
+[style.heavy]
+label = "Heavy"
+guide = "heavy"
+count = 1900
+length_mm = [6.0, 8.5, 6.5]
+
+[style.bushy]
+label = "Bushy"
+guide = "heavy"
+# heavier than Heavy: the band widened top and bottom, more and longer hairs, a little coarser
+spread_mm = 1.4
+count = 3000
+length_mm = [7.0, 10.0, 8.0]
+width_mm = 0.06
+grow = { jitter_deg = 12, standoff_mm = [0.1, 1.0] }
+
+[style.wild]
+label = "Wild"
+guide = "heavy"
+# an older man's unruly brows: a full brow where about one hair in seven is a long, coarse stray that goes its own way,
+# lifting and curving up and out (wiry_*)
+count = 1900
+length_mm = [6.0, 8.5, 7.0]
+grow = { points = 10, wiry_share = 0.14, wiry_length = 1.6, wiry_jitter_deg = 22, wiry_own = 0.6, wiry_down = 0.35, wiry_up_share = 0.7, curve_deg = 30, s_share = 0.2, arch_mm = 1.2 }
+
+[style.unibrow]
+label = "Unibrow"
+guide = "natural"
+# joined over the nose
+bridge = { count = 380, height = 0.9, drop_mm = 1.0, alpha = 0.25, fan = 0.7 }
+count = 1300
+length_mm = [5.0, 7.0, 5.5]
+
+[style.notch]
+label = "Notch"
+guide = "natural"
+# a shaved notch through each brow, two-thirds of the way out
+gap = { at = 0.66, width = 0.07 }
+count = 1300
+length_mm = [5.0, 7.0, 5.5]

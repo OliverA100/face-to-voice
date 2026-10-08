@@ -1,0 +1,3038 @@
+{
+  "version": 1,
+  "source": {
+    "model": "GNM Head v3.0 (Google LLC, Apache-2.0)",
+    "repo": "https://github.com/google/GNM",
+    "commit": "f6895509c2b639edc36db20ede82b4315cc28c26",
+    "weights_url": "https://huggingface.co/google/gnm-v3/resolve/main/v3_0/gnm_head.npz",
+    "weights_sha256": "61d78bbfb4ad8e0b38495804a4caef3214d3df00f8c3f68761e63b41ce3747eb"
+  },
+  "units": "meters",
+  "up": "+Y",
+  "forward": "+Z",
+  "sigma_scale": 3.0,
+  "bounds": {
+    "min": [
+      -0.12777356803417206,
+      0.06556179374456406,
+      -0.09221039712429047
+    ],
+    "max": [
+      0.127635657787323,
+      0.40711015462875366,
+      0.14650166034698486
+    ]
+  },
+  "neck_cap": true,
+  "uvs": true,
+  "extra": {
+    "file": "head.extra.glb"
+  },
+  "targets": [
+    {
+      "name": "head_000",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 25.69,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_001",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 28.708,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_002",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 8.09,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_003",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 8.362,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_004",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 7.881,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_005",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 6.095,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_006",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 6.288,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_007",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 8.02,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_008",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 6.023,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_009",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 6.366,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_010",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 6.583,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_011",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 5.808,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_012",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 5.669,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_013",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 5.62,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_014",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.193,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_015",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.736,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_016",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 4.927,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_017",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 5.866,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_018",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.66,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_019",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.498,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_020",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.801,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_021",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.664,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_022",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.926,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "head_023",
+      "kind": "identity",
+      "region": "head",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.93,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "eyes_000",
+      "kind": "identity",
+      "region": "eyes",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.201,
+      "meshes": [
+        "pupil_L",
+        "pupil_R",
+        "iris_L",
+        "iris_R",
+        "sclera_L",
+        "sclera_R",
+        "cornea_L",
+        "cornea_R"
+      ]
+    },
+    {
+      "name": "eyes_001",
+      "kind": "identity",
+      "region": "eyes",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 0.713,
+      "meshes": [
+        "pupil_L",
+        "pupil_R",
+        "iris_L",
+        "iris_R",
+        "sclera_L",
+        "sclera_R",
+        "cornea_L",
+        "cornea_R"
+      ]
+    },
+    {
+      "name": "eyes_002",
+      "kind": "identity",
+      "region": "eyes",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 0.023,
+      "meshes": [
+        "pupil_L",
+        "pupil_R",
+        "iris_L",
+        "iris_R",
+        "sclera_L",
+        "sclera_R",
+        "cornea_L",
+        "cornea_R"
+      ]
+    },
+    {
+      "name": "teeth_000",
+      "kind": "identity",
+      "region": "teeth",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 11.441,
+      "meshes": [
+        "teeth",
+        "gums"
+      ]
+    },
+    {
+      "name": "teeth_001",
+      "kind": "identity",
+      "region": "teeth",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 4.594,
+      "meshes": [
+        "teeth",
+        "gums"
+      ]
+    },
+    {
+      "name": "teeth_002",
+      "kind": "identity",
+      "region": "teeth",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.762,
+      "meshes": [
+        "teeth",
+        "gums"
+      ]
+    },
+    {
+      "name": "lower_face_region_000",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 20.485,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_001",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 16.064,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_002",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 13.623,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_003",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 10.207,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_004",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 5.306,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_005",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.918,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_006",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.758,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_007",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.989,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_008",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.596,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_009",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.769,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_010",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.058,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_011",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.378,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_012",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.095,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_013",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.396,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_014",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.705,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_015",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.375,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_016",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.178,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_017",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.518,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_018",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.101,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_019",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.701,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_020",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.667,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_021",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.853,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_022",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.259,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "lower_face_region_023",
+      "kind": "expression",
+      "region": "lower_face_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 1.206,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "left_eye_region_000",
+      "kind": "expression",
+      "region": "left_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 8.074,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "left_eye_region_001",
+      "kind": "expression",
+      "region": "left_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 7.724,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "left_eye_region_002",
+      "kind": "expression",
+      "region": "left_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.483,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "left_eye_region_003",
+      "kind": "expression",
+      "region": "left_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.237,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "left_eye_region_004",
+      "kind": "expression",
+      "region": "left_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.893,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "left_eye_region_005",
+      "kind": "expression",
+      "region": "left_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.51,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "right_eye_region_000",
+      "kind": "expression",
+      "region": "right_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 8.074,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "right_eye_region_001",
+      "kind": "expression",
+      "region": "right_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 7.724,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "right_eye_region_002",
+      "kind": "expression",
+      "region": "right_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.483,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "right_eye_region_003",
+      "kind": "expression",
+      "region": "right_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 3.237,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "right_eye_region_004",
+      "kind": "expression",
+      "region": "right_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.893,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "right_eye_region_005",
+      "kind": "expression",
+      "region": "right_eye_region",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.51,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "tongue_mean",
+      "kind": "expression",
+      "region": "tongue",
+      "scale": 1.0,
+      "file": "base",
+      "max_delta_mm": 9.2,
+      "meshes": [
+        "tongue"
+      ]
+    },
+    {
+      "name": "tongue_000",
+      "kind": "expression",
+      "region": "tongue",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 34.559,
+      "meshes": [
+        "tongue"
+      ]
+    },
+    {
+      "name": "tongue_001",
+      "kind": "expression",
+      "region": "tongue",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 11.568,
+      "meshes": [
+        "tongue"
+      ]
+    },
+    {
+      "name": "pupils_000",
+      "kind": "expression",
+      "region": "pupils",
+      "scale": 3.0,
+      "file": "base",
+      "max_delta_mm": 2.576,
+      "meshes": [
+        "pupil_L",
+        "pupil_R",
+        "iris_L",
+        "iris_R",
+        "sclera_L",
+        "sclera_R"
+      ]
+    },
+    {
+      "name": "sem_head_width",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 11.36,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_head_length",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 21.728,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_neck_thickness",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 7.522,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_neck_length",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 18.544,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_face_length",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 11.835,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_forehead_height",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 8.419,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_cheekbones",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.895,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_cheek_fullness",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.715,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_jowls",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 9.851,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_jaw_width",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 10.511,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_chin_length",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 7.23,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_chin_width",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.047,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_chin_projection",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 7.927,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_eye_size",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 2.151,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_eye_spacing",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.832,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_eye_tilt",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 2.047,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_eye_depth",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.558,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_brow_height",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.115,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_brow_ridge",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.757,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_nose_width",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.568,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_nose_length",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.361,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_nose_bridge",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 6.512,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_nose_projection",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 8.106,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_nose_tip",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.555,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_mouth_width",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.676,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_lip_fullness",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.389,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_upper_lip",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.536,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_lower_lip",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.24,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_philtrum",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.196,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_ear_size",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 8.287,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "sem_ear_protrusion",
+      "kind": "semantic",
+      "region": "semantic",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 12.364,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_happy_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.305,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_happy_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.52,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_sad_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.117,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_sad_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.85,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_angry_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 8.014,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_angry_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.511,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_surprised_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.315,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_surprised_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 16.608,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_afraid_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.917,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_afraid_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 7.933,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_disgusted_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.398,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_disgusted_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.328,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_contempt_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 1.837,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_contempt_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 15.879,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_confused_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 6.616,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_confused_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 12.345,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_suspicious_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 5.578,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_suspicious_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.186,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_worried_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 6.434,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_worried_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 7.647,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_tired_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 6.179,
+      "meshes": [
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_tired_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 3.755,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_pain_upper",
+      "kind": "emotion",
+      "region": "emotion_upper",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 4.295,
+      "meshes": [
+        "pupil_L",
+        "pupil_R",
+        "iris_L",
+        "iris_R",
+        "skin"
+      ]
+    },
+    {
+      "name": "emo_pain_lower",
+      "kind": "emotion",
+      "region": "emotion_lower",
+      "scale": 1.0,
+      "file": "extra",
+      "max_delta_mm": 8.22,
+      "meshes": [
+        "tongue",
+        "teeth",
+        "gums",
+        "mouth",
+        "skin"
+      ]
+    }
+  ],
+  "meshes": [
+    {
+      "name": "pupil_L",
+      "material": "pupil",
+      "node": "left_eye",
+      "vertices": 67,
+      "triangles": 96,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002",
+        "pupils_000"
+      ],
+      "extraTargets": [
+        "emo_pain_upper"
+      ]
+    },
+    {
+      "name": "pupil_R",
+      "material": "pupil",
+      "node": "right_eye",
+      "vertices": 67,
+      "triangles": 96,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002",
+        "pupils_000"
+      ],
+      "extraTargets": [
+        "emo_pain_upper"
+      ]
+    },
+    {
+      "name": "iris_L",
+      "material": "iris",
+      "node": "left_eye",
+      "vertices": 131,
+      "triangles": 192,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002",
+        "pupils_000"
+      ],
+      "extraTargets": [
+        "emo_pain_upper"
+      ]
+    },
+    {
+      "name": "iris_R",
+      "material": "iris",
+      "node": "right_eye",
+      "vertices": 131,
+      "triangles": 192,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002",
+        "pupils_000"
+      ],
+      "extraTargets": [
+        "emo_pain_upper"
+      ]
+    },
+    {
+      "name": "sclera_L",
+      "material": "sclera",
+      "node": "left_eye",
+      "vertices": 257,
+      "triangles": 456,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002",
+        "pupils_000"
+      ],
+      "extraTargets": []
+    },
+    {
+      "name": "sclera_R",
+      "material": "sclera",
+      "node": "right_eye",
+      "vertices": 257,
+      "triangles": 456,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002",
+        "pupils_000"
+      ],
+      "extraTargets": []
+    },
+    {
+      "name": "cornea_L",
+      "material": "cornea",
+      "node": "left_eye",
+      "vertices": 410,
+      "triangles": 768,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002"
+      ],
+      "extraTargets": []
+    },
+    {
+      "name": "cornea_R",
+      "material": "cornea",
+      "node": "right_eye",
+      "vertices": 410,
+      "triangles": 768,
+      "targets": [
+        "eyes_000",
+        "eyes_001",
+        "eyes_002"
+      ],
+      "extraTargets": []
+    },
+    {
+      "name": "tongue",
+      "material": "tongue",
+      "node": "head",
+      "vertices": 967,
+      "triangles": 1824,
+      "targets": [
+        "head_000",
+        "head_001",
+        "head_002",
+        "head_003",
+        "head_004",
+        "head_005",
+        "head_006",
+        "head_007",
+        "head_008",
+        "head_009",
+        "head_010",
+        "head_011",
+        "head_012",
+        "head_013",
+        "head_014",
+        "head_015",
+        "head_016",
+        "head_017",
+        "head_018",
+        "head_019",
+        "head_020",
+        "head_021",
+        "head_022",
+        "head_023",
+        "lower_face_region_000",
+        "lower_face_region_001",
+        "lower_face_region_002",
+        "lower_face_region_003",
+        "lower_face_region_004",
+        "lower_face_region_005",
+        "lower_face_region_006",
+        "lower_face_region_007",
+        "lower_face_region_008",
+        "lower_face_region_009",
+        "lower_face_region_010",
+        "lower_face_region_011",
+        "lower_face_region_012",
+        "lower_face_region_013",
+        "lower_face_region_014",
+        "lower_face_region_015",
+        "lower_face_region_016",
+        "lower_face_region_017",
+        "lower_face_region_018",
+        "lower_face_region_019",
+        "lower_face_region_020",
+        "lower_face_region_021",
+        "lower_face_region_022",
+        "lower_face_region_023",
+        "tongue_mean",
+        "tongue_000",
+        "tongue_001"
+      ],
+      "extraTargets": [
+        "sem_head_width",
+        "sem_head_length",
+        "sem_neck_thickness",
+        "sem_neck_length",
+        "sem_face_length",
+        "sem_forehead_height",
+        "sem_cheekbones",
+        "sem_cheek_fullness",
+        "sem_jowls",
+        "sem_jaw_width",
+        "sem_chin_length",
+        "sem_chin_width",
+        "sem_chin_projection",
+        "sem_eye_size",
+        "sem_eye_spacing",
+        "sem_eye_tilt",
+        "sem_eye_depth",
+        "sem_brow_height",
+        "sem_brow_ridge",
+        "sem_nose_width",
+        "sem_nose_length",
+        "sem_nose_bridge",
+        "sem_nose_projection",
+        "sem_nose_tip",
+        "sem_mouth_width",
+        "sem_lip_fullness",
+        "sem_upper_lip",
+        "sem_lower_lip",
+        "sem_philtrum",
+        "sem_ear_size",
+        "sem_ear_protrusion",
+        "emo_happy_lower",
+        "emo_sad_lower",
+        "emo_angry_lower",
+        "emo_surprised_lower",
+        "emo_afraid_lower",
+        "emo_disgusted_lower",
+        "emo_contempt_lower",
+        "emo_confused_lower",
+        "emo_suspicious_lower",
+        "emo_worried_lower",
+        "emo_tired_lower",
+        "emo_pain_lower"
+      ]
+    },
+    {
+      "name": "teeth",
+      "material": "teeth",
+      "node": "head",
+      "vertices": 2557,
+      "triangles": 3672,
+      "targets": [
+        "head_000",
+        "head_001",
+        "head_002",
+        "head_003",
+        "head_004",
+        "head_005",
+        "head_006",
+        "head_007",
+        "head_008",
+        "head_009",
+        "head_010",
+        "head_011",
+        "head_012",
+        "head_013",
+        "head_014",
+        "head_015",
+        "head_016",
+        "head_017",
+        "head_018",
+        "head_019",
+        "head_020",
+        "head_021",
+        "head_022",
+        "head_023",
+        "teeth_000",
+        "teeth_001",
+        "teeth_002",
+        "lower_face_region_000",
+        "lower_face_region_001",
+        "lower_face_region_002",
+        "lower_face_region_003",
+        "lower_face_region_004",
+        "lower_face_region_005",
+        "lower_face_region_006",
+        "lower_face_region_007",
+        "lower_face_region_008",
+        "lower_face_region_009",
+        "lower_face_region_010",
+        "lower_face_region_011",
+        "lower_face_region_012",
+        "lower_face_region_013",
+        "lower_face_region_014",
+        "lower_face_region_015",
+        "lower_face_region_016",
+        "lower_face_region_017",
+        "lower_face_region_018",
+        "lower_face_region_019",
+        "lower_face_region_020",
+        "lower_face_region_021",
+        "lower_face_region_022",
+        "lower_face_region_023"
+      ],
+      "extraTargets": [
+        "sem_head_width",
+        "sem_head_length",
+        "sem_neck_thickness",
+        "sem_neck_length",
+        "sem_face_length",
+        "sem_forehead_height",
+        "sem_cheekbones",
+        "sem_cheek_fullness",
+        "sem_jowls",
+        "sem_jaw_width",
+        "sem_chin_length",
+        "sem_chin_width",
+        "sem_chin_projection",
+        "sem_eye_size",
+        "sem_eye_spacing",
+        "sem_eye_tilt",
+        "sem_eye_depth",
+        "sem_brow_height",
+        "sem_brow_ridge",
+        "sem_nose_width",
+        "sem_nose_length",
+        "sem_nose_bridge",
+        "sem_nose_projection",
+        "sem_nose_tip",
+        "sem_mouth_width",
+        "sem_lip_fullness",
+        "sem_upper_lip",
+        "sem_lower_lip",
+        "sem_philtrum",
+        "sem_ear_size",
+        "sem_ear_protrusion",
+        "emo_happy_lower",
+        "emo_sad_lower",
+        "emo_angry_lower",
+        "emo_surprised_lower",
+        "emo_afraid_lower",
+        "emo_disgusted_lower",
+        "emo_contempt_lower",
+        "emo_confused_lower",
+        "emo_suspicious_lower",
+        "emo_worried_lower",
+        "emo_tired_lower",
+        "emo_pain_lower"
+      ]
+    },
+    {
+      "name": "gums",
+      "material": "gums",
+      "node": "head",
+      "vertices": 1309,
+      "triangles": 1984,
+      "targets": [
+        "head_000",
+        "head_001",
+        "head_002",
+        "head_003",
+        "head_004",
+        "head_005",
+        "head_006",
+        "head_007",
+        "head_008",
+        "head_009",
+        "head_010",
+        "head_011",
+        "head_012",
+        "head_013",
+        "head_014",
+        "head_015",
+        "head_016",
+        "head_017",
+        "head_018",
+        "head_019",
+        "head_020",
+        "head_021",
+        "head_022",
+        "head_023",
+        "teeth_000",
+        "teeth_001",
+        "teeth_002",
+        "lower_face_region_000",
+        "lower_face_region_001",
+        "lower_face_region_002",
+        "lower_face_region_003",
+        "lower_face_region_004",
+        "lower_face_region_005",
+        "lower_face_region_006",
+        "lower_face_region_007",
+        "lower_face_region_008",
+        "lower_face_region_009",
+        "lower_face_region_010",
+        "lower_face_region_011",
+        "lower_face_region_012",
+        "lower_face_region_013",
+        "lower_face_region_014",
+        "lower_face_region_015",
+        "lower_face_region_016",
+        "lower_face_region_017",
+        "lower_face_region_018",
+        "lower_face_region_019",
+        "lower_face_region_020",
+        "lower_face_region_021",
+        "lower_face_region_022",
+        "lower_face_region_023"
+      ],
+      "extraTargets": [
+        "sem_head_width",
+        "sem_head_length",
+        "sem_neck_thickness",
+        "sem_neck_length",
+        "sem_face_length",
+        "sem_forehead_height",
+        "sem_cheekbones",
+        "sem_cheek_fullness",
+        "sem_jowls",
+        "sem_jaw_width",
+        "sem_chin_length",
+        "sem_chin_width",
+        "sem_chin_projection",
+        "sem_eye_size",
+        "sem_eye_spacing",
+        "sem_eye_tilt",
+        "sem_eye_depth",
+        "sem_brow_height",
+        "sem_brow_ridge",
+        "sem_nose_width",
+        "sem_nose_length",
+        "sem_nose_bridge",
+        "sem_nose_projection",
+        "sem_nose_tip",
+        "sem_mouth_width",
+        "sem_lip_fullness",
+        "sem_upper_lip",
+        "sem_lower_lip",
+        "sem_philtrum",
+        "sem_ear_size",
+        "sem_ear_protrusion",
+        "emo_happy_lower",
+        "emo_sad_lower",
+        "emo_angry_lower",
+        "emo_surprised_lower",
+        "emo_afraid_lower",
+        "emo_disgusted_lower",
+        "emo_contempt_lower",
+        "emo_confused_lower",
+        "emo_suspicious_lower",
+        "emo_worried_lower",
+        "emo_tired_lower",
+        "emo_pain_lower"
+      ]
+    },
+    {
+      "name": "mouth",
+      "material": "mouth",
+      "node": "head",
+      "vertices": 471,
+      "triangles": 810,
+      "targets": [
+        "head_000",
+        "head_001",
+        "head_002",
+        "head_003",
+        "head_004",
+        "head_005",
+        "head_006",
+        "head_007",
+        "head_008",
+        "head_009",
+        "head_010",
+        "head_011",
+        "head_012",
+        "head_013",
+        "head_014",
+        "head_015",
+        "head_016",
+        "head_017",
+        "head_018",
+        "head_019",
+        "head_020",
+        "head_021",
+        "head_022",
+        "head_023",
+        "lower_face_region_000",
+        "lower_face_region_001",
+        "lower_face_region_002",
+        "lower_face_region_003",
+        "lower_face_region_004",
+        "lower_face_region_005",
+        "lower_face_region_006",
+        "lower_face_region_007",
+        "lower_face_region_008",
+        "lower_face_region_009",
+        "lower_face_region_010",
+        "lower_face_region_011",
+        "lower_face_region_012",
+        "lower_face_region_013",
+        "lower_face_region_014",
+        "lower_face_region_015",
+        "lower_face_region_016",
+        "lower_face_region_017",
+        "lower_face_region_018",
+        "lower_face_region_019",
+        "lower_face_region_020",
+        "lower_face_region_021",
+        "lower_face_region_022",
+        "lower_face_region_023"
+      ],
+      "extraTargets": [
+        "sem_head_width",
+        "sem_head_length",
+        "sem_neck_thickness",
+        "sem_neck_length",
+        "sem_face_length",
+        "sem_forehead_height",
+        "sem_cheekbones",
+        "sem_cheek_fullness",
+        "sem_jowls",
+        "sem_jaw_width",
+        "sem_chin_length",
+        "sem_chin_width",
+        "sem_chin_projection",
+        "sem_eye_size",
+        "sem_eye_spacing",
+        "sem_eye_tilt",
+        "sem_eye_depth",
+        "sem_brow_height",
+        "sem_brow_ridge",
+        "sem_nose_width",
+        "sem_nose_length",
+        "sem_nose_bridge",
+        "sem_nose_projection",
+        "sem_nose_tip",
+        "sem_mouth_width",
+        "sem_lip_fullness",
+        "sem_upper_lip",
+        "sem_lower_lip",
+        "sem_philtrum",
+        "sem_ear_size",
+        "sem_ear_protrusion",
+        "emo_happy_lower",
+        "emo_sad_lower",
+        "emo_angry_lower",
+        "emo_surprised_lower",
+        "emo_afraid_lower",
+        "emo_disgusted_lower",
+        "emo_contempt_lower",
+        "emo_confused_lower",
+        "emo_suspicious_lower",
+        "emo_worried_lower",
+        "emo_tired_lower",
+        "emo_pain_lower"
+      ]
+    },
+    {
+      "name": "skin",
+      "material": "skin",
+      "node": "head",
+      "vertices": 12253,
+      "triangles": 24120,
+      "targets": [
+        "head_000",
+        "head_001",
+        "head_002",
+        "head_003",
+        "head_004",
+        "head_005",
+        "head_006",
+        "head_007",
+        "head_008",
+        "head_009",
+        "head_010",
+        "head_011",
+        "head_012",
+        "head_013",
+        "head_014",
+        "head_015",
+        "head_016",
+        "head_017",
+        "head_018",
+        "head_019",
+        "head_020",
+        "head_021",
+        "head_022",
+        "head_023",
+        "lower_face_region_000",
+        "lower_face_region_001",
+        "lower_face_region_002",
+        "lower_face_region_003",
+        "lower_face_region_004",
+        "lower_face_region_005",
+        "lower_face_region_006",
+        "lower_face_region_007",
+        "lower_face_region_008",
+        "lower_face_region_009",
+        "lower_face_region_010",
+        "lower_face_region_011",
+        "lower_face_region_012",
+        "lower_face_region_013",
+        "lower_face_region_014",
+        "lower_face_region_015",
+        "lower_face_region_016",
+        "lower_face_region_017",
+        "lower_face_region_018",
+        "lower_face_region_019",
+        "lower_face_region_020",
+        "lower_face_region_021",
+        "lower_face_region_022",
+        "lower_face_region_023",
+        "left_eye_region_000",
+        "left_eye_region_001",
+        "left_eye_region_002",
+        "left_eye_region_003",
+        "left_eye_region_004",
+        "left_eye_region_005",
+        "right_eye_region_000",
+        "right_eye_region_001",
+        "right_eye_region_002",
+        "right_eye_region_003",
+        "right_eye_region_004",
+        "right_eye_region_005"
+      ],
+      "extraTargets": [
+        "sem_head_width",
+        "sem_head_length",
+        "sem_neck_thickness",
+        "sem_neck_length",
+        "sem_face_length",
+        "sem_forehead_height",
+        "sem_cheekbones",
+        "sem_cheek_fullness",
+        "sem_jowls",
+        "sem_jaw_width",
+        "sem_chin_length",
+        "sem_chin_width",
+        "sem_chin_projection",
+        "sem_eye_size",
+        "sem_eye_spacing",
+        "sem_eye_tilt",
+        "sem_eye_depth",
+        "sem_brow_height",
+        "sem_brow_ridge",
+        "sem_nose_width",
+        "sem_nose_length",
+        "sem_nose_bridge",
+        "sem_nose_projection",
+        "sem_nose_tip",
+        "sem_mouth_width",
+        "sem_lip_fullness",
+        "sem_upper_lip",
+        "sem_lower_lip",
+        "sem_philtrum",
+        "sem_ear_size",
+        "sem_ear_protrusion",
+        "emo_happy_upper",
+        "emo_happy_lower",
+        "emo_sad_upper",
+        "emo_sad_lower",
+        "emo_angry_upper",
+        "emo_angry_lower",
+        "emo_surprised_upper",
+        "emo_surprised_lower",
+        "emo_afraid_upper",
+        "emo_afraid_lower",
+        "emo_disgusted_upper",
+        "emo_disgusted_lower",
+        "emo_contempt_upper",
+        "emo_contempt_lower",
+        "emo_confused_upper",
+        "emo_confused_lower",
+        "emo_suspicious_upper",
+        "emo_suspicious_lower",
+        "emo_worried_upper",
+        "emo_worried_lower",
+        "emo_tired_upper",
+        "emo_tired_lower",
+        "emo_pain_upper",
+        "emo_pain_lower"
+      ]
+    }
+  ],
+  "nodes": {
+    "left_eye": {
+      "pivot": [
+        0.030839037150144577,
+        0.30316492915153503,
+        0.09888789802789688
+      ],
+      "identity_pivot_basis": {
+        "head_000": [
+          -0.002964509418234229,
+          -0.004249689169228077,
+          -0.0028161986265331507
+        ],
+        "head_001": [
+          -0.00043968582758679986,
+          -0.003490316215902567,
+          -0.0015866989269852638
+        ],
+        "head_002": [
+          0.0008000264642760158,
+          -7.201718835858628e-05,
+          0.0015619623009115458
+        ],
+        "head_003": [
+          -0.0005761385546065867,
+          0.002023528330028057,
+          -0.00038891995791345835
+        ],
+        "head_004": [
+          -0.0012818272225558758,
+          -0.001989221666008234,
+          -0.003868639934808016
+        ],
+        "head_005": [
+          -5.394009804149391e-06,
+          -3.725046099134488e-06,
+          0.000360539328539744
+        ],
+        "head_006": [
+          -0.0014953025383874774,
+          0.0018916497938334942,
+          -0.0003654133470263332
+        ],
+        "head_007": [
+          -0.0007448464748449624,
+          0.0007656472153030336,
+          -0.0032449231948703527
+        ],
+        "head_008": [
+          0.0007487384136766195,
+          0.0005509751499630511,
+          -0.0005519542610272765
+        ],
+        "head_009": [
+          0.0010469944681972265,
+          0.0008826703997328877,
+          -0.00010952915181405842
+        ],
+        "head_010": [
+          0.000698747462593019,
+          -0.0004219498368911445,
+          0.0008140506688505411
+        ],
+        "head_011": [
+          0.0012830519117414951,
+          -3.7754900858999463e-06,
+          -0.0009666703990660608
+        ],
+        "head_012": [
+          0.0005895803333260119,
+          -0.00019107470870949328,
+          -0.000768631580285728
+        ],
+        "head_013": [
+          0.0001967838907148689,
+          -0.00016104435781016946,
+          0.0015037087723612785
+        ],
+        "head_014": [
+          0.0011517992243170738,
+          -0.0006199023337103426,
+          -0.00017507022130303085
+        ],
+        "head_015": [
+          -0.0005537020042538643,
+          -0.0001292936794925481,
+          -0.00041795516153797507
+        ],
+        "head_016": [
+          1.7804417439037934e-05,
+          -0.0005876902141608298,
+          -0.0003817247343249619
+        ],
+        "head_017": [
+          0.00031061997287906706,
+          0.00032095066853798926,
+          0.0001524097751826048
+        ],
+        "head_018": [
+          -0.00016766350017860532,
+          -0.0008039020467549562,
+          0.0006923081236891448
+        ],
+        "head_019": [
+          -0.0004326685448177159,
+          -0.00035669669159688056,
+          0.0002389316214248538
+        ],
+        "head_020": [
+          0.00014756713062524796,
+          0.00016187047003768384,
+          -0.00010527821723371744
+        ],
+        "head_021": [
+          0.00020984612638130784,
+          0.0007158359512686729,
+          0.0002515470259822905
+        ],
+        "head_022": [
+          -7.110468141036108e-05,
+          -0.00037674413761124015,
+          -0.0004790379898622632
+        ],
+        "head_023": [
+          7.185348658822477e-05,
+          0.00015524396440014243,
+          0.00015464838361367583
+        ],
+        "sem_head_width": [
+          -4.5567321649286896e-05,
+          -0.00033821092802099884,
+          -0.0005367037374526262
+        ],
+        "sem_head_length": [
+          1.948425779119134e-05,
+          0.000827115960419178,
+          0.0011403243988752365
+        ],
+        "sem_neck_thickness": [
+          3.467886199359782e-05,
+          0.000316385441692546,
+          4.034984885947779e-05
+        ],
+        "sem_neck_length": [
+          6.187047983985394e-05,
+          -0.00021280696091707796,
+          0.00020196552213747054
+        ],
+        "sem_face_length": [
+          -3.2694234164409863e-07,
+          0.002181301126256585,
+          9.050093649420887e-05
+        ],
+        "sem_forehead_height": [
+          -0.00015123740013223141,
+          -9.01490930118598e-05,
+          -0.00015510580851696432
+        ],
+        "sem_cheekbones": [
+          4.432230343809351e-05,
+          0.0005517003010027111,
+          -0.0007614135392941535
+        ],
+        "sem_cheek_fullness": [
+          0.00029749763780273497,
+          -4.997605719836429e-05,
+          -1.9600765881477855e-05
+        ],
+        "sem_jowls": [
+          1.9955356037826277e-05,
+          0.0002129326167050749,
+          0.00035582957207225263
+        ],
+        "sem_jaw_width": [
+          -0.00019298527331557125,
+          -0.00011942395940423012,
+          9.761026740306988e-05
+        ],
+        "sem_chin_length": [
+          3.7202011299086735e-05,
+          2.6262190658599138e-05,
+          -5.7495311921229586e-05
+        ],
+        "sem_chin_width": [
+          -0.00019007323135156184,
+          0.00022438887390308082,
+          -5.949893602519296e-05
+        ],
+        "sem_chin_projection": [
+          -2.6059835363412276e-05,
+          -0.0001475049793953076,
+          -6.829652556916699e-05
+        ],
+        "sem_eye_size": [
+          0.000617600919213146,
+          -0.00023464203695766628,
+          0.0007124229450710118
+        ],
+        "sem_eye_spacing": [
+          0.002891644136980176,
+          -0.0003336066729389131,
+          -0.00026098365196958184
+        ],
+        "sem_eye_tilt": [
+          -0.0003220750659238547,
+          0.0004909313865937293,
+          0.00029385267407633364
+        ],
+        "sem_eye_depth": [
+          0.0006934203556738794,
+          0.0002104197774315253,
+          0.003005910199135542
+        ],
+        "sem_brow_height": [
+          -0.0003152481513097882,
+          -0.001969770295545459,
+          -0.00041547458386048675
+        ],
+        "sem_brow_ridge": [
+          0.00025120622012764215,
+          0.00041127021540887654,
+          7.91284219303634e-06
+        ],
+        "sem_nose_width": [
+          5.425118433777243e-05,
+          -8.181302109733224e-05,
+          -0.0002795189793687314
+        ],
+        "sem_nose_length": [
+          -9.641255746828392e-05,
+          0.0013033372815698385,
+          0.00020208724890835583
+        ],
+        "sem_nose_bridge": [
+          6.196827598614618e-05,
+          -0.0004388516827020794,
+          -0.0016233379719778895
+        ],
+        "sem_nose_projection": [
+          0.0004396868171170354,
+          -5.204362241784111e-05,
+          -0.00010832179395947605
+        ],
+        "sem_nose_tip": [
+          1.1776426617871039e-05,
+          -0.00015942817844916135,
+          -9.371084161102772e-05
+        ],
+        "sem_mouth_width": [
+          7.065733370836824e-05,
+          -0.0003316137590445578,
+          0.00010754818504210562
+        ],
+        "sem_lip_fullness": [
+          -6.429743370972574e-05,
+          0.000314908946165815,
+          -0.0001720462751109153
+        ],
+        "sem_upper_lip": [
+          -8.027145668165758e-05,
+          0.00045126533950679004,
+          -6.251247668842552e-06
+        ],
+        "sem_lower_lip": [
+          -5.8021665608976036e-05,
+          -9.514134580967948e-05,
+          -3.790924893110059e-05
+        ],
+        "sem_philtrum": [
+          -4.616387013811618e-05,
+          0.0002442880067974329,
+          0.0001221252023242414
+        ],
+        "sem_ear_size": [
+          2.520774614822585e-05,
+          5.31632722413633e-05,
+          5.461399268824607e-05
+        ],
+        "sem_ear_protrusion": [
+          -2.1865689632249996e-05,
+          -9.93876346910838e-06,
+          -7.60008770157583e-05
+        ]
+      }
+    },
+    "right_eye": {
+      "pivot": [
+        -0.030866222456097603,
+        0.3031134307384491,
+        0.09897840023040771
+      ],
+      "identity_pivot_basis": {
+        "head_000": [
+          0.003055349923670292,
+          -0.004261496011167765,
+          -0.0027336468920111656
+        ],
+        "head_001": [
+          0.00048445590073242784,
+          -0.0034972424618899822,
+          -0.0015983541961759329
+        ],
+        "head_002": [
+          -0.000803558505140245,
+          -4.0323397115571424e-05,
+          0.0015891205985099077
+        ],
+        "head_003": [
+          0.0005637822905555367,
+          0.0020172051154077053,
+          -0.00038357818266376853
+        ],
+        "head_004": [
+          0.0012367380550131202,
+          -0.0020120101980865,
+          -0.003898870199918747
+        ],
+        "head_005": [
+          -7.236949750222266e-05,
+          2.427914660074748e-05,
+          0.00031889029196463525
+        ],
+        "head_006": [
+          0.0014894912019371986,
+          0.0019086770480498672,
+          -0.00032896624179556966
+        ],
+        "head_007": [
+          0.0006775257643312216,
+          0.0007701176218688488,
+          -0.003205236978828907
+        ],
+        "head_008": [
+          -0.0007279182318598032,
+          0.0005888169398531318,
+          -0.0005375793552957475
+        ],
+        "head_009": [
+          -0.0009821443818509579,
+          0.0008597725536674261,
+          -7.43754135328345e-05
+        ],
+        "head_010": [
+          -0.0007526276167482138,
+          -0.0004361892642918974,
+          0.0008029512246139348
+        ],
+        "head_011": [
+          -0.0013093571178615093,
+          -9.19890298973769e-05,
+          -0.0011195226106792688
+        ],
+        "head_012": [
+          -0.0006840118439868093,
+          -0.00017591133655514568,
+          -0.0007261073915287852
+        ],
+        "head_013": [
+          -0.0002584760368335992,
+          -0.00015058345161378384,
+          0.0015195896849036217
+        ],
+        "head_014": [
+          -0.0012288379948586226,
+          -0.0006156149902381003,
+          -0.00016146581037901342
+        ],
+        "head_015": [
+          0.0005472610355354846,
+          -0.00012449375935830176,
+          -0.0003660990623757243
+        ],
+        "head_016": [
+          -2.06770937438705e-06,
+          -0.0005549753550440073,
+          -0.00033820371027104557
+        ],
+        "head_017": [
+          -0.00035338252200745046,
+          0.0003560260811354965,
+          0.00021425337763503194
+        ],
+        "head_018": [
+          0.0002015037025557831,
+          -0.0008229148807004094,
+          0.000665769272018224
+        ],
+        "head_019": [
+          0.0004504383250605315,
+          -0.0003686845884658396,
+          0.0002751704305410385
+        ],
+        "head_020": [
+          -0.00014042847033124417,
+          0.0001186265581054613,
+          -0.00010562715760897845
+        ],
+        "head_021": [
+          -0.00016641996626276523,
+          0.0006073113763704896,
+          0.00012617121683433652
+        ],
+        "head_022": [
+          3.917873982572928e-05,
+          -0.00031743900035507977,
+          -0.00038158748066052794
+        ],
+        "head_023": [
+          -0.0002678550372365862,
+          0.0002919603721238673,
+          0.0003128938842564821
+        ],
+        "sem_head_width": [
+          7.704438030486926e-05,
+          -0.0003224536485504359,
+          -0.0004658361431211233
+        ],
+        "sem_head_length": [
+          -3.810428825090639e-05,
+          0.0008258437155745924,
+          0.0011433076579123735
+        ],
+        "sem_neck_thickness": [
+          -1.3341856401893892e-06,
+          0.00029782415367662907,
+          5.852777394466102e-05
+        ],
+        "sem_neck_length": [
+          -0.00024237569596152753,
+          -0.00023792088904883713,
+          0.00014576442481484264
+        ],
+        "sem_face_length": [
+          1.9840241293422878e-05,
+          0.0022072168067097664,
+          0.00014768113032914698
+        ],
+        "sem_forehead_height": [
+          0.00017223641043528914,
+          -8.701558544998989e-05,
+          -6.447594932978973e-05
+        ],
+        "sem_cheekbones": [
+          -4.4108335714554414e-05,
+          0.0005375111359171569,
+          -0.0007253281073644757
+        ],
+        "sem_cheek_fullness": [
+          -0.00032802135683596134,
+          -3.56793352693785e-05,
+          -7.657786773052067e-05
+        ],
+        "sem_jowls": [
+          -4.0069277019938454e-05,
+          0.00019191906903870404,
+          0.00035045717959292233
+        ],
+        "sem_jaw_width": [
+          0.00020568689797073603,
+          -0.00012189526023576036,
+          0.00011925862054340541
+        ],
+        "sem_chin_length": [
+          -3.908177313860506e-05,
+          7.308615022338927e-05,
+          -2.3589233023812994e-05
+        ],
+        "sem_chin_width": [
+          0.0002464961726218462,
+          0.00017929422028828412,
+          -1.3674531146534719e-05
+        ],
+        "sem_chin_projection": [
+          6.392393061105395e-06,
+          -0.00012682423403020948,
+          -4.4504220568342134e-05
+        ],
+        "sem_eye_size": [
+          -0.0006248897989280522,
+          -0.00026434793835505843,
+          0.0006807185127399862
+        ],
+        "sem_eye_spacing": [
+          -0.0030479892157018185,
+          -0.0003593994479160756,
+          -0.0003157910832669586
+        ],
+        "sem_eye_tilt": [
+          0.00031713617499917746,
+          0.0005040711839683354,
+          0.00029233022360131145
+        ],
+        "sem_eye_depth": [
+          -0.000678492069710046,
+          0.00021922543237451464,
+          0.002921965904533863
+        ],
+        "sem_brow_height": [
+          0.00032105366699397564,
+          -0.0019527358235791326,
+          -0.0003692962636705488
+        ],
+        "sem_brow_ridge": [
+          -0.00023660871374886483,
+          0.00040981819620355964,
+          4.325496411183849e-05
+        ],
+        "sem_nose_width": [
+          -3.535419818945229e-05,
+          -7.073102460708469e-05,
+          -0.000289160234387964
+        ],
+        "sem_nose_length": [
+          4.001695924671367e-05,
+          0.0012901951558887959,
+          0.00029520492535084486
+        ],
+        "sem_nose_bridge": [
+          -9.067825158126652e-05,
+          -0.0004275338433217257,
+          -0.001613308908417821
+        ],
+        "sem_nose_projection": [
+          -0.0005013759946450591,
+          -6.057542850612663e-05,
+          -0.00013077013136353344
+        ],
+        "sem_nose_tip": [
+          5.719399268855341e-05,
+          -0.00016208247689064592,
+          -0.0001787317596608773
+        ],
+        "sem_mouth_width": [
+          -9.496294660493731e-05,
+          -0.00032196499523706734,
+          2.4499771825503558e-05
+        ],
+        "sem_lip_fullness": [
+          0.00012511770182754844,
+          0.0003234288888052106,
+          -0.0001435223821317777
+        ],
+        "sem_upper_lip": [
+          0.00014036263746675104,
+          0.0004892086726613343,
+          -3.909065981133608e-06
+        ],
+        "sem_lower_lip": [
+          8.693621930433437e-05,
+          -0.00011016505595762283,
+          -4.83755356981419e-05
+        ],
+        "sem_philtrum": [
+          6.232970190467313e-05,
+          0.0002670535759534687,
+          0.00014767327229492366
+        ],
+        "sem_ear_size": [
+          6.188758561620489e-06,
+          4.238972906023264e-05,
+          6.46361950202845e-05
+        ],
+        "sem_ear_protrusion": [
+          1.017436443362385e-05,
+          -5.982367383694509e-06,
+          -8.260494360001758e-05
+        ]
+      }
+    }
+  }
+}

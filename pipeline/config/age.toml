@@ -1,0 +1,42 @@
+# Face to Voice — the Age slider (Identity section): -1 = younger, 0 = the face as shaped, +1 = older.
+#
+# SHAPE: a mix of the semantic sliders (and one fine-tune control) in the directions facial-ageing studies report:
+# thinner lips (upper most), longer philtrum, wider mouth, longer and wider nose with a drooping tip, longer ears,
+# smaller visible eyes, lower brows, volume loss in the cheeks, sagging jowls, drooping mouth corners.
+#   Sources: Morphologic alterations of ear, nose and lip with aging (photoanthropometry), PMC6981354;
+#   Windhager et al. 2019, Facial aging trajectories, PMC6771603; Analysis of facial soft tissue changes with
+#   aging, a forensic perspective (ScienceDirect S2090536X14000501); 3D facial aging, GeroScience 2026.
+# Values are slider weights at Age +1 (the ageing direction; -1 applies the same mix negated).
+# SKIN: the web app's skin shader draws wrinkles from Age 0 upwards (web/src/lib/age.ts); each wrinkle has an
+# onset (the Age at which it starts to show) and a depth in millimetres at Age +1.
+#
+#     uv run age-preview        # the shape at -1 / 0 / +1 -> out/age/preview.png (the skin is web-only)
+#     uv run export             # writes the mix into web/src/data/sliders.json and web/src/data/ageing.json
+
+[shape]
+lip_fullness = -0.45
+upper_lip = -0.35
+philtrum = 0.5
+mouth_width = 0.2
+nose_length = 0.35
+nose_tip = -0.45
+nose_width = 0.25
+ear_size = 0.45
+eye_size = -0.35
+brow_height = -0.3
+cheek_fullness = -0.4
+jowls = 0.55
+
+[controls]
+smile = -0.2   # the mouth corners droop
+
+[skin]            # onset = Age where it starts, depth_mm = groove depth at Age +1
+forehead = { onset = 0.15, depth_mm = 0.35 }
+glabella = { onset = 0.3, depth_mm = 0.4 }
+crows_feet = { onset = 0.2, depth_mm = 0.3 }
+under_eye = { onset = 0.3, depth_mm = 0.3 }
+nasolabial = { onset = 0.1, depth_mm = 0.9 }
+marionette = { onset = 0.45, depth_mm = 0.6 }
+lip_lines = { onset = 0.55, depth_mm = 0.15 }
+neck = { onset = 0.4, depth_mm = 0.25 }
+texture = { onset = 0.2, depth_mm = 0.025 }  # fine skin grain

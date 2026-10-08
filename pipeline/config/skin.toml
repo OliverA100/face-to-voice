@@ -1,0 +1,58 @@
+# `uv run skin-maps` (src/ftv_pipeline/skin_maps.py): the skin's region maps and pore texture.
+# Region values are per GNM vertex group (0..1); the first matching group in the list wins, then the values are
+# smoothed over the mesh so regions fade into each other. Groups: `uv run python -c "from ftv_pipeline.gnm import GNM;
+# print(sorted(GNM.load().vertex_groups))"`.
+
+[ao]
+ear_strength = 0.15    # the baked AO inside the ears at this fraction: the ear bowl is squeezed into a few texels of
+                       # the UV layout, so its AO shows as jagged dark patches; the ear's own shape shades it instead
+
+[smooth]
+iterations = 18        # neighbour-averaging passes over the mesh (more = softer region edges)
+
+# G: redness / blood (lips are the strongest; the shader tints towards SKIN_SHADE.redTint)
+[redness]
+sharp = ["upper_lip", "lower_lip"]  # these keep a crisp edge (smoothed only `sharp_iterations` times), so lips stay lips
+sharp_iterations = 3
+default = 0.0
+upper_lip = 1.0
+lower_lip = 1.0
+nose_region = 0.5
+ears = 0.42
+left_cheek_region = 0.42
+right_cheek_region = 0.42
+left_zygomatic_region = 0.3
+right_zygomatic_region = 0.3
+eye_sockets = 0.32
+chin_region = 0.18
+middle_brow_region = 0.12
+forehead_region = 0.06
+
+# B: oiliness (0 = dry and matte, 1 = oily T-zone; drives roughness, the oily sheen and pore depth)
+[oiliness]
+default = 0.3          # 0.3 and below: no pores (scalp, neck, ears); the shader fades pores in from 0.3 to 0.6
+upper_lip = 0.85
+lower_lip = 0.85
+nose_region = 0.9
+middle_brow_region = 0.7
+forehead_region = 0.72
+chin_region = 0.6
+left_cheek_region = 0.55
+right_cheek_region = 0.55
+ears = 0.2
+
+# A: thinness (light shines through: ears, nostril wings, eyelids)
+[thinness]
+default = 0.0
+ears = 1.0
+eye_sockets = 0.55
+nostril_mm = 7.0       # plus a soft spot of this radius round each nose wing (alare landmarks)
+nostril = 0.65
+
+[detail]
+size = 512             # the tileable pore + fine-line height texture (px)
+tile_mm = 30           # what one tile covers on the face (the shader's SKIN_SHADE.detailTile must match)
+pores = 1100           # pores per tile
+pore_radius_px = [1.6, 3.4]
+lines = 0.2            # fine criss-cross lines, relative to the pores
+grain = 0.04           # soft lumpy grain (more reads as paper)

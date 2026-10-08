@@ -1,0 +1,291 @@
+{
+ "sem_face_length": {
+  "min": {
+   "end": -2.271,
+   "break": -2.345,
+   "checks": {
+    "mouth_inside": 0.214
+   }
+  }
+ },
+ "sem_cheekbones": {
+  "max": {
+   "end": 2.249,
+   "break": 2.511,
+   "checks": {
+    "self_intersect": 0.201
+   },
+   "limiter": true
+  }
+ },
+ "sem_cheek_fullness": {
+  "min": {
+   "end": -2.641,
+   "break": -2.729,
+   "checks": {
+    "mouth_inside": 0.129
+   }
+  }
+ },
+ "sem_eye_depth": {
+  "max": {
+   "end": 1.63,
+   "break": 1.684,
+   "checks": {
+    "eye_through": 0.1
+   }
+  }
+ },
+ "sem_brow_height": {
+  "min": {
+   "end": -1.743,
+   "break": -1.8,
+   "checks": {
+    "self_intersect": 0.101
+   }
+  }
+ },
+ "sem_brow_ridge": {
+  "min": {
+   "end": -2.543,
+   "break": -2.627,
+   "checks": {
+    "eye_through": 0.105
+   }
+  }
+ },
+ "sem_nose_width": {
+  "min": {
+   "end": -1.393,
+   "break": -1.564,
+   "checks": {
+    "self_intersect": 0.103
+   },
+   "limiter": true
+  }
+ },
+ "sem_lip_fullness": {
+  "min": {
+   "end": -2.899,
+   "break": -2.994,
+   "checks": {
+    "lips_cross": 0.008
+   }
+  }
+ },
+ "sem_upper_lip": {
+  "min": {
+   "end": -1.585,
+   "break": -1.638,
+   "checks": {
+    "lips_cross": 0.01
+   }
+  }
+ },
+ "sem_lower_lip": {
+  "min": {
+   "end": -2.431,
+   "break": -2.511,
+   "checks": {
+    "lips_cross": 0.01
+   }
+  }
+ },
+ "fx_jaw_open": {
+  "max": {
+   "end": 0.887,
+   "break": 0.916,
+   "checks": {
+    "mouth_inside": 0.392
+   }
+  }
+ },
+ "fx_frown": {
+  "max": {
+   "end": 0.852,
+   "break": 0.933,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "lower_face_region_000": {
+  "min": {
+   "end": -1.109,
+   "break": -1.146,
+   "checks": {
+    "mouth_inside": 0.174
+   }
+  },
+  "max": {
+   "end": 0.398,
+   "break": 0.412,
+   "checks": {
+    "self_intersect": 0.253
+   }
+  }
+ },
+ "lower_face_region_001": {
+  "min": {
+   "end": -0.762,
+   "break": -0.787,
+   "checks": {
+    "lips_cross": 0.007
+   }
+  }
+ },
+ "lower_face_region_003": {
+  "max": {
+   "end": 0.391,
+   "break": 0.405,
+   "checks": {
+    "lips_cross": 0.022
+   }
+  }
+ },
+ "lower_face_region_004": {
+  "max": {
+   "end": 0.871,
+   "break": 0.9,
+   "checks": {
+    "lips_cross": 0.005
+   }
+  }
+ },
+ "lower_face_region_006": {
+  "min": {
+   "end": -1.175,
+   "break": -1.214,
+   "checks": {
+    "lips_cross": 0.002
+   }
+  }
+ },
+ "left_eye_region_000": {
+  "min": {
+   "end": -0.937,
+   "break": -1.069,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "left_eye_region_001": {
+  "max": {
+   "end": 1.054,
+   "break": 1.167,
+   "checks": {
+    "eye_lids": 1.0
+   },
+   "limiter": true
+  }
+ },
+ "left_eye_region_002": {
+  "min": {
+   "end": -1.074,
+   "break": -1.177,
+   "checks": {
+    "eye_lids": 1.002
+   },
+   "limiter": true
+  }
+ },
+ "left_eye_region_005": {
+  "min": {
+   "end": -1.283,
+   "break": -1.397,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "right_eye_region_000": {
+  "min": {
+   "end": -0.857,
+   "break": -0.984,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "right_eye_region_001": {
+  "min": {
+   "end": -1.416,
+   "break": -1.462,
+   "checks": {
+    "eye_through": 0.1
+   }
+  },
+  "max": {
+   "end": 1.012,
+   "break": 1.141,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "right_eye_region_002": {
+  "min": {
+   "end": -1.065,
+   "break": -1.165,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "right_eye_region_005": {
+  "min": {
+   "end": -1.291,
+   "break": -1.416,
+   "checks": {
+    "eye_lids": 1.001
+   },
+   "limiter": true
+  }
+ },
+ "tongue_000": {
+  "max": {
+   "end": 0.482,
+   "break": 0.499,
+   "checks": {
+    "mouth_inside": 0.116
+   }
+  }
+ },
+ "sem_chin_width": {
+  "max": {
+   "end": 2.551,
+   "limiter": true
+  }
+ },
+ "teeth_000": {
+  "min": {
+   "end": -1.453,
+   "limiter": true
+  }
+ },
+ "lower_face_region_011": {
+  "max": {
+   "end": 1.268,
+   "limiter": true
+  }
+ },
+ "sem_nose_tip": {
+  "min": {
+   "end": -2.832,
+   "limiter": true
+  }
+ },
+ "sem_jowls": {
+  "min": {
+   "end": -3.356,
+   "limiter": true
+  }
+ }
+}

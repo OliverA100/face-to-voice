@@ -1,0 +1,15 @@
+# `uv run bake-ao` (src/ftv_pipeline/bake.py): ambient occlusion baked in Blender into the skin UVs.
+
+[ao]
+bake_size = 2048      # bake resolution; the shipped maps are resized from it
+samples = 256         # Cycles AO samples per texel (noise is blurred away afterwards)
+broad_m = 0.05        # metres: eye sockets, under nose and jaw, ear bowl
+crease_m = 0.008      # metres: lip line, nostril rims, eyelid folds
+broad_gamma = 1.6     # >1 darkens the broad AO
+crease_gamma = 1.0
+blur_px = 2.5         # at 1024² (scaled with bake_size); hides Monte-Carlo streaks
+
+[regions]
+sizes = [1024, 512]   # high/medium tiers use the first, the low tier the second
+codec = "uastc"       # "uastc" (sharp, ~200 KB at 1024²) or "etc1s" (~28 KB, but its blocks streak where the UVs are squeezed, e.g. behind the ears)
+etc1s_quality = 255   # basisu ETC1S -q (1..255, higher = better)

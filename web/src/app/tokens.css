@@ -1,0 +1,119 @@
+/*
+ * Design tokens: every colour, type size, radius, shadow and timing of the UI lives here.
+ * The look follows ElevenLabs' product language (warm near-monochrome neutrals, soft lifted
+ * controls, pill buttons, light headlines); measured reference values are in docs/design.md.
+ *
+ * Light theme only. A dark theme would redefine the :root block below (and Scene.tsx's backdrop).
+ *
+ * Spacing is Tailwind's 4px scale, used with a fixed rhythm:
+ *   gutter    20px (px-5) inside cards; 12px (px-3) page gutter on phones, 20px (px-5) from lg
+ *   rows      12px (py-3) around a row of controls
+ *   blocks    20px (pt-5) above a titled block
+ *   gaps      8px (gap-2) between chips and pills, 12px (gap-3) between stacked parts of a card
+ */
+:root {
+  /* Surfaces */
+  --page: #fdfcfc; /* warm off-white page */
+  --surface: #f5f3f1; /* trays, hovered rows, the head's backdrop */
+  --surface-2: #ebe8e4; /* pressed / hover on a surface */
+  --card: #ffffff;
+
+  /* Text */
+  --ink: #000000;
+  --ink-2: #59544f; /* secondary text */
+  --ink-3: #746e66; /* muted text, labels, values: 4.5:1 on --surface (the inactive tabs); elevenlabs.io's #777169 is 4.36:1 */
+  --ink-4: #a59f97; /* placeholders, slider end labels, counts */
+  --ink-hover: #1a1a1a; /* black pill on hover */
+
+  /* Lines: used sparingly (spacing separates most things) */
+  --line-dotted: #d9d5d0; /* the tick at zero on bipolar sliders */
+
+  /* Sliders */
+  --track: #ebe8e4;
+  --fill: #8f8981; /* warm grey, between --ink-3 and --ink-4: the fill reads without competing with the text */
+
+  /* Status */
+  --danger: #b91c1c; /* dark enough for 13px text on the surface tray (5.9:1) */
+
+  /* Selection: the pink of the loader's soap bubble and the favicon blob (their most common hue, sampled from
+     lib/brand/blob.png), with ink text like a highlighter: 12.4:1. */
+  --selection: #f7b0ec;
+  --selection-ink: #000000;
+
+  /* The header logo's fallback gradient when its image is missing (components/ui/LogoOrb.tsx): electric blue →
+     blue-violet. The loader, the logo, the spinner and the voice orbs are the loader's sphere
+     (components/ui/loader/chrome.tsx). */
+  --orb-1: #3b5bff;
+  --orb-2: #8070f2;
+
+  /* Motion: calm and the same everywhere. Three durations, three easings; GSAP code reads the same scale from
+     lib/motion.ts (MOTION.quick/move/height mirror these, a test keeps them equal, plus the head's morph timings).
+       --dur-1 + --ease             hover, press, colour, focus rings, disabled fades
+       --dur-2 + --ease-out-soft    movement: tab indicator, tab switch, choice rings and fills, chevrons
+       --dur-2 + --ease             fades: thumbnails loading, content entering (.enter), labels turning white
+       --dur-3 + --ease-in-out-soft height: groups opening and closing (and their chevrons) */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1); /* colours, opacity */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1); /* movement: decelerates gently, never overshoots (GSAP: power4.out) */
+  --dur-1: 150ms; /* hover, press, colour (elevenlabs.io uses 150ms) */
+  --dur-2: 300ms; /* movement: tab indicator, tab switch, fades */
+  --dur-3: 400ms; /* height: groups opening and closing */
+  --ease-in-out-soft: cubic-bezier(0.45, 0, 0.2, 1); /* height: starts gently, settles gently (no jump in the first frame) */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-1: 0.01ms;
+    --dur-2: 0.01ms;
+    --dur-3: 0.01ms;
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-4: var(--ink-4);
+  --color-ink-hover: var(--ink-hover);
+  --color-line-dotted: var(--line-dotted);
+  --color-track: var(--track);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+
+  /* Type scale: five sizes, each with its line height. Weights: 400 titles and text, 500 section labels. */
+  --text-meta: 12px; /* values, slider end labels, footnotes */
+  --text-meta--line-height: 16px;
+  --text-label: 13px; /* secondary text, section labels, tabs, chips, hints */
+  --text-label--line-height: 18px;
+  --text-body: 14px; /* row names, buttons, body */
+  --text-body--line-height: 20px;
+  --text-input: 16px; /* text fields (16px also stops iOS zooming on focus) */
+  --text-input--line-height: 24px;
+  --text-title: 24px; /* panel and voice card titles (28px from md, set at the call site) */
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
+
+  /* Radii: pills/chips are rounded-full. */
+  --radius-card: 24px; /* cards */
+  --radius-tray: 16px; /* inner trays: textarea, prompt, alert */
+  --radius-row: 12px; /* list rows: groups, previews */
+
+  /* Shadows: soft and barely there. */
+  --shadow-hairline: 0 0 0 0.5px rgb(0 0 0 / 0.08); /* frames a card on the off-white page */
+  --shadow-control: 0 0 1px rgb(0 0 0 / 0.4), 0 1px 1px rgb(0 0 0 / 0.04), 0 2px 4px rgb(0 0 0 / 0.04); /* white pills, tab, thumb */
+  --shadow-control-hover: 0 0 1px rgb(0 0 0 / 0.5), 0 1px 2px rgb(0 0 0 / 0.06), 0 3px 8px rgb(0 0 0 / 0.06);
+  /* Slider thumb: a firmer edge than --shadow-control so a white thumb still registers on the white card. */
+  --shadow-thumb: 0 0 0 0.5px rgb(0 0 0 / 0.22), 0 1px 3px rgb(0 0 0 / 0.14);
+  --shadow-thumb-hover: 0 0 0 0.5px rgb(0 0 0 / 0.3), 0 2px 6px rgb(0 0 0 / 0.16);
+  --shadow-float: 0 0 0 0.5px rgb(0 0 0 / 0.06), 0 8px 24px -8px rgb(0 0 0 / 0.12); /* the voice card over the head */
+
+  /* Every transition-* class gets the calm defaults. */
+  --default-transition-duration: var(--dur-1);
+  --default-transition-timing-function: var(--ease);
+  --ease-soft: var(--ease-out-soft); /* class ease-soft, for movement */
+}

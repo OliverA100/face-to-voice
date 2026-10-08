@@ -1,0 +1,177 @@
+diff --git a/dist/events-803f4abc.esm.js b/dist/events-803f4abc.esm.js
+index d05baa9ea60ed69259cddb45681e31b8659552d0..78487174c65d33bb507326490ab421721c46382b 100644
+--- a/dist/events-803f4abc.esm.js
++++ b/dist/events-803f4abc.esm.js
+@@ -970,6 +970,45 @@ function createEvents(store) {
+ 
+ const isRenderer = def => !!(def != null && def.render);
+ const context = /* @__PURE__ */React.createContext(null);
++// THREE.Clock is deprecated since three r183 and warns when made: the same interface, timed by a THREE.Timer
++// (face-to-voice patch, web/patches/)
++const createClock = () => {
++  const timer = new THREE.Timer();
++  return {
++    autoStart: true,
++    startTime: 0,
++    oldTime: 0,
++    elapsedTime: 0,
++    running: false,
++    start() {
++      timer.reset();
++      this.startTime = this.oldTime = performance.now();
++      this.elapsedTime = 0;
++      this.running = true;
++    },
++    stop() {
++      this.getElapsedTime();
++      this.running = false;
++      this.autoStart = false;
++    },
++    getElapsedTime() {
++      this.getDelta();
++      return this.elapsedTime;
++    },
++    getDelta() {
++      if (this.autoStart && !this.running) {
++        this.start();
++        return 0;
++      }
++      if (!this.running) return 0;
++      timer.update();
++      const delta = timer.getDelta();
++      this.oldTime = performance.now();
++      this.elapsedTime += delta;
++      return delta;
++    }
++  };
++};
+ const createStore = (invalidate, advance) => {
+   const rootStore = createWithEqualityFn((set, get) => {
+     const position = new THREE.Vector3();
+@@ -1038,7 +1077,7 @@ const createStore = (invalidate, advance) => {
+       linear: false,
+       flat: false,
+       controls: null,
+-      clock: new THREE.Clock(),
++      clock: createClock(),
+       pointer,
+       mouse: pointer,
+       frameloop: 'always',
+diff --git a/dist/events-a79ef12b.cjs.prod.js b/dist/events-a79ef12b.cjs.prod.js
+index 3a2edacd9662fdb607952f09fdfc750c10baed95..9e3b968d7301e1fa4e3780727b6847ddabb9e02f 100644
+--- a/dist/events-a79ef12b.cjs.prod.js
++++ b/dist/events-a79ef12b.cjs.prod.js
+@@ -995,6 +995,45 @@ function createEvents(store) {
+ 
+ const isRenderer = def => !!(def != null && def.render);
+ const context = /* @__PURE__ */React__namespace.createContext(null);
++// THREE.Clock is deprecated since three r183 and warns when made: the same interface, timed by a THREE.Timer
++// (face-to-voice patch, web/patches/)
++const createClock = () => {
++  const timer = new THREE__namespace.Timer();
++  return {
++    autoStart: true,
++    startTime: 0,
++    oldTime: 0,
++    elapsedTime: 0,
++    running: false,
++    start() {
++      timer.reset();
++      this.startTime = this.oldTime = performance.now();
++      this.elapsedTime = 0;
++      this.running = true;
++    },
++    stop() {
++      this.getElapsedTime();
++      this.running = false;
++      this.autoStart = false;
++    },
++    getElapsedTime() {
++      this.getDelta();
++      return this.elapsedTime;
++    },
++    getDelta() {
++      if (this.autoStart && !this.running) {
++        this.start();
++        return 0;
++      }
++      if (!this.running) return 0;
++      timer.update();
++      const delta = timer.getDelta();
++      this.oldTime = performance.now();
++      this.elapsedTime += delta;
++      return delta;
++    }
++  };
++};
+ const createStore = (invalidate, advance) => {
+   const rootStore = traditional.createWithEqualityFn((set, get) => {
+     const position = new THREE__namespace.Vector3();
+@@ -1063,7 +1102,7 @@ const createStore = (invalidate, advance) => {
+       linear: false,
+       flat: false,
+       controls: null,
+-      clock: new THREE__namespace.Clock(),
++      clock: createClock(),
+       pointer,
+       mouse: pointer,
+       frameloop: 'always',
+diff --git a/dist/events-ce5e34e8.cjs.dev.js b/dist/events-ce5e34e8.cjs.dev.js
+index 9412bca699b8f1625ea92bd279bae8d30b6ca01c..d904c84a0c9244e0e8f4722cc0a7b85afa2c9b8a 100644
+--- a/dist/events-ce5e34e8.cjs.dev.js
++++ b/dist/events-ce5e34e8.cjs.dev.js
+@@ -995,6 +995,45 @@ function createEvents(store) {
+ 
+ const isRenderer = def => !!(def != null && def.render);
+ const context = /* @__PURE__ */React__namespace.createContext(null);
++// THREE.Clock is deprecated since three r183 and warns when made: the same interface, timed by a THREE.Timer
++// (face-to-voice patch, web/patches/)
++const createClock = () => {
++  const timer = new THREE__namespace.Timer();
++  return {
++    autoStart: true,
++    startTime: 0,
++    oldTime: 0,
++    elapsedTime: 0,
++    running: false,
++    start() {
++      timer.reset();
++      this.startTime = this.oldTime = performance.now();
++      this.elapsedTime = 0;
++      this.running = true;
++    },
++    stop() {
++      this.getElapsedTime();
++      this.running = false;
++      this.autoStart = false;
++    },
++    getElapsedTime() {
++      this.getDelta();
++      return this.elapsedTime;
++    },
++    getDelta() {
++      if (this.autoStart && !this.running) {
++        this.start();
++        return 0;
++      }
++      if (!this.running) return 0;
++      timer.update();
++      const delta = timer.getDelta();
++      this.oldTime = performance.now();
++      this.elapsedTime += delta;
++      return delta;
++    }
++  };
++};
+ const createStore = (invalidate, advance) => {
+   const rootStore = traditional.createWithEqualityFn((set, get) => {
+     const position = new THREE__namespace.Vector3();
+@@ -1063,7 +1102,7 @@ const createStore = (invalidate, advance) => {
+       linear: false,
+       flat: false,
+       controls: null,
+-      clock: new THREE__namespace.Clock(),
++      clock: createClock(),
+       pointer,
+       mouse: pointer,
+       frameloop: 'always',

@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck # generates Next's route and asset types first (next-env.d.ts is not committed)
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          FTV_MOCK_ELEVENLABS: "1"
+          FTV_MOCK_CLAUDE: "1"
+
+  pipeline:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipeline
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: pipeline/uv.lock
+      - run: uv sync --locked
+      - run: uv run ruff check
+      # Tests that need the GNM model (a 53 MB download) skip when pipeline/.cache has none.
+      - run: uv run pytest

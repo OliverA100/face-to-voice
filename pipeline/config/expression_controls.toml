@@ -1,0 +1,125 @@
+# Face to Voice — fine-tune expression controls (the Emotion section's "Fine-tune" group)
+#
+# Each control is a mix of the expression targets head.glb already ships (no extra bytes), solved like an
+# emotion goal: `goals` are millimetre changes at +1 (measures: emotions.py MEASURES); every other measure is
+# held unless listed in `free`; part = upper (brows, lids) or lower (mouth). min/max = the slider's range.
+# A two-sided control can give the -1 side its own goals (goals_neg, free_neg): the web app then uses a second mix
+# for negative values instead of the +1 mix reversed.
+# While the voice speaks, the mouth controls fade out like the raw mouth sliders so the visemes stay readable.
+#
+#     uv run emotions --controls      # report + out/emotions/controls.png   (then `uv run export` to ship)
+
+# --- Mouth --------------------------------------------------------------------------------------------------
+
+[[control]]
+id = "jaw_open"
+name = "Jaw open"
+group = "mouth"
+part = "lower"
+low = "closed"
+high = "open"
+min = 0.0
+goals = { jaw_open = 14.0 }
+free = ["lip_part", "lip_thickness", "lip_protrude", "mouth_stretch", "corner_raise", "upper_lip_raise"]
+
+[[control]]
+id = "smile"
+name = "Smile ↔ frown"
+group = "mouth"
+part = "lower"
+low = "corners down"
+high = "corners up"
+goals = { corner_raise = 4.0 }
+free = ["mouth_stretch", "lip_thickness"]
+
+[[control]]
+id = "mouth_width"
+name = "Wide ↔ pucker"
+group = "mouth"
+part = "lower"
+low = "pucker"
+high = "stretched wide"
+goals = { mouth_stretch = 8.0, lip_protrude = -2.0 }
+free = ["lip_thickness"]
+
+[[control]]
+id = "lips"
+name = "Lips pressed ↔ parted"
+group = "mouth"
+part = "lower"
+low = "pressed thin"
+high = "parted"
+goals = { lip_part = 6.0 }                          # at +1
+free = ["lip_thickness", "upper_lip_raise"]
+goals_neg = { lip_thickness = -3.0, lip_part = 0.0 }  # at -1: its own direction (reversing +1 would push the lips into each other)
+
+[[control]]
+id = "sneer"
+name = "Sneer"
+group = "mouth"
+part = "lower"
+low = "relaxed"
+high = "upper lip raised"
+min = 0.0
+goals = { upper_lip_raise = 4.0 }
+free = ["lip_part", "lip_thickness"]
+
+[[control]]
+id = "mouth_shift"
+name = "Mouth left ↔ right"
+group = "mouth"
+part = "lower"
+low = "to the right"
+high = "to the left"
+goals = { mouth_shift = 5.0 }
+
+# --- Eyes and brows -----------------------------------------------------------------------------------------
+
+[[control]]
+id = "brows"
+name = "Brows down ↔ up"
+group = "eyes"
+part = "upper"
+low = "lowered"
+high = "raised"
+goals = { brow_raise = 3.0 }
+free = ["inner_brow_raise", "outer_brow_raise", "lid_aperture"]
+
+[[control]]
+id = "frown"
+name = "Frown"
+group = "eyes"
+part = "upper"
+low = "relaxed"
+high = "brows knitted"
+min = 0.0
+goals = { brow_knit = -2.5, inner_brow_raise = -1.2 }
+free = ["brow_raise", "outer_brow_raise"]
+
+[[control]]
+id = "eyes_open"
+name = "Eyes closed ↔ wide"
+group = "eyes"
+part = "upper"
+low = "sleepy"
+high = "wide open"
+goals = { lid_aperture = 3.0 }
+free = ["lower_lid_raise"]
+
+[[control]]
+id = "squint"
+name = "Squint"
+group = "eyes"
+part = "upper"
+low = "relaxed"
+high = "squinting"
+min = 0.0
+goals = { lower_lid_raise = 1.8, lid_aperture = -2.5 }
+
+[[control]]
+id = "pupils"
+name = "Pupil size"
+group = "eyes"
+low = "small"
+high = "large"
+target = "pupils_000"

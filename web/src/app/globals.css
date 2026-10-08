@@ -1,0 +1,340 @@
+@import "tailwindcss";
+/* Every value (colours, type scale, radii, shadows, motion) lives in tokens.css; this file only uses them. */
+@import "./tokens.css";
+
+html {
+  color-scheme: light;
+  /* Lets <details> animate to its natural height (::details-content below). */
+  interpolate-size: allow-keywords;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Selected text: ink on the bubble's pink (values in tokens.css). */
+::selection {
+  background: var(--selection);
+  color: var(--selection-ink);
+}
+
+/* Tailwind v4's preflight gives buttons the default arrow; clickable things get the hand again.
+   Disabled ones keep the arrow (pills also drop pointer events when disabled). */
+@layer base {
+  :where(button, [role="button"], [role="radio"], [role="tab"], summary, select, label:has(> input[type="checkbox"]), input[type="checkbox"], input[type="radio"]):not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Headline voice: regular weight, tight tracking. Size via text-title. */
+.display {
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+/* Pill buttons: heights 32/36/40/44 via h-8/h-9/h-10/h-11 at the call site. Defined as
+   utilities so they work in class names and in @apply. Text is text-body; small pills set text-label. */
+/* A busy pill is aria-disabled rather than disabled, so a keyboard user's focus stays on it while it works (a disabled
+   button drops focus to the page); it takes no pointer either. */
+@utility pill {
+  @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-body font-normal transition-[background-color,color,box-shadow,transform,opacity] select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none;
+}
+@utility pill-primary {
+  @apply pill bg-ink text-white hover:bg-ink-hover;
+}
+/* White pill lifted by a soft shadow (no outline); the shadow deepens a little on hover. */
+@utility pill-secondary {
+  @apply pill bg-card text-ink shadow-control hover:shadow-control-hover;
+}
+@utility pill-ghost {
+  @apply pill bg-surface text-ink-2 hover:bg-surface-2;
+}
+@utility card {
+  @apply rounded-card bg-card shadow-hairline;
+}
+/* Scrolls without a visible scrollbar (the face column and panel); wheel, touch and keys still scroll. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Round choices (.choice: hair/add-on thumbnails and colour chips, role="radio" buttons): the chosen one gets a thin
+   ink ring 2px outside it that fades and scales in. Only opacity and transform animate, so the ring stays smooth even
+   while a newly chosen piece is being applied to the head (that work blocks the page for a moment). */
+.choice::after {
+  content: "";
+  position: absolute;
+  inset: -2px; /* a 2px gap, then the 1.5px ring drawn outward */
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1.5px var(--ink);
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity var(--dur-2) var(--ease),
+    transform var(--dur-2) var(--ease-out-soft);
+  pointer-events: none;
+}
+.choice[aria-checked="true"]::after {
+  opacity: 1;
+  transform: none;
+}
+/* Thumbnail images fade in once loaded (components/ui/thumb.tsx). */
+.thumb img {
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+}
+.thumb img[data-loaded] {
+  opacity: 1;
+}
+
+/* Pills where one is chosen (.pill-choice on a role="radio" pill-secondary: the emotions): the chosen one fills with
+   ink through a layer that fades and grows in, and its label turns white with it. Opacity/transform keep it smooth
+   while the face starts changing; there is no grey midpoint between the old and the new pill. */
+.pill-choice {
+  position: relative;
+  isolation: isolate;
+  /* The label turns white with the ink layer (--dur-2); hover, press and disabled stay as quick as on every pill. */
+  transition-property: background-color, color, box-shadow, transform, opacity;
+  transition-duration: var(--dur-1), var(--dur-2), var(--dur-1), var(--dur-1), var(--dur-1);
+}
+.pill-choice::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--ink);
+  opacity: 0;
+  transform: scale(0.9);
+  transition:
+    opacity var(--dur-2) var(--ease),
+    transform var(--dur-2) var(--ease-out-soft);
+}
+.pill-choice[aria-checked="true"] {
+  color: white;
+}
+.pill-choice[aria-checked="true"]::before {
+  opacity: 1;
+  transform: none;
+}
+
+/* Collapsible groups (<details class="disclose">): the content eases open to its natural height and fades in,
+   and the reverse on close. Browsers without ::details-content simply open instantly. */
+details.disclose::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow-y: clip;
+  transition:
+    block-size var(--dur-3) var(--ease-in-out-soft),
+    opacity var(--dur-3) var(--ease),
+    content-visibility var(--dur-3) allow-discrete;
+}
+details.disclose[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+/* Content that appears (a voice card step, an error, the voice prompt, the sync slider) fades in over --dur-2, like a
+   tab's content and the thumbnails. Opacity only: nothing around it moves. Plays once, when the element mounts. */
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+}
+.enter {
+  animation: enter var(--dur-2) var(--ease);
+}
+
+/* The app's tooltip (components/ui/TooltipLayer.tsx): fades in and settles 4 px towards its element (opacity and
+   translate: the compositor). */
+@keyframes tooltip-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--tip-from, -4px);
+  }
+}
+.tooltip-in {
+  animation: tooltip-in var(--dur-1) var(--ease-out-soft);
+}
+/* What a hint covers (a slider's end labels under its track) fades out while it shows, rather than peeking out. */
+[data-tip-under] {
+  transition: opacity var(--dur-1) var(--ease);
+}
+[data-tip-shown] [data-tip-under] {
+  opacity: 0;
+}
+
+/* The busy spinner (components/ui/Spinner.tsx): a strip of frames of the loader's sphere, slid behind a one-frame window
+   by a transform (the compositor runs it while the page is busy), forwards then backwards (steps(frames, jump-none)
+   alternate, set inline); --spinner-end is the last frame's offset. */
+@keyframes spinner-swing {
+  to {
+    transform: translateX(var(--spinner-end));
+  }
+}
+
+/* Loading pulses (skeleton rows, a thumbnail whose piece is downloading) hold still with reduced motion; the label
+   next to them still says "Loading…". The spinners keep moving: they are the only sign a button is working. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse {
+    animation: none;
+  }
+}
+
+/* Switching panel tabs: the newly shown tab fades in and slides 8px from the side of its tab (--tab-dir = ±1,
+   set by SliderPanel). A hidden tab is display:none, so the animation replays each time one is shown. */
+@keyframes tab-in {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--tab-dir, 0) * 8px));
+  }
+}
+[data-switched] > [role="tabpanel"]:not([hidden]) {
+  animation: tab-in var(--dur-2) var(--ease-out-soft);
+}
+
+/*
+ * Range sliders: a soft 4px track with a warm grey fill (--fill), a white thumb with a soft edge (--shadow-thumb).
+ * The fill runs between --fa and --fb (lengths along the track, written by components/ui/panel/rangeFill.ts:
+ * from the zero point to the thumb's centre); bipolar sliders (.range-mid) also get a faint tick at zero (--fz).
+ */
+input[type="range"].range {
+  --fa: 0px;
+  --fb: 0px;
+  --fz: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 20px;
+  width: 100%;
+  background-color: transparent;
+  cursor: pointer;
+}
+input[type="range"].range-mid {
+  background-image: linear-gradient(
+    to right,
+    transparent calc(var(--fz) - 0.5px),
+    var(--line-dotted) calc(var(--fz) - 0.5px),
+    var(--line-dotted) calc(var(--fz) + 0.5px),
+    transparent calc(var(--fz) + 0.5px)
+  );
+  background-size: 100% 10px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+/* Touch screens: a taller hit area; the track stays centred, so the thumb offset is unchanged. */
+@media (pointer: coarse) {
+  input[type="range"].range {
+    height: 28px;
+  }
+}
+input[type="range"].range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--track) var(--fa), var(--fill) var(--fa), var(--fill) var(--fb), var(--track) var(--fb));
+}
+input[type="range"].range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(to right, var(--track) var(--fa), var(--fill) var(--fa), var(--fill) var(--fb), var(--track) var(--fb));
+}
+input[type="range"].range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background: var(--card);
+  box-shadow: var(--shadow-thumb);
+  transition:
+    transform var(--dur-1) var(--ease-out-soft),
+    box-shadow var(--dur-1) var(--ease);
+}
+input[type="range"].range::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--card);
+  box-shadow: var(--shadow-thumb);
+  transition:
+    transform var(--dur-1) var(--ease-out-soft),
+    box-shadow var(--dur-1) var(--ease);
+}
+input[type="range"].range:not(:disabled):hover::-webkit-slider-thumb {
+  box-shadow: var(--shadow-thumb-hover);
+}
+input[type="range"].range:not(:disabled):hover::-moz-range-thumb {
+  box-shadow: var(--shadow-thumb-hover);
+}
+input[type="range"].range:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+input[type="range"].range:active::-moz-range-thumb {
+  transform: scale(1.08);
+}
+/* Keyboard focus on a slider: the focus ring goes round the thumb. */
+input[type="range"].range:focus-visible {
+  outline: none;
+}
+input[type="range"].range:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--shadow-thumb), 0 0 0 2px var(--card), 0 0 0 4px var(--ink);
+}
+input[type="range"].range:focus-visible::-moz-range-thumb {
+  box-shadow: var(--shadow-thumb), 0 0 0 2px var(--card), 0 0 0 4px var(--ink);
+}
+input[type="range"].range:disabled {
+  cursor: default;
+}
+
+/* Switch: a checkbox drawn as a 28×16 toggle (white knob slides right, the track turns ink). */
+input[type="checkbox"].switch {
+  -webkit-appearance: none;
+  appearance: none;
+  flex-shrink: 0;
+  width: 28px;
+  height: 16px;
+  border-radius: 9999px;
+  background-color: var(--surface-2);
+  background-image: radial-gradient(circle, var(--card) 6px, transparent 6.5px);
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.06);
+  transition:
+    background-color var(--dur-1) var(--ease),
+    background-position var(--dur-1) var(--ease-out-soft);
+}
+input[type="checkbox"].switch:checked {
+  background-color: var(--ink);
+  background-position: 12px 0;
+}
+
+/* Keyboard focus never hides under the sticky tab bar (WCAG 2.4.11): a control that Tab scrolls into view keeps the
+   bar's height (64px) and a little air clear above it (the bar on top, tablets and up) and below it (phones, bar at the
+   bottom). */
+[role="tabpanel"] :is(button, input, summary, a, textarea) {
+  scroll-margin-block: 76px;
+}
+
+/* Keyboard focus: a black ring with an offset, as in ElevenLabs' app. */
+:where(button, a, input:not([type="range"]), summary):focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Text fields show focus on every click, not only from the keyboard, so theirs is gentler: a thin ink ring that hugs
+   the field and fades in (the outline above would snap on 2 px out). */
+textarea {
+  transition: box-shadow var(--dur-1) var(--ease);
+}
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 1.5px var(--ink);
+}

@@ -1,0 +1,13 @@
+# `uv run eye-maps` (src/ftv_pipeline/eye_maps.py): the generated iris texture.
+
+[iris]
+size = 512            # px; the iris is rarely more than ~200 px on screen
+fibres = 1500         # light stroma strands
+fibre_contrast = 0.8  # 0 = flat colour, 1 = only strands over a dark base
+collarette_at = 0.32  # where the zigzag ring sits (0 = pupil edge, 1 = iris edge)
+collarette = 0.35     # how much lighter it is
+crypts = 34           # dark pits beside the collarette
+crypt_depth = 0.55
+furrows = 4.5         # contraction rings across the outer zone
+furrow_depth = 0.25
+limbal = 0.7          # the dark ring at the iris edge

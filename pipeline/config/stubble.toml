@@ -1,0 +1,84 @@
+# `uv run stubble` (src/ftv_pipeline/stubble.py): stubble styles drawn in the skin shader.
+# length 0..1 = how much of the follicle texture shows (shadow → heavy stubble); shadow 0..1 = the even, cool cast
+# of hair under the skin (a shaved beard's shadow). guides = MakeHuman beards whose skin contact gives the outline.
+
+[mask]
+edge_mm = [3.0, 11.0]   # fully covered within this distance of a guide root … faded out by the second
+smooth = 6               # neighbour-averaging passes (softer edge)
+patch_mm = 22            # size of the thin and thick patches
+patchiness = 0.35        # 0 = even, 1 = very patchy
+cheek_thin = 0.45        # how much thinner it gets high on the cheeks
+nose_gap_mm = -1.0       # the moustache's top edge: this far under the nose in the middle …
+wing_gap_mm = 5.0        # … and this far under it below the nostril wings (it curves down between)
+nose_reach_mm = [6, 8]   # that curve acts out to this far past the nostril wings, fading over the next few mm
+
+[follicles]
+size = 512
+count = 2600             # hair stubs per tile (tile = SKIN_SHADE.stubbleTile mm)
+radius_px = [1.3, 2.2]
+stretch = 2.2            # stubs are short dashes, not dots
+
+[style.shadow]
+label = "Five o'clock shadow"
+guides = ["full-beard", "moustache"]
+length = 0.2
+shadow = 0.75
+
+[style.stubble]
+label = "Stubble"
+guides = ["full-beard", "moustache"]
+length = 0.6
+shadow = 0.6
+
+[style.heavy-stubble]
+label = "Heavy stubble"
+guides = ["full-beard", "moustache"]
+length = 1.0
+shadow = 0.5
+
+[style.moustache-stubble]
+label = "Stubble moustache"
+guides = ["moustache"]
+mask = { edge_mm = [2.0, 7.0] }
+length = 0.85
+shadow = 0.5
+
+# Short beards, drawn as shells (groomed outline: mask.cheek_line_mm = the cheek line's height above the mouth corner
+# … at the sideburn, mask.neckline_mm = how far under the chin the neckline sits … and how much it rises towards the ear)
+# (layers of the beard area lifted off the skin, web/src/lib/beardShells.ts).
+# length_mm = the longest hairs (chin); cheek_length = the cheeks' and upper lip's share of it; gravity = how far the
+# hair combs down along the skin (0 = straight out); shadow = the stubble shadow under it (skin shader).
+
+[beard.short-beard]
+label = "Short beard"
+guides = ["full-beard", "moustache"]
+# neat and close-trimmed: a low, crisp cheek line and a tight neckline
+mask = { cheek_line_mm = [4, 26], neckline_mm = [16, 24], edge_soft_mm = 2.5 }
+length_mm = 3
+cheek_length = 0.8
+gravity = 0.35
+
+[beard.full-short-beard]
+label = "Full short beard"
+guides = ["full-beard", "moustache"]
+# bushier: a natural, high cheek line, a lower neckline, soft edges and some volume
+mask = { cheek_line_mm = [14, 46], neckline_mm = [32, 38], edge_soft_mm = 6 }
+length_mm = 14
+cheek_length = 0.55
+gravity = 0.7
+
+[beard.short-goatee]
+label = "Short goatee"
+guides = ["full-beard", "moustache"]
+keep_within_x_mm = 24
+length_mm = 8
+cheek_length = 0.8
+gravity = 0.5
+
+[beard.short-moustache]
+label = "Short moustache"
+guides = ["moustache"]
+mask = { edge_mm = [2.0, 7.0] }
+length_mm = 5
+cheek_length = 1.0
+gravity = 0.55

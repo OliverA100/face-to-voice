@@ -1,0 +1,534 @@
+# Face to Voice — semantic identity sliders (one slider ≈ one facial feature)
+#
+# GNM's identity components are PCA modes: each one moves many features at once. Every slider below
+# is instead ONE direction over all 170 head_* components, solved so that it changes its own
+# measurement a lot, keeps every other measurement fixed and barely moves the face outside its
+# region (see src/ftv_pipeline/semantic.py for the maths). Each slider becomes one morph target
+# "sem_<id>" in head.glb.
+#
+# Edit, then run from /pipeline:
+#     uv run semantic-landmarks [--write]   # propose landmark vertices; renders out/semantic/landmarks.png
+#     uv run semantic-report                # solve; writes out/semantic/report.md and sheet.png
+#
+# Measurements (all in millimetres, on the landmark vertices listed in [landmarks] at the bottom):
+#   { type = "distance", pairs = [[a, b], …] }         mean distance between the pairs
+#   { type = "axis", axis = "y", pairs = [[a, b], …] }  mean (a − b) along x | y | z (a/b may be vertex sets)
+#   { type = "normal", groups = [GNM vertex groups] }  mean movement along the surface normal (fullness)
+#   { terms = [ {…, weight = w}, … ] }                  weighted sum of the above
+# region  = GNM vertex groups where the slider may move the face freely (soft edge: solver.falloff_mm)
+# region_y = [lo, hi] (metres): only the part of the region at that height (the neck has no vertex group)
+# free    = other sliders' measurements this slider may change (nested features, e.g. a longer face
+#           may lengthen the nose); all the others are held fixed. free = ["*"]: holds nothing
+# held    = false: the other sliders do not have to keep this measurement fixed (head size)
+# ship    = false: solver only — not in the app (no morph target, no slider); the others still hold its measurement
+# held_measure = what the other sliders keep fixed for this one, if not its own measurement (a slider re-aimed later
+#           keeps the others' solutions exactly as they were)
+# hold    = extra measurements only this slider keeps fixed, e.g. a "balance" of two measurements:
+#           { type = "balance", a = {…}, b = {…} } = 0 when a and b grow by the same fraction
+# bake    = "auto" (default) | true | false: true = its own morph target in head.glb; false = a runtime mix of
+#           the raw head_* targets (no extra bytes); auto picks the mix when it does nearly as well
+# measure normal: groups default to all outer skin; y = [lo, hi], z = [lo, hi], x_abs_max cut a band (metres)
+# view    = front | profile | quarter, frame = face | eyes | nose | mouth | jaw (contact sheets only)
+# low / high = what -1 / +1 look like (the web panel shows these under the slider)
+# optional per slider: scale_sigma (weight 1.0 = exactly this many σ), lambda_out, lambda_sym, falloff_mm
+
+[solver]
+components = "head"      # identity region the directions are built from (all 170 head_* components)
+target_pop_sigma = 2.5   # morph weight ±1 = the feature at ±2.5 σ of the population (how wide real faces vary)
+max_sigma = 6.0          # …but never more than 6σ along the solved direction (a random face is ~13σ from the mean)
+lambda_out = 30.0        # cost of 1 mm² mean-square movement outside the region, in σ² units
+lambda_sym = 200.0       # cost of 1 mm² mean-square left/right asymmetry
+w_cross = 40.0           # cost of changing another (non-free) measurement by 1 mm, squared
+w_guard = 200.0          # cost of changing a guard measurement by 1 mm, squared
+falloff_mm = 15.0        # soft edge of each region
+
+# Guards: measurements that EVERY slider holds fixed but that are not sliders themselves.
+# lip_seal stops sliders from "changing" lip or chin measurements by parting the lips; mouth_corners keeps
+# the corners level with the middle of the lips (no slider may turn the mouth up or down).
+[[guard]]
+id = "lip_seal"
+measure = { type = "axis", axis = "y", pairs = [["stomion_upper", "stomion_lower"]] }
+
+[[guard]]
+id = "mouth_corners"
+measure = { type = "axis", axis = "y", pairs = [["cheilion_l", "stomion_upper"], ["cheilion_r", "stomion_upper"]] }
+
+# --- Head --------------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "head_size"
+name = "Head size"
+group = "head"
+low = "small head"
+high = "large head"
+region = ["skin"]
+free = ["*"]
+held = false
+view = "front"
+frame = "jaw"
+measure = { terms = [
+  { type = "distance", pairs = [["euryon_l", "euryon_r"]], weight = 0.34 },
+  { type = "axis", axis = "y", pairs = [["vertex", "menton"]], weight = 0.33 },
+  { type = "axis", axis = "z", pairs = [["glabella", "opisthocranion"]], weight = 0.33 },
+] }
+
+[[slider]]
+id = "head_width"
+name = "Skull width"
+group = "head"
+low = "narrow skull"
+high = "wide skull"
+region = ["skin"]
+view = "front"
+frame = "jaw"
+measure = { type = "distance", pairs = [["euryon_l", "euryon_r"]] }
+
+[[slider]]
+id = "head_length"
+name = "Skull length"
+group = "head"
+low = "short, round skull"
+high = "long skull"
+region = ["skin"]
+view = "profile"
+frame = "jaw"
+measure = { type = "axis", axis = "z", pairs = [["glabella", "opisthocranion"]] }
+
+[[slider]]
+id = "neck_thickness"
+name = "Neck thickness"
+group = "head"
+low = "slim neck"
+high = "thick neck"
+region = ["skin"]
+free = ["jowls", "neck_length"]
+view = "quarter"
+frame = "jaw"
+# the neck itself: its sides and back between the shoulders and the jaw (the old band, 100-150 mm, was mostly the
+# shoulders' slope: a slim neck took them away). It may move only the neck (region_y); the shoulders and the top of
+# the chest are held, and the throat under the chin belongs to "jowls"
+region_y = [0.15, 0.20]
+measure = { type = "normal", y = [0.16, 0.195], z = [-0.2, 0.06] }
+hold = [{ type = "normal", y = [0.075, 0.11] }, { type = "normal", y = [0.11, 0.145] },
+        { type = "normal", y = [0.075, 0.145], x_abs_max = 0.06 }]
+held_measure = { type = "normal", y = [0.10, 0.15] }  # what the other sliders were solved to keep (unchanged)
+
+[[slider]]
+id = "neck_length"
+name = "Neck length"
+group = "head"
+low = "short neck"
+high = "long neck"
+region = ["skin"]
+free = ["neck_thickness", "jowls"]
+held = false  # the other sliders were solved before it existed: they need not keep it
+view = "profile"
+frame = "jaw"
+# chin to the notch above the breastbone; the head (its height too: head size is not held by others) and the
+# shoulders keep their shape: the shoulders move down
+measure = { type = "axis", axis = "y", pairs = [["menton", "suprasternale"]] }
+hold = [{ type = "normal", y = [0.075, 0.115] }, { type = "axis", axis = "y", pairs = [["vertex", "menton"]] }]
+
+# --- Face shape --------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "face_length"
+name = "Face length"
+group = "face"
+low = "short face"
+high = "long face"
+region = ["hockey_mask"]
+free = ["nose_length", "chin_length", "philtrum", "upper_lip", "lower_lip", "lip_fullness"]
+view = "profile"
+frame = "face"
+measure = { type = "axis", axis = "y", pairs = [["nasion", "menton"]] }
+
+[[slider]]
+id = "forehead_height"
+name = "Forehead slope"
+group = "face"
+low = "upright forehead"
+high = "sloping forehead"
+region = ["forehead_region", "left_temple_region", "right_temple_region"]
+view = "front"
+frame = "face"
+measure = { type = "axis", axis = "y", pairs = [["trichion", "glabella"]] }
+
+[[slider]]
+id = "face_width"
+name = "Cheekbone width"
+group = "face"
+low = "narrow cheekbones"
+high = "wide cheekbones"
+region = ["left_zygomatic_region", "right_zygomatic_region", "left_cheek_region", "right_cheek_region",
+          "left_temple_region", "right_temple_region", "left_parotid_region", "right_parotid_region"]
+free = ["cheekbones"]
+view = "front"
+frame = "face"
+measure = { type = "distance", pairs = [["zygion_l", "zygion_r"]] }
+# Not shipped: it does nearly what "cheekbones" does (79% the same change). The solver still uses it, so the other
+# sliders hold cheekbone width.
+ship = false
+
+[[slider]]
+id = "cheekbones"
+name = "Cheekbones"
+group = "face"
+low = "flat cheekbones"
+high = "high, prominent cheekbones"
+region = ["left_zygomatic_region", "right_zygomatic_region", "left_infraorbital_region", "right_infraorbital_region"]
+free = ["face_width"]
+view = "quarter"
+frame = "face"
+measure = { type = "normal", groups = ["left_zygomatic_region", "right_zygomatic_region"] }
+
+[[slider]]
+id = "cheek_fullness"
+name = "Cheek fullness"
+group = "face"
+low = "hollow cheeks"
+high = "full cheeks"
+region = ["left_cheek_region", "right_cheek_region", "left_zygomatic_region", "right_zygomatic_region",
+          "left_infraorbital_region", "right_infraorbital_region"]
+view = "quarter"
+frame = "face"
+measure = { type = "normal", groups = ["left_cheek_region", "right_cheek_region"] }
+
+[[slider]]
+id = "jowls"
+name = "Jowls and double chin"
+group = "face"
+low = "tight jawline"
+high = "soft, double chin"
+region = ["chin_region", "left_cheek_region", "right_cheek_region", "left_parotid_region", "right_parotid_region"]
+falloff_mm = 25.0
+free = ["neck_thickness"]
+view = "profile"
+frame = "jaw"
+measure = { type = "normal", y = [0.155, 0.185], z = [0.05, 0.2], x_abs_max = 0.035 }
+
+# --- Jaw & chin ----------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "jaw_width"
+name = "Jaw width"
+group = "jaw_chin"
+low = "narrow jaw"
+high = "wide jaw"
+region = ["left_parotid_region", "right_parotid_region", "left_cheek_region", "right_cheek_region", "chin_region"]
+view = "front"
+frame = "face"
+measure = { type = "distance", pairs = [["gonion_l", "gonion_r"]] }
+
+[[slider]]
+id = "chin_length"
+name = "Chin length"
+group = "jaw_chin"
+low = "short chin"
+high = "long chin"
+region = ["chin_region", "lower_lip_region"]
+free = ["face_length"]
+view = "profile"
+frame = "mouth"
+measure = { type = "axis", axis = "y", pairs = [["sublabiale", "menton"]] }
+
+[[slider]]
+id = "chin_width"
+name = "Chin width"
+group = "jaw_chin"
+low = "pointed chin"
+high = "broad chin"
+region = ["chin_region"]
+view = "front"
+frame = "mouth"
+measure = { type = "distance", pairs = [["chin_side_l", "chin_side_r"]] }
+
+[[slider]]
+id = "chin_projection"
+name = "Chin projection"
+group = "jaw_chin"
+low = "receding chin"
+high = "jutting chin"
+region = ["chin_region", "lower_lip_region"]
+view = "profile"
+frame = "mouth"
+measure = { type = "axis", axis = "z", pairs = [["pogonion", "subnasale"]] }
+
+# --- Eyes & brows ------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "eye_size"
+name = "Eye size"
+group = "eyes_brows"
+low = "small eyes"
+high = "large eyes"
+region = ["left_orbital_region", "right_orbital_region"]
+view = "front"
+frame = "eyes"
+measure = { terms = [
+  { type = "distance", pairs = [["endocanthion_l", "exocanthion_l"], ["endocanthion_r", "exocanthion_r"]], weight = 0.5 },
+  { type = "distance", pairs = [["lid_upper_l", "lid_lower_l"], ["lid_upper_r", "lid_lower_r"]], weight = 0.5 },
+] }
+
+[[slider]]
+id = "eye_spacing"
+name = "Eye spacing"
+group = "eyes_brows"
+low = "close-set"
+high = "wide-set"
+region = ["left_orbital_region", "right_orbital_region", "middle_brow_region", "nose_region"]
+view = "front"
+frame = "eyes"
+measure = { type = "distance", pairs = [["endocanthion_l", "endocanthion_r"]] }
+
+[[slider]]
+id = "eye_tilt"
+name = "Eye tilt"
+group = "eyes_brows"
+low = "outer corners down"
+high = "outer corners up"
+region = ["left_orbital_region", "right_orbital_region"]
+view = "front"
+frame = "eyes"
+measure = { type = "axis", axis = "y", pairs = [["exocanthion_l", "endocanthion_l"], ["exocanthion_r", "endocanthion_r"]] }
+
+[[slider]]
+id = "eye_depth"
+name = "Eye depth"
+group = "eyes_brows"
+low = "deep-set eyes"
+high = "prominent eyes"
+region = ["left_orbital_region", "right_orbital_region", "left_brow_region", "right_brow_region"]
+view = "profile"
+frame = "eyes"
+measure = { type = "axis", axis = "z", pairs = [["lid_upper_l", "brow_l"], ["lid_upper_r", "brow_r"]] }  # + = eyes forward of the brow (right end = prominent)
+
+[[slider]]
+id = "brow_height"
+name = "Brow height"
+group = "eyes_brows"
+low = "low brows"
+high = "high brows"
+region = ["left_brow_region", "right_brow_region", "middle_brow_region", "forehead_region",
+          "left_orbital_region", "right_orbital_region"]
+view = "front"
+frame = "eyes"
+measure = { type = "axis", axis = "y", pairs = [["brow_l", "canthi_l"], ["brow_r", "canthi_r"]] }
+
+[[slider]]
+id = "brow_ridge"
+name = "Brow ridge"
+group = "eyes_brows"
+low = "smooth brow"
+high = "heavy brow ridge"
+region = ["left_brow_region", "right_brow_region", "middle_brow_region", "forehead_region"]
+free = ["eye_depth"]
+view = "profile"
+frame = "eyes"
+measure = { type = "normal", groups = ["left_brow_region", "right_brow_region", "middle_brow_region"] }
+
+# --- Nose ----------------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "nose_width"
+name = "Nose width"
+group = "nose"
+low = "narrow nose"
+high = "wide nose"
+region = ["nose_region"]
+view = "front"
+frame = "nose"
+measure = { type = "distance", pairs = [["alare_l", "alare_r"]] }
+
+[[slider]]
+id = "nose_length"
+name = "Nose length"
+group = "nose"
+low = "short nose"
+high = "long nose"
+region = ["nose_region"]
+free = ["face_length"]
+view = "profile"
+frame = "nose"
+measure = { type = "axis", axis = "y", pairs = [["nasion", "subnasale"]] }
+
+[[slider]]
+id = "nose_bridge"
+name = "Nose bridge"
+group = "nose"
+low = "low, flat bridge"
+high = "high bridge"
+region = ["nose_region", "middle_brow_region"]
+view = "profile"
+frame = "nose"
+measure = { type = "axis", axis = "z", pairs = [["nasion", "endocanthion_l"], ["nasion", "endocanthion_r"]] }
+
+[[slider]]
+id = "nose_projection"
+name = "Nose projection"
+group = "nose"
+low = "flat nose"
+high = "projecting nose"
+region = ["nose_region"]
+view = "profile"
+frame = "nose"
+measure = { type = "axis", axis = "z", pairs = [["pronasale", "alare_l"], ["pronasale", "alare_r"]] }
+
+[[slider]]
+id = "nose_tip"
+name = "Nose tip"
+group = "nose"
+low = "drooping tip"
+high = "upturned tip"
+region = ["nose_region"]
+view = "profile"
+frame = "nose"
+measure = { type = "axis", axis = "y", pairs = [["pronasale", "subnasale"]] }
+
+# --- Mouth ---------------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "mouth_width"
+name = "Mouth width"
+group = "mouth"
+low = "narrow mouth"
+high = "wide mouth"
+region = ["upper_lip_region", "lower_lip_region"]
+view = "front"
+frame = "mouth"
+measure = { type = "distance", pairs = [["cheilion_l", "cheilion_r"]] }
+
+[[slider]]
+id = "lip_fullness"
+name = "Lip fullness"
+group = "mouth"
+low = "thin lips"
+high = "full lips"
+region = ["upper_lip_region", "lower_lip_region"]
+free = ["upper_lip", "lower_lip", "face_length"]
+view = "quarter"
+frame = "mouth"
+# both lips grow together: the balance hold keeps their heights in proportion
+hold = [
+  { type = "balance", a = { type = "axis", axis = "y", pairs = [["labrale_superius", "stomion_upper"]] }, b = { type = "axis", axis = "y", pairs = [["stomion_lower", "labrale_inferius"]] } },
+]
+measure = { terms = [
+  { type = "axis", axis = "y", pairs = [["labrale_superius", "stomion_upper"]], weight = 0.5 },
+  { type = "axis", axis = "y", pairs = [["stomion_lower", "labrale_inferius"]], weight = 0.5 },
+  { type = "normal", groups = ["upper_lip", "lower_lip"], weight = 0.5 },
+] }
+
+[[slider]]
+id = "upper_lip"
+name = "Upper lip fullness"
+group = "mouth"
+low = "thin upper lip"
+high = "full upper lip"
+region = ["upper_lip_region"]
+free = ["face_length", "lip_fullness"]
+view = "quarter"
+frame = "mouth"
+measure = { type = "axis", axis = "y", pairs = [["labrale_superius", "stomion_upper"]] }
+
+[[slider]]
+id = "lower_lip"
+name = "Lower lip fullness"
+group = "mouth"
+low = "thin lower lip"
+high = "full lower lip"
+region = ["lower_lip_region"]
+free = ["face_length", "lip_fullness"]
+view = "quarter"
+frame = "mouth"
+measure = { type = "axis", axis = "y", pairs = [["stomion_lower", "labrale_inferius"]] }
+
+[[slider]]
+id = "philtrum"
+name = "Philtrum length"
+group = "mouth"
+low = "short upper lip skin"
+high = "long upper lip skin"
+region = ["upper_lip_region", "nose_region"]
+free = ["face_length"]
+view = "profile"
+frame = "mouth"
+measure = { type = "axis", axis = "y", pairs = [["subnasale", "labrale_superius"]] }
+
+# --- Ears ----------------------------------------------------------------------------------------------------
+
+[[slider]]
+id = "ear_size"
+name = "Ear size"
+group = "ears"
+low = "small ears"
+high = "large ears"
+region = ["ears"]
+view = "profile"
+frame = "jaw"
+measure = { type = "distance", pairs = [["ear_top_l", "ear_bottom_l"], ["ear_top_r", "ear_bottom_r"]] }
+
+[[slider]]
+id = "ear_protrusion"
+name = "Ear protrusion"
+group = "ears"
+low = "flat ears"
+high = "sticking-out ears"
+region = ["ears"]
+view = "front"
+frame = "jaw"
+measure = { type = "axis", axis = "x", pairs = [["ear_out_l", "ear_root_l"], ["ear_root_r", "ear_out_r"]] }
+
+# --- landmarks: generated by `uv run semantic-landmarks --write`; edit the indices freely ---
+[landmarks]
+trichion = 12354                    # forehead_region, midline, highest (hairline)
+glabella = 12337                    # midline, y 0.310–0.345, most forward (between the brows)
+nasion = 12318                      # midline, y 0.285–0.315, deepest (root of the nose)
+pronasale = 12296                   # nose_region, midline, most forward (nose tip)
+subnasale = 12297                   # nose_region, midline, lowest (where the nose meets the lip)
+labrale_superius = 12276            # upper_lip (red lip), midline, highest
+labrale_inferius = 12270            # lower_lip (red lip), midline, lowest
+sublabiale = 12266                  # midline, ≤15 mm below labrale_inferius, deepest (chin crease)
+menton = 12342                      # chin_region, midline, lowest
+suprasternale = 12391               # front midline, y 0.11–0.14, deepest (the notch above the breastbone, base of the neck)
+endocanthion_l = 560                # eye-opening rim, innermost (inner eye corner)
+endocanthion_r = 6688               # mirror of endocanthion_l
+exocanthion_l = 1297                # eye-opening rim, outermost (outer eye corner)
+exocanthion_r = 7425                # mirror of exocanthion_l
+lid_upper_l = 6118                  # eye-opening rim, highest (upper lid margin)
+lid_upper_r = 12246                 # mirror of lid_upper_l
+lid_lower_l = 6106                  # eye-opening rim, lowest (lower lid margin)
+lid_lower_r = 12234                 # mirror of lid_lower_l
+canthi_l = [560, 1297]              # both eye corners (vertical reference for the brow)
+canthi_r = [6688, 7425]             # mirror of canthi_l
+brow_l = [956, 959, 962, 965, 968, 1312, 1313, 1526, 1527, 1528, 1543, 4702, 4703]  # left_brow_region within 3 mm of the eye's centre line (whole brow height)
+brow_r = [7084, 7087, 7090, 7093, 7096, 7440, 7441, 7654, 7655, 7656, 7671, 10830, 10831]  # mirror of brow_l
+brow_inner_l = [981, 982, 983, 984, 985, 988, 1009, 1010, 1013, 1431, 1433, 1435, 1436, 1517, 1518, 1519, 1549, 1555]  # left_brow_region, innermost 5 mm (inner brow)
+brow_inner_r = [7109, 7110, 7111, 7112, 7113, 7116, 7137, 7138, 7141, 7559, 7561, 7563, 7564, 7645, 7646, 7647, 7677, 7683]  # mirror of brow_inner_l
+brow_outer_l = [1330, 1331, 1332, 1333, 1334, 1335, 1336, 1337, 1338, 1339, 1366, 1367, 1368, 1369, 1370, 1371, 1502, 1505, 1506, 1507, 1508, 4715, 4937, 4938, 4944, 4945, 4946]  # left_brow_region, outermost 8 mm (brow tail)
+brow_outer_r = [7458, 7459, 7460, 7461, 7462, 7463, 7464, 7465, 7466, 7467, 7494, 7495, 7496, 7497, 7498, 7499, 7630, 7633, 7634, 7635, 7636, 10843, 11065, 11066, 11072, 11073, 11074]  # mirror of brow_outer_l
+alare_l = 3312                      # nose_region, ≤12 mm above subnasale, widest (nostril wing)
+alare_r = 9440                      # mirror of alare_l
+cheilion_l = 4608                   # mouth-opening rim, outermost (mouth corner)
+cheilion_r = 10736                  # mirror of cheilion_l
+stomion_upper = 12275               # mouth-opening rim, midline, on the upper lip (its inner edge)
+stomion_lower = 12281               # mouth-opening rim, midline, on the lower lip (its inner edge)
+gonion_l = 2294                     # side of the jaw in front of the ear, normal closest to 45° out-and-down (jaw angle)
+gonion_r = 8422                     # mirror of gonion_l
+vertex = 12398                      # midline, highest (top of the head)
+opisthocranion = 12460              # midline, y 0.26–0.36, furthest back (back of the skull)
+euryon_l = 1637                     # above the ears, widest point of the skull
+euryon_r = 7765                     # mirror of euryon_l
+zygion_l = 3874                     # left_zygomatic_region, widest (cheekbone)
+zygion_r = 10002                    # mirror of zygion_l
+pogonion = 12260                    # chin_region, midline, most forward (chin point)
+chin_side_l = 4105                  # chin_region at the chin point's height, widest
+chin_side_r = 10233                 # mirror of chin_side_l
+ear_top_l = 2930                    # left ear, highest
+ear_top_r = 9058                    # mirror of ear_top_l
+ear_bottom_l = 2485                 # left ear, lowest (lobe)
+ear_bottom_r = 8613                 # mirror of ear_bottom_l
+ear_out_l = 2441                    # left ear, furthest out (rim)
+ear_out_r = 8569                    # mirror of ear_out_l
+ear_root_l = [2359, 2360, 2362, 2485, 2486, 2487, 2752, 2753, 2755, 2849, 2850, 2851, 2929, 2930, 2932, 2983, 2986, 2989, 2992, 2995, 2998, 3001, 3006, 3007, 3010, 3013, 3046, 3047, 4354, 4367, 4368, 4423, 4426, 4440, 4444, 4445, 4467, 4469, 4472, 4477, 4478, 4974]  # left ear vertices that touch the head skin (where the ear joins the head)
+ear_root_r = [8487, 8488, 8490, 8613, 8614, 8615, 8880, 8881, 8883, 8977, 8978, 8979, 9057, 9058, 9060, 9111, 9114, 9117, 9120, 9123, 9126, 9129, 9134, 9135, 9138, 9141, 9174, 9175, 10482, 10495, 10496, 10551, 10554, 10568, 10572, 10573, 10595, 10597, 10600, 10605, 10606, 11102]  # mirror of ear_root_l
+# --- end landmarks ---

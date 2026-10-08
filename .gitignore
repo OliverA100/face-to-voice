@@ -1,0 +1,41 @@
+.env*.local
+
+# --- node / Next.js (web/) ---
+node_modules/
+.pnpm-store/
+web/.next/
+web/out/
+web/.vercel/
+web/next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+
+# --- python / uv (pipeline/) ---
+pipeline/.venv/
+pipeline/.cache/
+pipeline/out/
+pipeline/tools/**/.venv/
+__pycache__/
+*.pyc
+.ruff_cache/
+.pytest_cache/
+
+# --- misc ---
+.DS_Store
+.env
+.vercel
+
+# HairCS styles under review (pipeline haircs_review.py, /dev/hair-review): local only
+web/public/models/hair/review/
+
+# Studio voice candidates (scripts/studio-voices.ts): local listening only
+web/.studio/
+
+# hair strand files (~220 MB) live on Vercel Blob in production (web/scripts/upload-hair.ts); not committed
+web/public/models/hair/**/*.strands.bin
+
+# local tooling
+.claude/
+web/AGENTS.md
+web/CLAUDE.md

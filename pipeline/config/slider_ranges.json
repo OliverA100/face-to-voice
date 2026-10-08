@@ -1,0 +1,810 @@
+{
+ "sem_head_size": {
+  "min": -1.13,
+  "max": 1.402,
+  "why": [
+   "published extreme: head_length, jaw_width",
+   "published extreme: head_length"
+  ]
+ },
+ "sem_head_width": {
+  "min": -1.199,
+  "max": 1.167,
+  "why": [
+   "published extreme: head_breadth",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_head_length": {
+  "min": -1.125,
+  "max": 1.337,
+  "why": [
+   "published extreme: head_length",
+   "published extreme: head_length"
+  ]
+ },
+ "sem_neck_thickness": {
+  "min": -2.5,
+  "max": 2.5,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_neck_length": {
+  "min": -2.509,
+  "max": 2.509,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_face_length": {
+  "min": -2.425,
+  "max": 2.121,
+  "why": [
+   "published extreme: face_height",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_forehead_height": {
+  "min": -2.799,
+  "max": 2.6,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_cheekbones": {
+  "min": -1.874,
+  "max": 2.742,
+  "why": [
+   "published extreme: face_width",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_cheek_fullness": {
+  "min": -2.641,
+  "max": 2.8,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_jowls": {
+  "min": -3.5,
+  "max": 2.25,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_jaw_width": {
+  "min": -1.301,
+  "max": 2.131,
+  "why": [
+   "published extreme: jaw_width",
+   "published extreme: jaw_width"
+  ]
+ },
+ "sem_chin_length": {
+  "min": -1.6,
+  "max": 2.459,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_chin_width": {
+  "min": -2.871,
+  "max": 2.871,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_chin_projection": {
+  "min": -1.8,
+  "max": 1.8,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_eye_size": {
+  "min": -1.804,
+  "max": 2.599,
+  "why": [
+   "4.5 SD (published)",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_eye_spacing": {
+  "min": -1.802,
+  "max": 1.889,
+  "why": [
+   "published extreme: interpupillary",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_eye_tilt": {
+  "min": -1.8,
+  "max": 1.8,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_eye_depth": {
+  "min": -2.333,
+  "max": 2.333,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_brow_height": {
+  "min": -1.8,
+  "max": 1.8,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_brow_ridge": {
+  "min": -3.09,
+  "max": 1.8,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_nose_width": {
+  "min": -2.804,
+  "max": 1.499,
+  "why": [
+   "published extreme: nose_width",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_nose_length": {
+  "min": -2.779,
+  "max": 2.601,
+  "why": [
+   "4.5 SD (published)",
+   "published extreme: nose_height"
+  ]
+ },
+ "sem_nose_bridge": {
+  "min": -2.335,
+  "max": 2.335,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "sem_nose_projection": {
+  "min": -1.4,
+  "max": 1.819,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_nose_tip": {
+  "min": -3.0,
+  "max": 1.8,
+  "why": [
+   "chosen by eye",
+   "chosen by eye"
+  ]
+ },
+ "sem_mouth_width": {
+  "min": -1.867,
+  "max": 3.391,
+  "why": [
+   "published extreme: mouth_width",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_lip_fullness": {
+  "min": -3.146,
+  "max": 2.455,
+  "why": [
+   "4.5σ (model)",
+   "published extreme: upper_vermilion"
+  ]
+ },
+ "sem_upper_lip": {
+  "min": -2.23,
+  "max": 1.399,
+  "why": [
+   "4.5 SD (published)",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_lower_lip": {
+  "min": -3.62,
+  "max": 2.496,
+  "why": [
+   "4.5 SD (published)",
+   "published extreme: lower_vermilion"
+  ]
+ },
+ "sem_philtrum": {
+  "min": -2.171,
+  "max": 2.913,
+  "why": [
+   "4.5 SD (published)",
+   "4.5 SD (published)"
+  ]
+ },
+ "sem_ear_size": {
+  "min": -1.203,
+  "max": 1.516,
+  "why": [
+   "published extreme: ear_length",
+   "published extreme: ear_length"
+  ]
+ },
+ "sem_ear_protrusion": {
+  "min": -0.791,
+  "max": 1.097,
+  "why": [
+   "published extreme: ear_protrusion",
+   "published extreme: ear_protrusion"
+  ]
+ },
+ "head_000": {
+  "min": -1.114,
+  "max": 0.863,
+  "why": [
+   "published extreme: head_length",
+   "published extreme: jaw_width"
+  ]
+ },
+ "head_001": {
+  "min": -1.5,
+  "max": 1.057,
+  "why": [
+   "4.5σ (model)",
+   "published extreme: neck_circumference"
+  ]
+ },
+ "head_002": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_003": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_004": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_005": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_006": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_007": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_008": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_009": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_010": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_011": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_012": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_013": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_014": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_015": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_016": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_017": {
+  "min": -1.5,
+  "max": 1.486,
+  "why": [
+   "4.5σ (model)",
+   "published extreme: ear_protrusion"
+  ]
+ },
+ "head_018": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_019": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_020": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_021": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_022": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "head_023": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "eyes_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "eyes_001": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "eyes_002": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "teeth_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "teeth_001": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "teeth_002": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ (model)",
+   "4.5σ (model)"
+  ]
+ },
+ "lower_face_region_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_001": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_002": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_003": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_004": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_005": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_006": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_007": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_008": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_009": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_010": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_011": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_012": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_013": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_014": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_015": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_016": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_017": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_018": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_019": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_020": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_021": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_022": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "lower_face_region_023": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "left_eye_region_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "left_eye_region_001": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "left_eye_region_002": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "left_eye_region_003": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "left_eye_region_004": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "left_eye_region_005": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "right_eye_region_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "right_eye_region_001": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "right_eye_region_002": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "right_eye_region_003": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "right_eye_region_004": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "right_eye_region_005": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "tongue_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "tongue_001": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ },
+ "pupils_000": {
+  "min": -1.5,
+  "max": 1.5,
+  "why": [
+   "4.5σ",
+   "4.5σ"
+  ]
+ }
+}

@@ -1,0 +1,225 @@
+# `uv run lash-strands` (src/ftv_pipeline/lash_strands.py): eyelashes as strands. Millimetres, degrees.
+# Profiles (length_mm, lift_deg, curl_deg, splay, density) are control points along the lid, inner → outer corner of
+# the lashes (span). The defaults below are "Natural"; each style changes only what makes it different.
+# The look ("Soft"): soft, brown, partly see-through lashes (drawn with buildGroom's `soft` blending),
+# packed along the lid, leaving it forward and curling up, uneven like real lashes (lengths, curls, angles, clumps of
+# 1–5 and single lashes, denser runs and thin gaps, a few longer lashes, lash-to-lash shade).
+
+[grow]
+points = 8
+fair = 1
+curl_root = 0.2            # the curl is a little stronger near the root
+jitter_deg = 9             # each lash this far off its neighbours' direction (they cross)
+lift_jitter_deg = 8
+length_jitter = 0.35
+young_share = 0.35         # shorter lashes growing in: 45–85 % of the length
+long_share = 0.08          # … and a few clearly longer than their neighbours
+curl_jitter = 0.45
+clump = 0.55               # how strongly a clump's tips gather
+clump_sizes = [1, 2, 3, 4, 5]
+clump_weights = [3, 3, 3, 2, 1]
+patchy = 0.45              # denser runs and thin gaps along the lid
+tone_var = 0.35            # lash-to-lash shade
+eye_clearance_mm = 0.5
+
+[lid]                      # keeping lashes clear of the lid's skin (LidFix): at rest and in expressions that fold it
+clear_mm = 0.15            # a lash this far into the skin is turned clear
+step_deg = 2.0             # turns tried …
+max_deg = 60.0             # … up to this, either way
+min_turn_deg = 4.0         # an expression gets a channel if it turns at least min_lashes lashes this much
+min_lashes = 10
+max_targets = 16           # at most this many expressions, in left/right pairs (the app's shader reads 16)
+
+[render]
+width_mm = 0.05
+tip_width = 0.2            # × at the tip: lashes taper to a point
+children = [0, 0, 0]
+child_radius_mm = 0.1
+cover_min = 0.4            # partly see-through
+shine = 0.35
+natural = ["#261b14", "#4a392e"]
+ramp_mm = 12               # root → tip colour over this length (the tips only lighten a little)
+
+[upper]
+count = 300                # per eye
+span = [0.04, 1.0]         # along the lash line, 0 = inner corner, 1 = outer
+rows_depth = 0.35          # roots spread this share of the way from the lash line in towards the rim (rows)
+density = [0.45, 0.85, 1.0, 1.1, 1.2]
+length_mm = [1.5, 2.6, 3.3, 3.6, 3.4]
+lift_deg = [-16, -14, -12, -12, -12]   # leaving the lid: below forward (−) …
+curl_deg = [28, 34, 38, 36, 30]        # … then curling up by this much
+splay = [-0.4, -0.12, 0.08, 0.4, 0.85] # towards the nose (−) / the temple (+)
+
+[lower]
+count = 90
+span = [0.12, 0.97]
+rows_depth = 0.15
+density = [0.25, 0.65, 1.0, 1.0, 0.9]
+length_mm = [0.4, 0.7, 0.9, 1.0, 0.9]
+lift_deg = [40, 42, 45, 45, 42]
+curl_deg = [4, 5, 6, 6, 5]
+splay = [-0.3, -0.1, 0.1, 0.4, 0.8]
+
+
+# The picker lists the styles in this order. The ids are what the voice prompt reads ("long eyelashes" …).
+
+# Natural lashes, from few and short to long and full
+
+# The picker lists the styles in this order. The ids are what the voice prompt reads ("long eyelashes" …).
+
+# Natural lashes: Natural, then lighter (sparse, fair, short), shapes (straight, downturned, curled, winged), then fuller and longer
+[style.natural]
+label = "Natural"
+
+[style.sparse]
+label = "Sparse"
+# few, fine lashes with gaps (fair or older eyes)
+upper = { count = 150 }
+lower = { count = 40 }
+grow = { patchy = 0.65 }
+render = { cover_min = 0.35 }
+
+[style.fair]
+label = "Fair"
+# light lashes that follow a fair hair colour closely (not taken towards black): blonde, red, grey
+render = { cover_min = 0.3 }
+darken = 0.25
+
+[style.short]
+label = "Short"
+upper = { length_mm = [1.1, 1.8, 2.3, 2.5, 2.4], curl_deg = [24, 28, 32, 30, 26] }
+lower = { length_mm = [0.3, 0.5, 0.6, 0.7, 0.6] }
+
+[style.straight]
+label = "Straight"
+# little curl, running straight out from the lid
+upper = { length_mm = [1.5, 2.6, 3.2, 3.4, 3.2], lift_deg = [-8, -6, -4, -4, -6], curl_deg = [6, 8, 10, 8, 6] }
+
+[style.downturned]
+label = "Downturned"
+# straight lashes pointing down and out (common with monolids: they grow down and out rather than up)
+upper = { length_mm = [1.5, 2.5, 3.0, 3.2, 3.0], lift_deg = [-24, -24, -22, -22, -24], curl_deg = [2, 3, 4, 3, 2], splay = [-0.3, -0.05, 0.12, 0.45, 0.9] }
+
+[style.curled]
+label = "Curled"
+upper = { length_mm = [1.8, 3.0, 3.8, 4.1, 3.8], lift_deg = [-10, -8, -6, -6, -8], curl_deg = [45, 55, 62, 60, 50] }
+
+[style.winged]
+label = "Winged"
+# longer towards the outer corner, sweeping out to the temple
+upper = { length_mm = [1.4, 2.4, 3.2, 4.0, 5.2], splay = [-0.4, -0.12, 0.1, 0.55, 1.2] }
+
+[style.thick]
+label = "Thick"
+# fewer but thicker, darker, straighter lashes (thicker on average in Asian eyes)
+upper = { count = 230, length_mm = [1.6, 2.7, 3.3, 3.5, 3.3], curl_deg = [14, 18, 20, 18, 14] }
+render = { width_mm = 0.065, cover_min = 0.5, natural = ["#130e0b", "#2e221b"] }
+
+[style.full]
+label = "Full"
+upper = { count = 420, length_mm = [1.7, 2.9, 3.7, 4.0, 3.8] }
+lower = { count = 120 }
+grow = { clump = 0.5 }
+
+[style.long]
+label = "Long"
+upper = { length_mm = [2.0, 3.4, 4.4, 4.8, 4.4], curl_deg = [34, 40, 45, 44, 36] }
+lower = { length_mm = [0.5, 0.9, 1.2, 1.3, 1.1] }
+
+[style.very-long]
+label = "Very long"
+# naturally very long lashes (up to ~10 mm on an average eye)
+upper = { count = 320, length_mm = [2.6, 4.6, 6.0, 6.6, 6.0], curl_deg = [38, 46, 52, 50, 42] }
+lower = { length_mm = [0.7, 1.3, 1.8, 2.0, 1.7] }
+
+# Long lower lashes
+[style.long-lower]
+label = "Long lower"
+# natural upper lashes over long, visible lower lashes
+lower = { count = 120, length_mm = [0.8, 1.7, 2.4, 2.7, 2.2], lift_deg = [30, 33, 36, 36, 33], curl_deg = [8, 10, 12, 12, 10] }
+
+[style.doll]
+label = "Doll"
+# long upper lashes and long, visible lower lashes
+upper = { length_mm = [2.0, 3.4, 4.4, 4.8, 4.4], curl_deg = [36, 44, 50, 48, 40] }
+lower = { count = 130, length_mm = [0.8, 1.6, 2.2, 2.4, 2.0], lift_deg = [32, 35, 38, 38, 35], curl_deg = [8, 10, 12, 12, 10] }
+grow = { clump = 0.6 }
+
+# With mascara
+[style.clumped]
+label = "Clumped"
+# lashes stuck together in spiky clumps (mascara)
+upper = { count = 340, length_mm = [1.8, 3.0, 3.8, 4.2, 4.0] }
+grow = { clump = 0.85, clump_sizes = [3, 4, 5, 6], clump_weights = [2, 3, 3, 2], young_share = 0.2 }
+
+[style.dramatic]
+label = "Dramatic"
+# dense, long and dark
+upper = { count = 460, length_mm = [2.2, 3.8, 4.9, 5.4, 5.2], curl_deg = [36, 42, 48, 46, 40] }
+lower = { count = 120, length_mm = [0.5, 0.9, 1.2, 1.3, 1.1] }
+grow = { clump = 0.65 }
+render = { cover_min = 0.5, natural = ["#150f0b", "#2e221b"] }
+
+# Lash extensions, well done (blending with the natural lashes; research: classic one per lash, volume fans, 8–14 mm real)
+[style.classic]
+label = "Classic extensions"
+# a well-done classic set: one extension per natural lash, blending with the shorter natural lashes under it (young_share), lengths rising smoothly (natural mapping), a soft C curl, a little thicker and darker than natural lashes
+upper = { count = 230, rows_depth = 0.32, density = [0.6, 0.9, 1.0, 1.05, 1.1], length_mm = [3.8, 5.4, 6.4, 6.8, 6.4], lift_deg = [-18, -16, -14, -14, -16], curl_deg = [44, 50, 54, 52, 48], splay = [-0.5, -0.18, 0.06, 0.45, 0.95] }
+lower = { count = 70, length_mm = [0.4, 0.6, 0.8, 0.9, 0.8] }
+grow = { curl_root = 0.1, length_jitter = 0.1, young_share = 0.28, long_share = 0.0, curl_jitter = 0.12, jitter_deg = 5, lift_jitter_deg = 4, clump = 0.15, patchy = 0.08, tone_var = 0.15 }
+render = { width_mm = 0.07, tip_width = 0.25, cover_min = 0.65, shine = 0.5, natural = ["#0d0a09", "#211915"] }
+darken = 0.95
+
+[style.cat-eye]
+label = "Cat-eye extensions"
+# classic extensions mapped longer towards the outer corner (a lifted, elongated eye)
+upper = { count = 230, rows_depth = 0.32, density = [0.6, 0.9, 1.0, 1.05, 1.1], length_mm = [3.4, 4.6, 5.6, 6.8, 7.8], lift_deg = [-18, -16, -14, -14, -16], curl_deg = [44, 48, 50, 48, 42], splay = [-0.45, -0.12, 0.12, 0.6, 1.2] }
+lower = { count = 70, length_mm = [0.4, 0.6, 0.8, 0.9, 0.8] }
+grow = { curl_root = 0.1, length_jitter = 0.1, young_share = 0.28, long_share = 0.0, curl_jitter = 0.12, jitter_deg = 5, lift_jitter_deg = 4, clump = 0.15, patchy = 0.08, tone_var = 0.15 }
+render = { width_mm = 0.07, tip_width = 0.25, cover_min = 0.65, shine = 0.5, natural = ["#0d0a09", "#211915"] }
+darken = 0.95
+
+[style.hybrid]
+label = "Hybrid extensions"
+# classic extensions mixed with small fans of finer ones: fuller and softly textured
+upper = { count = 320, rows_depth = 0.32, density = [0.6, 0.9, 1.0, 1.05, 1.1], length_mm = [3.8, 5.4, 6.4, 6.8, 6.4], lift_deg = [-18, -16, -14, -14, -16], curl_deg = [44, 50, 54, 52, 48], splay = [-0.5, -0.18, 0.06, 0.45, 0.95] }
+lower = { count = 70, length_mm = [0.4, 0.6, 0.8, 0.9, 0.8] }
+grow = { curl_root = 0.1, length_jitter = 0.1, young_share = 0.22, long_share = 0.0, curl_jitter = 0.12, jitter_deg = 5, lift_jitter_deg = 4, clump = -0.35, clump_sizes = [1, 3], clump_weights = [1, 1], patchy = 0.08, tone_var = 0.15 }
+render = { width_mm = 0.06, tip_width = 0.25, cover_min = 0.6, shine = 0.5, natural = ["#0d0a09", "#211915"] }
+darken = 0.95
+
+[style.volume]
+label = "Volume extensions"
+# fans of 3–5 fine extensions per natural lash: a soft, dense, dark fringe with feathery tips
+upper = { count = 520, rows_depth = 0.32, density = [0.6, 0.9, 1.0, 1.05, 1.1], length_mm = [3.8, 5.4, 6.4, 6.8, 6.6], lift_deg = [-18, -16, -14, -14, -16], curl_deg = [44, 50, 54, 52, 48], splay = [-0.5, -0.18, 0.06, 0.45, 0.95] }
+lower = { count = 70, length_mm = [0.4, 0.6, 0.8, 0.9, 0.8] }
+grow = { curl_root = 0.1, length_jitter = 0.1, young_share = 0.18, long_share = 0.0, curl_jitter = 0.12, jitter_deg = 5, lift_jitter_deg = 4, clump = -0.4, clump_sizes = [3, 4, 5], clump_weights = [1, 2, 1], patchy = 0.08, tone_var = 0.15 }
+render = { width_mm = 0.048, tip_width = 0.25, cover_min = 0.55, shine = 0.5, natural = ["#0d0a09", "#211915"] }
+darken = 0.95
+
+[style.mega-volume]
+label = "Mega volume"
+# very dense fans of ultra-fine extensions: a deep, dark, fluffy band
+upper = { count = 800, rows_depth = 0.32, density = [0.6, 0.9, 1.0, 1.05, 1.1], length_mm = [4.0, 5.6, 6.6, 7.0, 6.8], lift_deg = [-18, -16, -14, -14, -16], curl_deg = [44, 50, 54, 52, 48], splay = [-0.5, -0.18, 0.06, 0.45, 0.95] }
+lower = { count = 70, length_mm = [0.4, 0.6, 0.8, 0.9, 0.8] }
+grow = { curl_root = 0.1, length_jitter = 0.1, young_share = 0.15, long_share = 0.0, curl_jitter = 0.12, jitter_deg = 5, lift_jitter_deg = 4, clump = -0.45, clump_sizes = [5, 6, 7], clump_weights = [1, 2, 1], patchy = 0.08, tone_var = 0.15 }
+render = { width_mm = 0.04, tip_width = 0.25, cover_min = 0.55, shine = 0.5, natural = ["#0d0a09", "#211915"] }
+darken = 0.95
+
+[style.lower-extensions]
+label = "Lower extensions"
+# classic extensions on the upper lid and fine ones on the lower lid too
+upper = { count = 230, rows_depth = 0.32, density = [0.6, 0.9, 1.0, 1.05, 1.1], length_mm = [3.8, 5.4, 6.4, 6.8, 6.4], lift_deg = [-18, -16, -14, -14, -16], curl_deg = [44, 50, 54, 52, 48], splay = [-0.5, -0.18, 0.06, 0.45, 0.95] }
+lower = { count = 90, rows_depth = 0.15, span = [0.18, 0.95], density = [0.5, 0.9, 1.0, 1.0, 1.0], length_mm = [1.2, 2.0, 2.6, 2.8, 2.4], lift_deg = [30, 32, 34, 34, 32], curl_deg = [8, 10, 12, 12, 10] }
+grow = { curl_root = 0.1, length_jitter = 0.1, young_share = 0.28, long_share = 0.0, curl_jitter = 0.12, jitter_deg = 5, lift_jitter_deg = 4, clump = 0.15, patchy = 0.08, tone_var = 0.15 }
+render = { width_mm = 0.065, tip_width = 0.25, cover_min = 0.65, shine = 0.5, natural = ["#0d0a09", "#211915"] }
+darken = 0.95
+
+# Glue-on false lashes
+[style.strip]
+label = "Strip lashes"
+# glue-on false lashes: a dense, criss-crossed, wispy band, longest at the outer corner, dark at the base
+upper = { count = 520, span = [0.08, 1.0], rows_depth = 0.15, density = [0.6, 0.9, 1.0, 1.1, 1.3], length_mm = [2.0, 3.6, 4.6, 5.6, 6.2], lift_deg = [-12, -10, -8, -8, -8], curl_deg = [40, 46, 50, 48, 42], splay = [-0.3, -0.05, 0.15, 0.6, 1.25] }
+grow = { jitter_deg = 16, young_share = 0.45, long_share = 0.1, clump = 0.7, clump_sizes = [2, 3, 4], clump_weights = [2, 3, 2], patchy = 0.15, tone_var = 0.1 }
+render = { width_mm = 0.055, tip_width = 0.2, cover_min = 0.6, natural = ["#0a0807", "#18120f"] }
+darken = 1.0

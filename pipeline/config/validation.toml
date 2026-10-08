@@ -1,0 +1,91 @@
+# Face to Voice — shape validation (src/ftv_pipeline/validate/). Reports go to out/validation/.
+#
+#     uv run slider-ranges      # each slider's σ, its ends, and the measurements there vs real adults
+#                               # -> out/validation/ranges.json (sliders.json takes min/max from it), ranges.md, sheets
+
+[ranges]
+target_sigma = 4.5        # each end of a slider = the feature at this many σ (published SD when known, else model σ)
+max_feature_sigma = 8.0   # never further than this many MODEL σ, even when real faces vary more than the model
+rare_z = 3.0              # "rare territory": the feature at this many published SD from the mean
+reference_offset_z = 2.0  # GNM's average this many SD off the published mean = our landmark sits elsewhere: compare changes
+moved_mm = 0.5            # a measurement counts against a slider only if the slider moves it at least this much
+steps = 24                # samples per side when looking for the first measurement past the published extremes
+# Uncertain references (small or derived samples, or our landmark is not the surveyed one): reported, never cap a slider
+advisory = ["chin_height", "fissure_height", "forehead_height"]
+# Our landmark differs from the survey's definition: compare CHANGES from GNM's average, as if it were the population mean
+# (jaw width: surveyed with calipers on bone, ours on the skin; ear protrusion: surveyed from the mastoid, ours from the ear root)
+compare_changes = ["jaw_width", "ear_protrusion"]
+# Kept as they are: Age is a mix tuned at ±1, tongue_mean runs from retracted (0) to out (1)
+skip = ["sem_age", "tongue_mean"]
+
+# Ends chosen by eye, [min, max] (they replace the computed ends, shorter or longer; the break sweep and the limiter still
+# have the last word): further, the model cannot make the feature without distorting the face (a slim neck must keep
+# its shoulders; past these the face goes gaunt and the thick neck becomes a collar)
+[ranges.looks]
+sem_neck_thickness = [-2.5, 2.5]
+# past these the feature looks impossible (a collar under the chin, a ledge chin, a shelf brow, nostrils on a flat
+# face); the nose tip may droop further than the model's 4.5σ
+sem_jowls = [-3.5, 2.25]
+sem_chin_length = [-1.6, 2.459]
+sem_brow_ridge = [-3.09, 1.8]
+sem_nose_projection = [-1.4, 1.819]
+sem_nose_tip = [-3.0, 1.8]
+sem_forehead_height = [-2.799, 2.6]  # sloping end pulled in by eye
+sem_cheek_fullness = [-2.641, 2.8]  # full end pulled in by eye
+
+# A slider whose feature has a standard measurement (validate/anthro.py MEASURES) is sized in published SD of it.
+[ranges.match]
+sem_head_width = "head_breadth"
+sem_head_length = "head_length"
+sem_neck_thickness = "neck_circumference"
+sem_face_length = "face_height"
+sem_forehead_height = "forehead_height"
+sem_face_width = "face_width"
+sem_jaw_width = "jaw_width"
+sem_chin_length = "chin_height"
+sem_eye_size = "fissure_height"
+sem_eye_spacing = "intercanthal"
+sem_nose_width = "nose_width"
+sem_nose_length = "nose_height"
+sem_nose_projection = "nasal_tip_protrusion"
+sem_mouth_width = "mouth_width"
+sem_upper_lip = "upper_vermilion"
+sem_lower_lip = "lower_vermilion"
+sem_philtrum = "philtrum"
+sem_ear_size = "ear_length"
+sem_ear_protrusion = "ear_protrusion"
+
+# Geometric checks (validate/checks.py). Every value is measured against GNM's neutral face, which already has
+# resting contacts (lids a little inside the eyeball, closed lips overlapping ~1 mm). A face is broken when a value
+# exceeds its threshold.
+[checks]
+eye_lids_mm = 0.3            # outer skin (lids, nose, cheeks) deeper inside an eyeball than at neutral …
+eye_lids_count = 3           # … at this many spots (a lone lid-edge vertex grazing the eye does not show) …
+eye_lids_hard_mm = 1.0       # … or at any one spot this deep (the lid edges, which rest on the eye, only count past this)
+lid_edge_mm = 2.0            # "lid edge" = outer skin this close to the rim of the eye opening
+# The web limiter stops a little inside the exact checks (faces it fits must pass them, despite the .glb's 5 µm rounding):
+eye_limiter_slack_mm = -0.05 # its eye and lip thresholds sit this much inside the exact ones (negative = stricter)
+limiter_crossing_mm = 0.02   # its crossing depth limit (the exact check's is crossing_depth_mm)
+limiter_edge_tol = 0.02      # its edge-through-triangle test also counts edges passing this close to a triangle's border
+                             # (share of the triangle), so single-precision rounding never hides a crossing
+eye_reach_mm = 12.0          # skin this close to an eyeball's surface is tested against it
+eye_through_mm = 0.1          # … the eyeball poking out through the skin by more than this (any depth shows; this is noise)
+eye_through_clearance_mm = 0.3  # … where the skin over the eyeball (not the lid edge) is closer to it than this
+eye_through_reach_mm = 22.0  # eye_through: outer skin triangles within this of an eye's pivot can cover or cut through it
+eye_pivot_mm = 0.5           # eyeball centre off its pivot
+mouth_front_mm = 15.0        # teeth, gums and tongue this close to the outer skin at neutral: their resting overlap with
+                             # the mouth lining counts as contact (further back it does not; all are crossing-tested)
+lips_cross_mm = 0.0          # an inner lip edge past the other lip's outer edge (one lip through the other)
+crossing_depth_mm = 0.1      # skin through skin, or a tooth through skin, deeper than this (a graze of a few µm is not)
+contact_zone_mm = 4.0        # …"away" = further than this from where the neutral face already touches itself
+rim_contact_mm = 5.0         # lids touching lids / lips touching lips within this of the eye / mouth opening: contact
+folded_triangles = 0         # outer-skin triangles turned over or squashed
+squash_ratio = 0.05          # a triangle under this share of its neutral area counts as squashed flat
+symmetry_mm = 0.5            # left/right mismatch for symmetric states …
+symmetry_share = 0.05        # … or this share of the largest movement, whichever is larger
+
+# Break sweep (`uv run validate --sweep`): each slider alone, from the average face toward each end.
+[sweep]
+coarse_steps = 10   # samples on the way out
+bisect_steps = 6    # then halve the interval around the first break this many times
+margin = 0.03       # the slider's end stops this share short of its breaking point

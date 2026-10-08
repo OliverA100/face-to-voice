@@ -1,0 +1,49 @@
+# `uv run groom` (src/ftv_pipeline/groom.py): our own procedural hair grooms, grown strand by strand on the GNM scalp.
+#
+# Every style is grown the same way: roots are scattered over the scalp above the hairline (sparser and finer near
+# it, so the hairline is soft), each strand leaves the scalp at `lift` and is combed by a flow field (away from the
+# part, back, down, forward), pulled by gravity as it gets longer, kept outside the head (and ears and shoulders) at
+# a stand-off that grows along the strand (volume), then clumped, waved and frizzed. The browser multiplies every
+# strand into `children` thinner ones around it (more on fast devices), so a few thousand strands ship.
+#
+# Lengths in millimetres, angles in degrees. Regions: top (crown and front), sides (above the ears), back, nape.
+# Preview without exporting: uv run groom-preview <id> [--set key=value ...]
+
+[defaults]
+strands = 6000             # strands shipped (the browser adds `children` around each)
+points = 16                # points per strand after resampling (more for long hair)
+step_mm = 2.0              # growth step
+hairline_soft_mm = 9.0     # roots thin out over this band above the hairline
+ear_margin_mm = 7.0        # no roots this close to an ear
+lift = 0.55                # 0 = lies flat from the root, 1 = stands straight out
+stiffness = 0.85           # how much a strand keeps its direction per step (vs the flow and gravity)
+gravity = 0.15             # pull down, grows along the strand
+gravity_onset_mm = 30      # gravity reaches full strength after this much length
+standoff_mm = [1.2, 9.0]   # distance kept from the skin: at the root, and at full length (volume)
+standoff_length_mm = 60    # length over which the stand-off grows to its second value
+length_jitter = 0.15       # ± fraction per strand
+clumps = 260               # clump count (strands of a clump are pulled together towards the tips)
+clump_strength = 0.55      # 0..1 at the tip
+clump_shape = 1.6          # >1 keeps the roots apart longer
+wave_mm = 0.0              # wave amplitude (0 = straight)
+wave_period_mm = 40
+frizz_mm = 0.6             # random wobble, grows to the tips
+flow_noise = 0.25          # per-strand random turn of the comb direction
+children = [2, 4, 6]       # thinner strands drawn around each one on the low / medium / high tier
+child_radius_mm = 2.2      # how far children spread around their parent (at the root; they converge to the tip)
+width_mm = 0.09            # strand width (the browser keeps at least ~1 px and fades the rest with coverage)
+tip_width = 0.35           # width at the tip, × width_mm
+natural = ["#2a1d16", "#6b4a35"] # Natural swatch: root (shadow) → tip (highlight) colours, sRGB
+
+[style.side_part]
+label = "Side part"
+part = { x_mm = 28, depth_mm = 85 }   # +x = the head's left; the part runs back from the hairline this far
+lengths_mm = { top = 95, sides = 40, back = 52, nape = 24 }
+flow = { away_from_part = 0.9, back = 0.5, down = 0.3 }
+lift = 0.7
+lift_regions = { top = 0.7, sides = 0.12, back = 0.2, nape = 0.08 }   # volume on top, short sides lie flat
+standoff_mm = [1.5, 13.0]
+standoff_length_mm = 45
+child_radius_mm = 3.0
+clump_strength = 0.6
+natural = ["#1f1611", "#5a4030"]

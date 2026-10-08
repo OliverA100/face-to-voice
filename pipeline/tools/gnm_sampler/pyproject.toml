@@ -1,0 +1,38 @@
+# The environment for GNM's ExpressionSampler (needs TensorFlow, so Python 3.12). Not part of the main pipeline,
+# which never imports TensorFlow and only reads the numbers this writes into ../../config/emotions.json.
+#
+#     cd pipeline/tools/gnm_sampler && uv run sample-emotions
+[project]
+name = "ftv-gnm-sampler"
+version = "0.1.0"
+description = "Averages GNM ExpressionSampler samples per label into pipeline/config/emotions.json"
+requires-python = "==3.12.*"
+dependencies = [
+    "gnm-shape @ git+https://github.com/google/GNM@f6895509c2b639edc36db20ede82b4315cc28c26#subdirectory=gnm/shape",
+    "tensorflow>=2.18,<2.21",
+    "numpy",
+]
+
+[project.scripts]
+sample-emotions = "sample_emotions:main"
+
+[tool.uv]
+package = true
+# gnm-shape lists its whole toolbox (notebooks, OpenCV, meshes); the sampler needs none of it.
+override-dependencies = [
+    "notebook; sys_platform == 'never'",
+    "ipywidgets; sys_platform == 'never'",
+    "opencv-python; sys_platform == 'never'",
+    "trimesh; sys_platform == 'never'",
+    "rtree; sys_platform == 'never'",
+    "imageio; sys_platform == 'never'",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = ["sample_emotions.py"]
+[tool.hatch.metadata]
+allow-direct-references = true

@@ -1,0 +1,87 @@
+[project]
+name = "ftv-pipeline"
+version = "0.1.0"
+description = "Face to Voice offline pipeline: exports Google's GNM head to a web .glb with morph targets and generates the web app's slider, emotion, texture, hair and add-on data."
+readme = "README.md"
+requires-python = "==3.13.*"
+license = "MIT"
+dependencies = [
+    "anthropic>=1.8,<2",
+    "brotli>=1.2.0",
+    "numpy>=2.5.3",
+    "pillow>=12.3.0",
+    "pydantic>=2.13.5",
+    "pygltflib>=1.16.5",
+    "python-dotenv>=1.2.3",
+    "pyvista>=0.49.0",
+    "requests>=2.34.2",
+    "scipy>=1.18.1",
+    "tqdm>=4.70.1",
+]
+
+[project.scripts]
+list-components = "ftv_pipeline.gnm:list_components_main"
+export = "ftv_pipeline.export_glb:main"
+verify = "ftv_pipeline.verify_glb:main"
+render = "ftv_pipeline.render:main"
+name-sliders = "ftv_pipeline.name_sliders:main"
+propose-visemes = "ftv_pipeline.propose_visemes:main"
+viseme-sheet = "ftv_pipeline.propose_visemes:sheet_main"
+el-probe = "ftv_pipeline.el_probe:main"
+semantic-landmarks = "ftv_pipeline.semantic:landmarks_main"
+semantic-report = "ftv_pipeline.semantic:report_main"
+emotions = "ftv_pipeline.emotions:main"
+update-sliders = "ftv_pipeline.sliders_json:main"
+age-preview = "ftv_pipeline.age:preview_main"
+skin-maps = "ftv_pipeline.skin_maps:main"
+eye-maps = "ftv_pipeline.eye_maps:main"
+glasses-gen = "ftv_pipeline.glasses_gen:main"
+stubble = "ftv_pipeline.stubble:main"
+beard-strands = "ftv_pipeline.beard_strands:main"
+brow-strands = "ftv_pipeline.brow_strands:main"
+lash-strands = "ftv_pipeline.lash_strands:main"
+bake-ao = "ftv_pipeline.bake:main"
+groom-preview = "ftv_pipeline.groom:preview_main"
+export-groom = "ftv_pipeline.export_groom:main"
+import-hair = "ftv_pipeline.import_hair:main"
+haircs-review = "ftv_pipeline.haircs_review:main"
+groom-metrics = "ftv_pipeline.groom_metrics:main"
+slider-ranges = "ftv_pipeline.validate.ranges:main"
+validate = "ftv_pipeline.validate.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ftv_pipeline"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PIE", "PERF", "PL", "NPY"]
+ignore = [
+    "E501",     # long lines: formulas and tables read better unwrapped
+    "E741",     # x, y, z, l are the natural names in geometry code
+    "PLR0911", "PLR0912", "PLR0913", "PLR0915",  # solver and check functions are long by nature
+    "PLR2004",  # numeric literals: tuning values live in config/*.toml; the rest are maths
+    "RUF001", "RUF002", "RUF003",  # σ, ×, µ, − in strings and comments are intended
+    "PLC0415",  # heavy imports (pyvista, scipy) stay inside the commands that need them, so the CLI starts fast
+    "PLR0917",  # positional geometry arguments (points, normals, faces) are clearer than keywords
+    "B905",     # zip() over arrays of equal length by construction
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ftv_pipeline"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

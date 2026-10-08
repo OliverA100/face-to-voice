@@ -1,0 +1,219 @@
+# `uv run glasses-gen` (src/ftv_pipeline/glasses_gen.py): our own glasses (MIT), built from these numbers.
+# Sizes in millimetres, as an optician writes them: lens width × lens height, bridge (the gap between the lenses).
+#
+# shape   round | oval | rect | square | panto | wayfarer | cateye | aviator | hexagon | octagon | browline | dframe
+# kind    acetate (thick plastic front) | metal (wire rims, nose pads) | browline (plastic brow + wire rims) |
+#         halfrim (a bar over the top, a nylon cord under the lens) | rimless (lenses held by the bridge and hinges)
+# frame   colour, pattern (solid | tortoise | havana), roughness;  metal = colour + roughness of wire parts
+# lens    tint, opacity (clear ~0.04, sunglasses 0.8+), gradient (0 = even, 1 = clear at the bottom), mirror (0..1;
+#         a mirror lens reflects in its tint, so give it the coating's colour: silver, blue, gold)
+# rim     acetate: band width round the lens, extra on top (brow), depth (front thickness); metal: wire radius
+# fit     drop = the lens centre this far below the pupil
+
+[defaults]
+bridge = 20
+rim = 4.5
+rim_top = 0.0
+depth = 4.6
+wire = 0.75
+drop = 2.0
+wrap = 5.0          # face form: the front curves back this much at its outer ends
+tilt = 7.0          # pantoscopic tilt, degrees (lower rim nearer the cheeks)
+base = 110.0        # lens front curve radius (mm)
+temple_height = 5.0
+temple_thick = 3.2
+nasal = 0.2        # plastic fronts: the lower nose-side corner cut back by this share of the lens height
+
+# Picker order = this order: clear glasses from the lightest frames (rimless, wire) to the boldest plastic ones,
+# then sunglasses.
+
+[style.rimless]
+label = "Rimless"
+shape = "rect"
+kind = "rimless"
+size = [52, 32]
+bridge = 18
+metal = { colour = "#b9bcc0", roughness = 0.22 }
+lens = { tint = "#e8eef2", opacity = 0.06 }
+
+[style.halfrim]
+label = "Half rim"
+shape = "rect"
+kind = "halfrim"
+size = [54, 33]
+bridge = 18
+metal = { colour = "#4a4c50", roughness = 0.3 }
+lens = { tint = "#e8eef2", opacity = 0.05 }
+
+[style.round-wire]
+label = "Round wire"
+shape = "round"
+kind = "metal"
+size = [46, 46]
+metal = { colour = "#b8955a", roughness = 0.26 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.oval-wire]
+label = "Small oval"
+shape = "oval"
+kind = "metal"
+size = [48, 32]
+bridge = 19
+metal = { colour = "#a9adb2", roughness = 0.22 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.hexagon-wire]
+label = "Hexagon"
+shape = "hexagon"
+kind = "metal"
+size = [50, 44]
+metal = { colour = "#b8955a", roughness = 0.26 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.browline]
+label = "Browline"
+shape = "browline"
+kind = "browline"
+size = [50, 40]
+bridge = 21
+rim = 7.0
+depth = 5.5
+frame = { colour = "#6b3f1d", pattern = "tortoise", roughness = 0.2 }
+metal = { colour = "#c2a35f", roughness = 0.24 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.rect-black]
+label = "Rectangle"
+shape = "rect"
+kind = "acetate"
+size = [54, 34]
+bridge = 18
+frame = { colour = "#111113", pattern = "solid", roughness = 0.22 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.wayfarer]
+label = "Wayfarer"
+shape = "wayfarer"
+kind = "acetate"
+size = [52, 40]
+bridge = 21
+rim = 5.5
+rim_top = 2.5
+depth = 5.5
+frame = { colour = "#0f0f10", pattern = "solid", roughness = 0.16 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+temple_height = 6.5
+temple_thick = 3.8
+
+[style.dframe-havana]
+label = "D-frame"
+shape = "dframe"
+kind = "acetate"
+size = [50, 42]
+bridge = 21
+rim = 5.0
+frame = { colour = "#6b3f1d", pattern = "havana", roughness = 0.2 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.panto-tortoise]
+label = "Panto tortoise"
+shape = "panto"
+kind = "acetate"
+size = [48, 44]
+bridge = 21
+frame = { colour = "#6b3f1d", pattern = "tortoise", roughness = 0.2 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.square-chunky]
+label = "Chunky square"
+shape = "square"
+kind = "acetate"
+size = [52, 42]
+tilt = 3.0
+drop = 0.5
+rim = 6.5
+depth = 6.0
+frame = { colour = "#0d0d0e", pattern = "solid", roughness = 0.18 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+temple_height = 7.0
+temple_thick = 4.0
+
+[style.cateye]
+label = "Cat-eye"
+shape = "cateye"
+kind = "acetate"
+size = [54, 40]
+bridge = 18
+rim = 5.0
+rim_top = 2.0
+frame = { colour = "#5a1420", pattern = "solid", roughness = 0.18 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+
+[style.oversized]
+label = "Oversized"
+shape = "square"
+kind = "acetate"
+size = [57, 48]
+bridge = 18
+rim = 6.0
+depth = 5.5
+drop = 1.0
+tilt = 3.0
+frame = { colour = "#efe6d6", pattern = "solid", roughness = 0.25 }
+lens = { tint = "#e8eef2", opacity = 0.04 }
+temple_height = 6.5
+
+[style.round-shades]
+label = "Round shades"
+shape = "round"
+kind = "metal"
+size = [48, 48]
+metal = { colour = "#2e2e31", roughness = 0.35 }
+lens = { tint = "#1c1d1f", opacity = 0.9 }
+
+[style.aviator]
+label = "Aviator"
+shape = "aviator"
+kind = "metal"
+size = [58, 50]
+bridge = 16
+drop = 5.0
+double_bridge = true
+metal = { colour = "#c2a35f", roughness = 0.22 }
+lens = { tint = "#3d2a1c", opacity = 0.86, gradient = 0.65 }
+
+[style.aviator-silver]
+label = "Aviator mirror"
+shape = "aviator"
+kind = "metal"
+size = [58, 50]
+bridge = 16
+drop = 5.0
+double_bridge = true
+metal = { colour = "#b9bcc0", roughness = 0.2 }
+lens = { tint = "#8e9aa8", opacity = 0.92, mirror = 0.85 }  # a mirror lens shows its coating colour
+
+[style.wayfarer-sun]
+label = "Wayfarer shades"
+shape = "wayfarer"
+kind = "acetate"
+size = [52, 40]
+bridge = 21
+rim = 5.5
+rim_top = 2.5
+depth = 5.5
+frame = { colour = "#0f0f10", pattern = "solid", roughness = 0.16 }
+lens = { tint = "#26302a", opacity = 0.88 }
+temple_height = 6.5
+temple_thick = 3.8
+
+[style.cateye-sun]
+label = "Cat-eye shades"
+shape = "cateye"
+kind = "acetate"
+size = [56, 42]
+bridge = 18
+rim = 5.5
+rim_top = 2.5
+frame = { colour = "#6b3f1d", pattern = "havana", roughness = 0.2 }
+lens = { tint = "#3a2a20", opacity = 0.85, gradient = 0.5 }

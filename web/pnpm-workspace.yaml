@@ -1,0 +1,12 @@
+# Install scripts stay off: sharp (scripts/icons.ts) and unrs-resolver (eslint) both ship prebuilt binaries.
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+# Pinned releases newer than pnpm's minimum release age when they were adopted.
+minimumReleaseAgeExclude:
+  - three@0.186.1
+# @react-three/fiber creates a THREE.Clock for every Canvas; three r183 deprecated Clock and warns on every one made.
+# The patch gives fiber the same Clock interface timed by a THREE.Timer, so the console stays clean. Drop it once fiber
+# uses Timer itself.
+patchedDependencies:
+  '@react-three/fiber@9.8.0': patches/@react-three__fiber@9.8.0.patch
