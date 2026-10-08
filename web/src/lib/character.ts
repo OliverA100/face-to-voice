@@ -6,12 +6,19 @@
  * emotion. Pose is left alone. Every piece goes through the same setters the panel uses, so the panel,
  * the saved choices and the voice's look all follow.
  *
- * The change (`transition` below): the face morphs into the new one while the skin, eye and hair colours blend on
- * the live head and the emotion blends in. CHARACTER.styleAt seconds after the morph starts (once their files have
- * downloaded) the old hair and add-ons cross-fade to the new ones (lib/pieceFade.ts: the head is rendered with the
- * old pieces and with the new ones, both live and opaque, and the two frames are mixed), so there is never a second
- * face and no see-through hair. The simpler options don't hold up: a screenshot cross-fade over the morph shows a
- * double image, a dip to the backdrop hides the morph, and fading the pieces themselves dissolves or turns patchy.
+ * The change (`transition` below): the skin, eye and hair colours start blending on the live head at once (the new
+ * pieces are built wearing them), while the new hair and add-ons are built, hidden. The face then morphs into the new
+ * one and the emotion blends in, waiting up to CHARACTER.holdFor for those pieces so they arrive with it rather than
+ * after it. CHARACTER.styleAt seconds into the morph the old hair and add-ons cross-fade to the new ones
+ * (lib/pieceFade.ts: the head is rendered with the old pieces and with the new ones, both live and opaque, and the two
+ * frames are mixed), so there is never a second face and no see-through hair. The simpler options don't hold up: a
+ * screenshot cross-fade over the morph shows a double image, a dip to the backdrop hides the morph, and fading the
+ * pieces themselves dissolves or turns patchy.
+ *
+ * Rolled ahead (`prepareNext`): the next character's style is picked and its files download in idle time a few seconds
+ * after the page loads, as soon as a change's own pieces are on (during its morph), and when the pointer reaches the
+ * button, so the click finds them waiting. Only the face, age and expression are rolled at click time; age's effect on
+ * the hair (grey, bald) is applied then, with the same odds.
  *
  * Tweak the odds and timings in CHARACTER.
  */
@@ -34,7 +41,7 @@ import { AGE } from "@/lib/age";
 import { NEUTRAL, setEmotion, setIntensity } from "@/lib/emotion";
 import { EYE_COLOURS, EYE_DEFAULT, setEyeColour, type EyeColourId } from "@/lib/eyes";
 import { HAIR_COLOURS, HAIR_DEFAULTS, HAIR_STYLES, hairFileUrl, hairState, hairStyleById, setHairColour, setHairStyle, type HairColourId, type HairStyle } from "@/lib/hair";
-import { preload } from "@/lib/headLoad";
+import { preload, whenRevealed } from "@/lib/headLoad";
 import { finishPieceFade, openPieceFade, pieceFade, runPieceFade } from "@/lib/pieceFade";
 import { clearRandomFace, randomFace } from "@/lib/morphs/random";
 import { MOTION } from "@/lib/motion";
@@ -45,13 +52,15 @@ import { setSkinTone, SKIN_DEFAULT, SKIN_TONES, type SkinToneId } from "@/lib/sk
 /** Tweak freely. Chances are 0..1; weights are relative. */
 export const CHARACTER = {
   duration: MOTION.morph, // seconds for the face to morph into the new one (colours, expression and pose change as long)
+  holdFor: 0.4, // seconds the morph may wait for the new hair and add-ons to be built, so they arrive with it (0 = never waits)
+  aheadAfterLoad: 4, // seconds after the head appears before the first character's files download ahead
   styleAt: 0, // seconds after the morph starts when the hair and add-ons cross-fade: 0 = with the morph, 0.9 = after it
   styleFade: MOTION.crossfade, // seconds for the old hair and add-ons to fade out and the new ones in
   maxDownload: 3, // seconds to wait for new hair / add-on files before changing anyway (they then pop in late)
   maxAttach: 1, // seconds to wait for them to be built and attached (and again for their shaders) before fading anyway
   age: [-0.7, 0.9] as const, // the Age slider's random range (−1 young … +1 old)
   bald: 0.08, // chance of no hair …
-  baldWhenOld: 0.25, // … once Age is past `old`
+  baldWhenOld: 0.25, // … once Age is past `old` (at least `bald`)
   old: 0.5, // Age from which grey and white hair become likely
   greyWhenOld: 0.6, // chance of grey or white hair past `old`
   facialHair: 0.25,
@@ -112,11 +121,82 @@ type Style = {
   facialHairColour: FacialHairColour;
 };
 
+/**
+ * A random character's style before its age is known: skin, eyes, hair, a non-grey hair colour, brows, lashes, maybe a
+ * beard and glasses. randomCharacter makes it grey or bald by age.
+ */
+function rollStyle(): Style {
+  // Colouring: eye colour leans on skin tone.
+  const tone = Math.floor(Math.random() * SKIN_TONES.length);
+  const browns = EYE_COLOURS.filter((c) => c.id.includes("brown"));
+  const eyes = (tone >= CHARACTER.darkSkinFrom && chance(CHARACTER.brownEyes) ? pick(browns) : pick(EYE_COLOURS)).id;
+  const colour = pickWeighted(CHARACTER.hairColours);
+  // Brows and lashes always; beard and glasses by chance. The beard wears the hair colour.
+  return {
+    skin: SKIN_TONES[tone].id,
+    eyes,
+    hair: chance(CHARACTER.bald) ? "none" : pick(HAIR_STYLES).id,
+    hairColour: (HAIR_COLOURS.find((c) => c.id === colour) ?? NATURAL_HAIR).id,
+    addons: {
+      eyebrows: anyStyle("eyebrows"),
+      eyelashes: anyStyle("eyelashes"),
+      facialHair: chance(CHARACTER.facialHair) ? anyStyle("facialHair") : "none",
+      glasses: chance(CHARACTER.glasses) ? anyStyle("glasses") : "none",
+    },
+    facialHairColour: "hair",
+  };
+}
+
+/** The add-ons `style` puts on that aren't on the head already. */
+const newAddons = (style: Style) =>
+  ADDON_CATEGORIES.flatMap((c) => (style.addons[c] === "none" || style.addons[c] === addonState[c] ? [] : (addonStyleById(c, style.addons[c]) ?? [])));
+
+/** The files `style` needs that aren't on the head already (production hair: Vercel Blob). */
+function filesFor(style: Style): string[] {
+  const hair = style.hair === "none" || style.hair === hairState.style ? undefined : hairStyleById(style.hair);
+  return [...(hair ? [hairFileUrl(hair)] : []), ...newAddons(style).map((def) => MODELS_BASE + def.file)];
+}
+
+/** Small files the add-on loaders fetch for themselves (a lash line's lid fix, a beard's stubble mask). */
+const sideFilesFor = (style: Style) =>
+  newAddons(style).flatMap((def) => [def.strands?.lidFix?.file, def.stubbleMask].filter((f) => f !== undefined).map((f) => MODELS_BASE + f));
+
+/** The next Random character's style, rolled ahead (prepareNext). */
+let next: Style | undefined;
+
+/** The visitor's browser asks for less data: nothing downloads ahead. */
+const saveData = () => typeof navigator !== "undefined" && !!(navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+
+/**
+ * Roll the next Random character's style now and download its files at low priority, so the click finds them waiting.
+ * Called once a change's pieces are on and when the pointer or keyboard focus reaches the button. Does nothing if one is
+ * already waiting; with Save-Data on, the style is rolled but nothing downloads early.
+ */
+export function prepareNext(): void {
+  if (next || building) return; // never while a change downloads and builds its own pieces: they would compete
+  next = rollStyle();
+  if (saveData()) return;
+  for (const url of filesFor(next)) void preload(url, "low");
+  // into the HTTP cache (the asset URLs are immutable), where those loaders' own fetches find them
+  for (const url of sideFilesFor(next)) void fetch(url, { priority: "low" }).then((r) => r.arrayBuffer()).catch(() => {});
+}
+
+const whenIdle = (fn: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 200));
+
+/** The first character, rolled ahead a little after the page has loaded (Toolbar mounts it), so even the first tap finds its files. */
+export function prepareFirst(): void {
+  void whenRevealed(20_000)
+    .then(() => wait(CHARACTER.aheadAfterLoad))
+    .then(() => whenIdle(prepareNext));
+}
+
 // One transition at a time: a newer click supersedes an older one that is still downloading.
 let run = 0;
 
 /** The last transition, fully landed: the morph finished and the pieces faded (see characterSettled). */
 let settled: Promise<void> = Promise.resolve();
+/** A Random character / Reset is still downloading or building its pieces. */
+let building = false;
 
 /**
  * Resolves once the last Random character / Reset has fully landed: the face morph has finished and the hair and add-ons
@@ -130,99 +210,98 @@ export async function characterSettled(): Promise<void> {
   }
 }
 
+type Change = { landed: Promise<void>; morphed: Promise<void> };
+
 /** Start a transition and remember when it has fully landed. A failed change has landed too (what made it on stays). */
-function track(change: Promise<void>): Promise<void> {
-  const landed = change.catch((err: unknown) => console.warn("[character] change failed:", err));
-  settled = Promise.all([landed, wait(CHARACTER.duration)]).then(() => {});
+function track(change: Change): Promise<void> {
+  const landed = change.landed.catch((err: unknown) => console.warn("[character] change failed:", err));
+  settled = Promise.all([landed, change.morphed]).then(() => {});
   return landed;
 }
 
 /**
- * Run `motion` (the face morph, emotion, pose) with the colours blending, and cross-fade the hair and add-ons
- * CHARACTER.styleAt seconds later. Resolves when that fade has finished (the Toolbar keeps its buttons disabled until then).
+ * Blend the colours, build the new hair and add-ons hidden, run `motion` (the face morph, emotion, pose) once they are
+ * ready or CHARACTER.holdFor has passed, and cross-fade the pieces CHARACTER.styleAt seconds into the morph. `landed`
+ * resolves when that fade has finished (the Toolbar keeps its buttons disabled until then), `morphed` when the morph has.
  */
-async function transition(style: Style, motion: () => void): Promise<void> {
+function transition(style: Style, motion: () => void): Change {
   const id = ++run;
-  // 1. Morph now, the skin and eye colours blending along with it, and download what the new style needs meanwhile
-  //    (already-attached pieces need nothing).
-  motion();
+  let started = () => {};
+  const morphed = new Promise<void>((resolve) => (started = resolve)).then(() => wait(CHARACTER.duration));
+  // 1. The colours blend at once: on the old hair, brows, lashes and beard, and the new ones are built wearing them.
   setSkinTone(style.skin, CHARACTER.duration);
   setEyeColour(style.eyes, CHARACTER.duration);
-  setHairColour(style.hairColour, CHARACTER.duration); // on the old hair, brows, lashes and beard; the new ones wear it
+  setHairColour(style.hairColour, CHARACTER.duration);
   if (addonState.facialHairColour !== style.facialHairColour) setFacialHairColour(style.facialHairColour, CHARACTER.duration);
-  const urls: string[] = [];
-  const hair = style.hair === "none" || style.hair === hairState.style ? undefined : hairStyleById(style.hair);
-  if (hair) urls.push(hairFileUrl(hair)); // where the hair loader fetches it (production: Vercel Blob)
-  for (const c of ADDON_CATEGORIES) {
-    const chosen = style.addons[c];
-    const def = chosen === "none" || chosen === addonState[c] ? undefined : addonStyleById(c, chosen);
-    if (def) urls.push(MODELS_BASE + def.file);
-  }
-  const downloads = urls.length ? within(Promise.all(urls.map(preload)), CHARACTER.maxDownload) : undefined;
-  await Promise.all([downloads, wait(CHARACTER.styleAt)]);
-  if (id !== run) return;
-
-  // 2. Cross-fade what changes: the new pieces go on hidden (the batch), then fade in together. Re-applying an
-  //    unchanged piece would re-tint it at once and cut its colour blend short, so those are left alone.
-  openPieceFade();
-  try {
+  // 2. The new pieces: downloaded (usually already, prepareNext), then put on hidden in a cross-fade batch. Re-applying
+  //    an unchanged piece would re-tint it at once and cut its colour blend short, so those are left alone.
+  let opened = false;
+  building = true;
+  const ready = (async () => {
+    const urls = filesFor(style);
+    if (urls.length) await within(Promise.all(urls.map((url) => preload(url))), CHARACTER.maxDownload);
+    if (id !== run) return;
+    openPieceFade();
+    opened = true;
     const attached = [
       style.hair !== hairState.style && setHairStyle(style.hair, true),
       ...ADDON_CATEGORIES.map((c) => style.addons[c] !== addonState[c] && setAddonStyle(c, style.addons[c], true)),
     ];
     await within(Promise.all(attached), CHARACTER.maxAttach);
     await within(precompile(pieceFade.arriving), CHARACTER.maxAttach); // their shaders, off the main thread, before the first frame
-    if (id !== run) return finishPieceFade();
-    await runPieceFade(CHARACTER.styleFade);
-  } catch (err) {
-    if (id === run) finishPieceFade(); // never leave the batch open: later swaps would wait for a fade that never runs
-    throw err;
-  }
+  })();
+  void ready
+    .catch(() => {})
+    .then(() => {
+      if (id !== run) return; // a newer change is building its own
+      building = false;
+      whenIdle(() => !building && prepareNext()); // the next character's files, during this one's morph
+    });
+  const landed = (async () => {
+    try {
+      // 3. The morph, as soon as the pieces are ready or the hold is up (a slow device morphs first and fades them in late).
+      await within(ready.catch(() => {}), CHARACTER.holdFor);
+      if (id === run) motion();
+      started();
+      await Promise.all([ready, wait(CHARACTER.styleAt)]);
+      if (!opened) return;
+      if (id !== run) return finishPieceFade();
+      await runPieceFade(CHARACTER.styleFade);
+    } catch (err) {
+      if (id === run) finishPieceFade(); // never leave the batch open: later swaps would wait for a fade that never runs
+      throw err;
+    } finally {
+      started();
+    }
+  })();
+  return { landed, morphed };
 }
 
-const wait = (seconds: number) => new Promise((r) => setTimeout(r, seconds * 1000));
+const wait = (seconds: number) => new Promise<void>((r) => setTimeout(r, seconds * 1000));
 
 const within = (work: Promise<unknown>, seconds: number) => Promise.race([work, wait(seconds)]);
 
 export function randomCharacter(): Promise<void> {
+  // The face first, so a seeded Math.random (the stress test) gives the same faces whether or not a style was rolled ahead.
   const age = rand(...CHARACTER.age);
   const old = age >= CHARACTER.old;
-
-  // Colouring: eye colour leans on skin tone.
-  const tone = Math.floor(Math.random() * SKIN_TONES.length);
-  const browns = EYE_COLOURS.filter((c) => c.id.includes("brown"));
-  const eyes = (tone >= CHARACTER.darkSkinFrom && chance(CHARACTER.brownEyes) ? pick(browns) : pick(EYE_COLOURS)).id;
-
-  // Hair: sometimes none, greyer with age.
-  const hair = chance(old ? CHARACTER.baldWhenOld : CHARACTER.bald) ? "none" : pick(HAIR_STYLES).id;
-  const grey = old && chance(CHARACTER.greyWhenOld);
-  const colour = grey ? pick(["grey", "white"]) : pickWeighted(CHARACTER.hairColours);
-
-  // Brows and lashes always; beard and glasses by chance. The beard wears the hair colour.
-  const style: Style = {
-    skin: SKIN_TONES[tone].id,
-    eyes,
-    hair,
-    hairColour: (HAIR_COLOURS.find((c) => c.id === colour) ?? NATURAL_HAIR).id,
-    addons: {
-      eyebrows: anyStyle("eyebrows"),
-      eyelashes: anyStyle("eyelashes"),
-      facialHair: chance(CHARACTER.facialHair) ? anyStyle("facialHair") : "none",
-      glasses: chance(CHARACTER.glasses) ? anyStyle("glasses") : "none",
-    },
-    facialHairColour: "hair",
-  };
-
+  const distinctiveness = rollDistinctiveness();
+  const face = randomFace(visibleSliders(), distinctiveness, { [AGE.target]: age });
   // Expression.
   const weights = Object.fromEntries([NEUTRAL, ...emotionDefs.map((e) => e.id)].map((id) => [id, CHARACTER.emotions[id] ?? 1]));
   const emotion = pickWeighted(weights);
   const intensity = Math.round(rand(...CHARACTER.intensity) * 100) / 100;
-  const distinctiveness = rollDistinctiveness();
+
+  // The style rolled ahead (or now), then by age: balder and greyer (same odds as rolling with the age known).
+  const style = next ?? rollStyle();
+  next = undefined;
+  if (old && style.hair !== "none" && chance((CHARACTER.baldWhenOld - CHARACTER.bald) / (1 - CHARACTER.bald))) style.hair = "none";
+  if (old && chance(CHARACTER.greyWhenOld)) style.hairColour = pick(["grey", "white"]);
 
   return track(transition(style, () => {
     // Face and age: one tween, so the shape and the skin's ageing move together.
     // (the Age is fitted with the face: an age set afterwards could break a face that only fits at rest)
-    morphs.tweenTo(randomFace(visibleSliders(), distinctiveness, { [AGE.target]: age }), CHARACTER.duration);
+    morphs.tweenTo(face, CHARACTER.duration);
     setEmotion(emotion, CHARACTER.duration); // the expression on the face's clock, not the emotion buttons' quicker blend
     setIntensity(intensity, "code", CHARACTER.duration);
   }));

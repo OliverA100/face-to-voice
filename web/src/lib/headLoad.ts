@@ -64,12 +64,13 @@ export function prefetchPart(id: string, url: string): void {
 
 /**
  * Download a piece now without touching the reveal (Random character: the next look's files arrive while the old one is
- * still live, lib/character.ts). Resolves when the bytes are in (never rejects); hair.ts / addons.ts take them as usual.
+ * still live, lib/character.ts; "low" priority when it downloads the one after ahead of time). Resolves when the bytes are
+ * in (never rejects); hair.ts / addons.ts take them as usual.
  */
-export function preload(url: string): Promise<void> {
+export function preload(url: string, priority: RequestPriority = "auto"): Promise<void> {
   let bytes = early.get(url);
   if (!bytes) {
-    bytes = fetch(url).then((r) => {
+    bytes = fetch(url, { priority }).then((r) => {
       if (!r.ok) throw new Error(`${url}: ${r.status} ${r.statusText}`);
       return r.arrayBuffer();
     });
