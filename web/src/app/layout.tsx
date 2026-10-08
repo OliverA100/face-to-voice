@@ -8,10 +8,17 @@ import { TooltipLayer } from "@/components/ui/TooltipLayer";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500"] });
 const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400"] });
 
+const TITLE = "Face to Voice — Build a face, hear its voice";
+const DESCRIPTION = "Shape a 3D head with sliders, get a matching ElevenLabs voice, and hear it speak with lip sync.";
+
 export const metadata: Metadata = {
-  // Pages set just their own name ("Icon lab"); the template adds the suffix.
-  title: { default: "Face to Voice — Build a face, hear its voice", template: "%s · Face to Voice" },
-  description: "Shape a 3D head with sliders, get a matching ElevenLabs voice, and hear it speak with lip sync.",
+  // The address link previews resolve against; the preview image is app/opengraph-image.jpg (and twitter-image.jpg).
+  metadataBase: new URL("https://facetovoice.com"),
+  // Pages set just their own name; the template adds the suffix.
+  title: { default: TITLE, template: "%s · Face to Voice" },
+  description: DESCRIPTION,
+  openGraph: { type: "website", url: "/", siteName: "Face to Voice", title: TITLE, description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
