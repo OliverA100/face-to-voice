@@ -14,7 +14,7 @@ exported to the browser as glTF morph targets. Everything on top of it (semantic
 hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 
 **Contents:** [Highlights](#engineering-highlights) · [How it works](#how-it-works) ·
-[How ElevenLabs is used](#how-elevenlabs-is-used) · [Run it](#run-it) · [Responsible AI](#responsible-ai) ·
+[How ElevenLabs is used](#how-elevenlabs-is-used) · [Known limitations](#known-limitations) · [Run it](#run-it) · [Responsible AI](#responsible-ai) ·
 [Credits and licences](#credits-and-licences) · [Architecture](docs/architecture.md)
 
 ## Engineering highlights
@@ -89,6 +89,31 @@ the chosen take, a rebuild link, and a licence file written from the licence of 
 | **Rate limits and cost** | Same-origin, Vercel BotID, per-visitor limits and global daily caps in Upstash Redis on every paid route; one request at a time designs a description or saves a take. Production refuses to run without Redis. |
 | **Mock mode** | `FTV_MOCK_ELEVENLABS=1` and `FTV_MOCK_CLAUDE=1` replace every paid call, so the whole flow and the lip sync run without keys. |
 
+## Known limitations
+
+- **Lip sync reads English.** Visemes come from English letter-to-sound rules, so a line typed in another language is
+  voiced but mouthed as if it were English.
+- **A voice can't be recreated from its description.** Voice Design is not reproducible from a seed, so the app caches
+  the voices it designed for each description, and the export carries the chosen take's audio and its prompt, not a
+  voice you can reuse elsewhere.
+- **Few voices are kept.** Saved voices live in a small pool sized to the ElevenLabs plan, and the least recently used
+  are dropped; when the day's saves or the month's voice operations run out, visitors get the closest pre-designed
+  studio voice.
+- **The limiter only knows what it has been shown.** Single sliders and slider pairs never break in the stress test,
+  but 3 of 3,000 random multi-slider faces still cross somewhere, and some extreme faces in motion cross by up to
+  1.2 mm. Each failure found is added to the limiter's data.
+  [Numbers](docs/architecture.md#the-limiter-and-the-stress-test)
+- **A head, no body.** The model is a head; there are no shoulders, and slider ranges are checked against adult
+  anthropometry only.
+- **Hair doesn't move on its own.** The 228 styles follow the skin (sliders, blinks, expressions) but have no physics:
+  no swing, no gravity.
+- **Most hair is non-commercial.** 223 of the 228 styles are CC BY-NC 4.0, and a character exported with one of them
+  is too (see [Credits and licences](#credits-and-licences)).
+- **Phone numbers are emulated.** Frame rates and timings come from a desktop with 4× CPU throttling; an older phone's
+  GPU may struggle with long hair at full resolution.
+- **The image check is shallow.** The voice route checks that it got a small same-origin JPEG, not that it is a render
+  of this app. [Responsible AI](docs/responsible-ai.md)
+
 ## Run it
 
 Requirements: Node 22.18+, pnpm, and for the pipeline Python 3.13 with [uv](https://docs.astral.sh/uv/).
@@ -110,8 +135,6 @@ pnpm dev                           # http://localhost:3000
 cd web && pnpm test && pnpm lint && pnpm typecheck
 cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 ```
-
-Deploying: [DEPLOY.md](DEPLOY.md) (Vercel, Upstash Redis, Vercel Blob, BotID, per-key quotas).
 
 ## Repository layout
 
