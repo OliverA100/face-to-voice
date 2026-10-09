@@ -168,7 +168,7 @@ Design is not reproducible from a seed (probed), so the zip carries the chosen t
 | Decision | Why |
 |---|---|
 | Morph targets, not a runtime GNM | linear model → exact, GPU-native, no WASM; 2.9 MB brotli for 125 targets |
-| Two GLB files | the first frame needs 70 targets; the other 55 load while the loader plays |
+| Two GLB files | the first frame needs 70 targets; the other 55 load once the head is on screen (a face restored after a reload fetches them with the head) |
 | Weights in a plain store, not React state | sliders, tweens and idle life write at 60 fps with zero re-renders |
 | Limiter on vertices, not linear probes | per-slider linear limits did not converge on multi-slider faces; geometry tests do |
 | Superset limiter + offline exact check + stress test | the app stays fast, the pipeline stays exact, the stress test proves the two agree |

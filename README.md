@@ -23,11 +23,11 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 |---|---|
 | Model export | 125 morph targets, every vertex and delta within 6 µm of the source; 2.88 MB brotli for both files |
 | Limiter | blocks only impossible geometry; a slider grab costs one frame, per-face animation caps run off the main thread |
-| Stress test | the real app driven through 8 families of states in headless Chrome, each exact-checked: 0 of 223 single-slider ends and 0 of 4,224 slider pairs broken |
+| Stress test | 8 families of states, each exact-checked: Random face, Random character and animation driven in the real app in headless Chrome, single sliders, pairs, multi-slider faces, fine-tune and add-ons generated with the limiter's Python mirror; 0 of 223 single-slider ends and 0 of 4,224 slider pairs broken |
 | Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 565 KB initial JS gzip |
 | Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 / 61–62 |
 | Accessibility | WCAG 2.2 AA pass: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; Lighthouse 100 / 96 |
-| Tests | 261 vitest tests (web) and 162 pytest tests (pipeline), run in CI on every push |
+| Tests | 265 vitest tests (web) and 162 pytest tests (pipeline), run in CI on every push |
 
 Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
 
@@ -54,8 +54,9 @@ Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewpor
 **The head.** GNM is linear, so each of its components bakes into an exact glTF morph target. The pipeline exports 30
 identity and 40 expression components, and `uv run verify` checks every vertex and morph delta against the source. The
 33 **Shape** sliders (jaw width, eye spacing, lip fullness …) are not raw components but directions solved on the
-model, each moving its own measurement while holding the others. Every slider end sits at ±4.5 SD of its feature,
-checked against adult anthropometry (ANSUR II, NIOSH, 3DFN). [More](docs/architecture.md#pipeline--morph-targets)
+model, each moving its own measurement while holding the others. Slider ends reach up to ±4.5 SD of their feature,
+pulled back where adult anthropometry (ANSUR II, NIOSH, 3DFN) or the geometry says stop.
+[More](docs/architecture.md#pipeline--morph-targets)
 
 **Only impossible faces are blocked.** Weird faces are allowed; skin through the eyeball, lips through each other or
 teeth through the cheek are not. Exact checks in the pipeline find what breaks, and a fast mirror in the app turns
@@ -83,7 +84,7 @@ the chosen take, a rebuild link, and a licence file written from the licence of 
 | **Voice Design from the face** | `POST /v1/text-to-voice/design` with `eleven_ttv_v3`. The description is assembled from Claude's casting by a fixed template, and the preview text is the character's own line, so the three previews already sound in character. |
 | **Text to speech** | `POST /v1/text-to-speech/{voice}/stream/with-timestamps`, `eleven_v4_turbo`, `pcm_24000`, passed straight through to the browser. The expression rides along as an audio tag at three strengths. |
 | **Timestamps → lip sync** | Character times become viseme cues; closures and vowels are then snapped to the audio's loudness, since word-medial stamps can be ~100 ms off. |
-| **Latency** | First audio about 0.3 s after the request (0.4 s with an expression tag); playback starts on the first chunk. |
+| **Latency** | First audio about 0.4 s after the request, with or without an expression tag; playback starts on the first chunk. |
 | **Caching** | Voices are cached per voice description (a design is never paid for twice), castings per visitor and face, spoken lines in Vercel Blob by voice and text, and only when the stream was the whole line. |
 | **Voice slots** | Saved voices live in a small LRU pool sized to the plan; when the day's saves or the month's operations run out, the visitor gets the closest pre-designed studio voice instead of an error. |
 | **Rate limits and cost** | Same-origin, Vercel BotID, per-visitor limits and global daily caps in Upstash Redis on every paid route; one request at a time designs a description or saves a take. Production refuses to run without Redis. |
