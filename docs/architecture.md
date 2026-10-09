@@ -149,11 +149,15 @@ PCM + character times ◄──────── NDJSON passed through, then wr
 - **One paid job at a time.** A Redis lock per description (design) and per take (save): a second request waits for
   the first one's result instead of paying again. The voice pool is one hash field per take, so concurrent requests
   never drop each other's entries, and speaking with a voice moves it to the back of the eviction queue.
-- **Lip sync** (`web/src/lib/lipsync/`): `player.ts` schedules PCM chunks gaplessly on the AudioContext clock and
-  compensates output latency; `cues.ts` maps letters to visemes (TalkingHead's rules, numbers spelled out, tag
-  characters dropped); `evaluator.ts` places the line on the voice onset, snaps closures (p/b/m, f/v, th) to the
-  quiet-then-burst in the audio and vowels to loudness peaks, then blends with anticipation, closure dominance and
-  smoothing; `LipSync.tsx` writes the result into the viseme morph layer, capped per face by the limiter.
+- **Lip sync** (`web/src/lib/lipsync/`): `player.ts` schedules PCM chunks gaplessly on the AudioContext clock,
+  compensates output latency and keeps a loudness envelope plus one above 2 kHz; `cues.ts` maps letters to visemes
+  (TalkingHead's rules, numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
+  unstressed "a/the/of/-ably" are weak); `evaluator.ts` places the line on the voice onset, snaps closures (p/b/m, f/v,
+  th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble) and vowels to loudness peaks, keeping
+  the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly), then blends with anticipation, closure
+  dominance and smoothing; `LipSync.tsx` writes the result into the viseme morph layer, capped per face by the limiter
+  and held to a top speed for the lips and the jaw (`visemes.json` "speed"). Mouth openings follow the loudness
+  measured against the loudest moment nearby, so a line that trails off still forms its last words.
 
 ## Export
 

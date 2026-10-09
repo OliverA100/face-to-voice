@@ -17,6 +17,7 @@ export const VISEME_IDS: VisemeId[] = ["PP", "FF", "TH", "DD", "SS", "aa", "E", 
 const FOLD: Record<string, VisemeId | null> = {
   sil: null, PP: "PP", FF: "FF", TH: "TH", DD: "DD", kk: "DD", nn: "DD", CH: "SS", SS: "SS", RR: "U",
   aa: "aa", E: "E", I: "I", O: "O", U: "U", ih: "I", oh: "O", ou: "U", OO: "U", EE: "I",
+  AX: "aa", // a schwa (lipsync-en.ts): an "aa" made weak (Cue.weak)
 };
 
 /**
@@ -41,6 +42,10 @@ export interface Cue {
   end: number;
   text: string; // the letters it came from (debugging / overlay)
   ws?: number; // the stamped start of the word it came from (placeLine shifts by how far that word is from the voice)
+  weak?: boolean; // an unstressed vowel (a schwa): formed only to LIPSYNC.weakPeak
+  glide?: boolean; // an "r" or "w" (folded to U): rounded like a vowel, but not a syllable: it takes no loudness peak (snapVowels) and rounds no closure (roundingAt)
+  nasal?: boolean; // a closure spelled with an "m": it hums on with the lips shut, so it is found in the treble (snapClosures)
+  n?: number; // its place in the spoken order (the evaluator's snapping keeps the sounds in that order)
 }
 
 const isWordChar = (c: string) => /[A-Za-z0-9']/.test(c);
@@ -149,6 +154,7 @@ export function alignmentToCues(raw: Alignment): Cue[] {
     }
     i = j;
   }
+  cues.forEach((c, k) => (c.n = k));
   // Anticipation can move a closure ahead of the previous cue; the evaluator needs start order.
   cues.sort((p, q) => p.start - q.start);
   return cues;
@@ -174,12 +180,19 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
       if (end - start < MIN_DURATION) end = start + MIN_DURATION;
     }
     const last = out[out.length - 1];
+    const weak = v.viseme === "AX";
+    const letters = word.slice(v.charStart, v.charEnd);
+    const glide = v.viseme === "RR" || (v.viseme === "U" && v.from === 0 && /^w/i.test(letters));
+    const nasal = folded === "PP" && /m/i.test(letters);
     // Repeats inside a word ("pp" in peppers) merge; across words each closure stays its own cue.
     if (last && last.viseme === folded && start <= last.end + 0.04) {
       last.end = Math.max(last.end, end);
       last.text += word.slice(v.charStart, v.charEnd);
+      if (!weak) delete last.weak;
+      if (!glide) delete last.glide;
+      if (nasal) last.nasal = true;
     } else {
-      out.push({ viseme: folded, start, end, text: word.slice(v.charStart, v.charEnd), ws });
+      out.push({ viseme: folded, start, end, text: word.slice(v.charStart, v.charEnd), ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}) });
     }
   }
   return out;

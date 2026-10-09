@@ -68,6 +68,8 @@ export type Weights = Record<string, number>;
 interface VisemesDoc {
   visemes: Record<string, Weights>;
   roles: { blinkLeft: Weights; blinkRight: Weights; jawOpen: Weights; pupils: Weights };
+  /** mm of lip opening and jaw opening per unit morph weight (LipSync's speed limit). */
+  speed?: { gap: Weights; jaw: Weights };
 }
 
 export interface Manifest {

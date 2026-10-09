@@ -6,7 +6,9 @@
  * (see NOTICE). Its rules come from NRL Report 7948, "Automatic Translation of English Text to
  * Phonetics by Means of Letter-to-Sound Rules" (Elovitz, Johnson, McHugh, Shore, 1976).
  * Changes: TypeScript; a "w" (also in one, once, qu, gu) is rounded lips (U), not the lower lip on the teeth (FF) as in
- * the original; and each viseme records the character span it was produced from, so the timing
+ * the original; an "h" has no shape of its own (the lips are already in the next vowel's, which is drawn over the h too: a
+ * silent "h" in "honestly" no longer spreads the lips before the voice); unstressed vowels the spelling gives away (the
+ * article "a"/"an", "the", "of", "-ably", "-able", "-ibly", "-ible") are AX, a schwa that cues.ts makes a weak "aa"; and each viseme records the character span it was produced from, so the timing
  * can come from ElevenLabs' per-character timestamps instead of average durations. The original's
  * number/symbol expansion is left out: the input is ElevenLabs' `normalized_alignment`, which is
  * already the spoken text (digits that remain are spelled out in cues.ts numberToWords).
@@ -14,10 +16,10 @@
 
 const RULES: Record<string, string[]> = {
   A: [
-    "[A] =aa", " [ARE] =aa RR", " [AR]O=aa RR", "[AR]#=E RR", " ^[AS]#=E SS", "[A]WA=aa", "[AW]=aa", " :[ANY]=E nn I",
+    " [A] =AX", " [AN] =AX nn", "#:[ABLY]=AX PP nn I", "#:[ABLE]=AX PP AX nn", "[A] =aa", " [ARE] =aa RR", " [AR]O=aa RR", "[AR]#=E RR", " ^[AS]#=E SS", "[A]WA=aa", "[AW]=aa", " :[ANY]=E nn I",
     "[A]^+#=E", "#:[ALLY]=aa nn I", " [AL]#=aa nn", "[AGAIN]=aa kk E nn", "#:[AG]E=I kk", "[A]^+:#=aa", ":[A]^+ =E", "[A]^%=E",
     " [ARR]=aa RR", "[ARR]=aa RR", " :[AR] =aa RR", "[AR] =E", "[AR]=aa RR", "[AIR]=E RR", "[AI]=E", "[AY]=E", "[AU]=aa",
-    "#:[AL] =aa nn", "#:[ALS] =aa nn SS", "[ALK]=aa kk", "[AL]^=aa nn", " :[ABLE]=E PP aa nn", "[ABLE]=aa PP aa nn", "[ANG]+=E nn kk", "[A]=aa",
+    "#:[AL] =aa nn", "#:[ALS] =aa nn SS", "[ALK]=aa kk", "[AL]^=aa nn", " :[ABLE]=E PP AX nn", "[ABLE]=aa PP AX nn", "[ANG]+=E nn kk", "[A]=aa",
   ],
   B: [" [BE]^#=PP I", "[BEING]=PP I I nn", " [BOTH] =PP O TH", " [BUS]#=PP I SS", "[BUIL]=PP I nn", "[B]=PP"],
   C: [" [CH]^=kk", "^E[CH]=kk", "[CH]=CH", " S[CI]#=SS aa", "[CI]A=SS", "[CI]O=SS", "[CI]EN=SS", "[C]+=SS", "[CK]=kk", "[COM]%=kk aa PP", "[C]=kk"],
@@ -30,9 +32,9 @@ const RULES: Record<string, string[]> = {
   ],
   F: ["[FUL]=FF U nn", "[F]=FF"],
   G: ["[GIV]=kk I FF", " [G]I^=kk", "[GE]T=kk E", "SU[GGES]=kk kk E SS", "[GG]=kk", " B#[G]=kk", "[G]+=kk", "[GREAT]=kk RR E DD", "#[GH]=", "[G]=kk"],
-  H: [" [HAV]=I aa FF", " [HERE]=I I RR", " [HOUR]=aa EE", "[HOW]=I aa", "[H]#=I", "[H]="],
+  H: [" [HAV]=aa FF", " [HERE]=I RR", " [HOUR]=aa EE", "[HOW]=aa U", "[H]#=", "[H]="],
   I: [
-    " [IN]=I nn", " [I] =aa", "[IN]D=aa nn", "[IER]=I E", "#:R[IED] =I DD", "[IED] =aa DD", "[IEN]=I E nn", "[IE]T=aa E",
+    "#:[IBLY]=AX PP nn I", "#:[IBLE]=AX PP AX nn", " [IN]=I nn", " [I] =aa", "[IN]D=aa nn", "[IER]=I E", "#:R[IED] =I DD", "[IED] =aa DD", "[IEN]=I E nn", "[IE]T=aa E",
     " :[I]%=aa", "[I]%=I", "[IE]=I", "[I]^+:#=I", "[IR]#=aa RR", "[IZ]%=aa SS", "[IS]%=aa SS", "[I]D%=aa", "+^[I]^+=I",
     "[I]T%=aa", "#^:[I]^+=I", "[I]^+=aa", "[IR]=E", "[IGH]=aa", "[ILD]=aa nn DD", "[IGN] =aa nn", "[IGN]^=aa nn", "[IGN]%=aa nn", "[IQUE]=I kk", "[I]=I",
   ],
@@ -42,7 +44,7 @@ const RULES: Record<string, string[]> = {
   M: ["[MOV]=PP U FF", "[M]=PP"],
   N: ["E[NG]+=nn kk", "[NG]R=nn kk", "[NG]#=nn kk", "[NGL]%=nn kk aa nn", "[NG]=nn", "[NK]=nn kk", " [NOW] =nn aa", "[N]=nn"],
   O: [
-    "[OF] =aa FF", "[OROUGH]=E O", "#:[OR] =E", "#:[ORS] =E SS", "[OR]=aa RR", " [ONE]=U aa nn", "[OW]=O", " [OVER]=O FF E",
+    " [OF] =AX FF", "[OF] =aa FF", "[OROUGH]=E O", "#:[OR] =E", "#:[ORS] =E SS", "[OR]=aa RR", " [ONE]=U aa nn", "[OW]=O", " [OVER]=O FF E",
     "[OV]=aa FF", "[O]^%=O", "[O]^EN=O", "[O]^I#=O", "[OL]D=O nn", "[OUGHT]=aa DD", "[OUGH]=aa FF", " [OU]=aa", "H[OU]S#=aa",
     "[OUS]=aa SS", "[OUR]=aa RR", "[OULD]=U DD", "^[OU]^L=aa", "[OUP]=U OO", "[OU]=aa", "[OY]=O", "[OING]=O I nn", "[OI]=O",
     "[OOR]=aa RR", "[OOK]=U kk", "[OOD]=U DD", "[OO]=U", "[O]E=O", "[O] =O", "[OA]=O", " [ONLY]=O nn nn I", " [ONCE]=U aa nn SS",
@@ -58,7 +60,7 @@ const RULES: Record<string, string[]> = {
     "U[S] =SS", " :#[S] =SS", " [SCH]=SS kk", "[S]C+=", "#[SM]=SS PP", "#[SN]'=SS aa nn", "[S]=SS",
   ],
   T: [
-    " [THE] =TH aa", "[TO] =DD U", "[THAT] =TH aa DD", " [THIS] =TH I SS", " [THEY]=TH E", " [THERE]=TH E RR", "[THER]=TH E", "[THEIR]=TH E RR",
+    " [THE] =TH AX", "[TO] =DD U", "[THAT] =TH aa DD", " [THIS] =TH I SS", " [THEY]=TH E", " [THERE]=TH E RR", "[THER]=TH E", "[THEIR]=TH E RR",
     " [THAN] =TH aa nn", " [THEM] =TH E PP", "[THESE] =TH I SS", " [THEN]=TH E nn", "[THROUGH]=TH RR U", "[THOSE]=TH O SS",
     "[THOUGH] =TH O", " [THUS]=TH aa SS", "[TH]=TH", "#:[TED] =DD I DD", "S[TI]#N=CH", "[TI]O=SS", "[TI]A=SS", "[TIEN]=SS aa nn",
     "[TUR]#=CH E", "[TU]A=CH U", " [TWO]=DD U", "[T]=DD",
@@ -88,7 +90,7 @@ const OPS: Record<string, string> = {
 
 /** Relative viseme durations (1 = average), used to split a rule's span between its visemes. */
 const VISEME_DURATIONS: Record<string, number> = {
-  aa: 0.95, E: 0.9, I: 0.92, O: 0.96, U: 0.95, PP: 1.08, SS: 1.23, TH: 1, DD: 1.05, FF: 1.0, kk: 1.21, nn: 0.88, RR: 0.88, sil: 1,
+  aa: 0.95, AX: 0.7, E: 0.9, I: 0.92, O: 0.96, U: 0.95, PP: 1.08, SS: 1.23, TH: 1, DD: 1.05, FF: 1.0, kk: 1.21, nn: 0.88, RR: 0.88, sil: 1,
 };
 
 type Rule = { regex: RegExp; move: number; visemes: string[] };
@@ -124,6 +126,8 @@ export function wordToVisemes(word: string): WordViseme[] {
   const chars = [...upper];
   const out: WordViseme[] = [];
   let i = 0;
+  let hAt = -1; // a silent "h" waiting for the next vowel's shape
+  let hBefore = 0; // out.length before the current letter
   while (i < chars.length) {
     const c = chars[i];
     const ruleset = compiled[c];
@@ -153,6 +157,14 @@ export function wordToVisemes(word: string): WordViseme[] {
       break;
     }
     if (!matched) i++;
+    // an "h" that made no shape before a vowel: that vowel starts at the h (its copy over the h merges with it in cues.ts)
+    if (c === "H" && matched && out.length === hBefore && i < chars.length && /[AEIOUY]/.test(chars[i])) hAt = i - 1;
+    else if (hAt >= 0 && out.length > hBefore) {
+      const next = out[hBefore];
+      out.splice(hBefore, 0, { viseme: next.viseme, charStart: hAt, charEnd: hAt + 1, from: 0, to: 1 });
+      hAt = -1;
+    }
+    hBefore = out.length;
   }
   return out;
 }

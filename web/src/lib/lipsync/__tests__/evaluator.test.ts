@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { Cue } from "../cues";
-import { closureGate, LIPSYNC, loudnessGate, roundingAt } from "../evaluator";
+import { closureGate, LIPSYNC, loudnessGate, roundingAt, speedShare } from "../evaluator";
 
 describe("closureGate", () => {
   it("lets closures through while quiet and holds them back once the voice is loud", () => {
@@ -34,3 +34,16 @@ describe("roundingAt", () => {
     expect(roundingAt(cues, 1.9)).toBe(0);
   });
 });
+
+describe("speedShare", () => {
+  it("lets a step through whole when it is slow enough, and shortens it to the top speed when it is not", () => {
+    const dt = 1 / 60;
+    expect(speedShare(1, 0.5, dt)).toBe(1); // 60 mm/s lips, 30 mm/s jaw
+    const lips = speedShare(10, 0, dt); // 600 mm/s
+    expect(lips * 10).toBeCloseTo(LIPSYNC.gapSpeed * dt, 6);
+    const jaw = speedShare(0, -8, dt); // 480 mm/s, closing
+    expect(jaw * 8).toBeCloseTo(LIPSYNC.jawSpeed * dt, 6);
+    expect(speedShare(10, 8, dt)).toBe(Math.min(lips, jaw)); // the stricter of the two
+  });
+});
+
