@@ -34,7 +34,7 @@ import { currentLook } from "@/lib/look";
 import { lastCaps, updateAnimCaps, visemeCap } from "@/lib/morphs/animCaps";
 import { askLimiter, geometryKey, readySpan, wantSpan } from "@/lib/morphs/capsClient";
 import { limiter, loadedLimits, plainStore } from "@/lib/morphs/limiter";
-import { precomputeVariations, randomFace, randomState, strikingFeatures, varyFace, variationNotches } from "@/lib/morphs/random";
+import { precomputeVariations, randomFace, randomFaceAsync, randomState, strikingFeatures, varyFace, variationNotches } from "@/lib/morphs/random";
 import { morphs } from "@/lib/morphs/store";
 import { perf } from "@/lib/perf";
 import { characterSettled } from "@/lib/character";
@@ -64,7 +64,7 @@ if (debugHandle) {
     morphs,
     currentLook,
     characterSettled,
-    random: { randomFace, varyFace, precomputeVariations, variationNotches, randomState, strikingFeatures, defs: visibleSliders },
+    random: { randomFace, randomFaceAsync, varyFace, precomputeVariations, variationNotches, randomState, strikingFeatures, defs: visibleSliders },
     // the limiter and animation caps (getters: the real limiter once its lazy chunk has loaded)
     limits: {
       get limiter() {

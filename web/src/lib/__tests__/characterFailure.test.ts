@@ -12,7 +12,8 @@ vi.mock("@/lib/pieceFade", () => ({
   pieceFade: { arriving: [] },
   runPieceFade: async () => void (fade.open = false),
 }));
-vi.mock("@/lib/morphs/random", () => ({ clearRandomFace: () => {}, randomFace: () => ({}) }));
+vi.mock("@/lib/morphs/random", () => ({ clearRandomFace: () => {}, randomFace: () => ({}), randomFaceAsync: async () => ({}) }));
+vi.mock("@/lib/morphs/capsClient", () => ({ askLimiter: async () => false }));
 vi.mock("@/lib/morphs/store", () => ({ morphs: { tweenTo: () => {}, reset: () => {}, onChange: () => () => {}, onSettle: () => () => {} } }));
 vi.mock("@/lib/pose", () => ({ centrePose: () => {} }));
 vi.mock("@/lib/emotion", () => ({ NEUTRAL: "neutral", setEmotion: () => {}, setIntensity: () => {} }));

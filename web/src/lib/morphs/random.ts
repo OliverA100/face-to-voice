@@ -274,6 +274,38 @@ export function precomputeVariations(defs: SliderDef[], current: Weights, values
  * the face (Random character's Age), fitted with it and kept at those values.
  */
 export function randomFace(defs: SliderDef[], variation: number = randomState.variation, hold: Weights = {}): Weights {
+  draw(defs, variation, hold);
+  lastApplied = fitted(defs, variation);
+  notify();
+  return lastApplied;
+}
+
+/**
+ * randomFace with the limiter's questions answered by `ask` (the caps worker, capsClient askLimiter): a distinctive face
+ * takes a phone up to a second and a half of geometry checks, which would freeze the page at the click. The draw is
+ * made at once (so a seeded Math.random gives the same face), then the same steps and answers as randomFace. Null when
+ * another random face (or Reset) took over meanwhile.
+ */
+export async function randomFaceAsync(defs: SliderDef[], ask: (defs: SliderDef[], a: LimitAsk) => Promise<boolean | number>, variation: number = randomState.variation, hold: Weights = {}): Promise<Weights | null> {
+  draw(defs, variation, hold);
+  const key = stateKey;
+  const fit: FitReport = { shrunk: 0, striking: [] };
+  const steps = fitting(defs, variation, { draw: lastDraw, asIs, striking, held }, fit);
+  let r = steps.next();
+  while (!r.done) {
+    const answer = await ask(defs, r.value);
+    if (stateKey !== key) return null;
+    r = steps.next(answer);
+  }
+  randomState.lastFit = fit;
+  if (fit.shrunk) newState(); // the draw changed: what was worked out for the old one no longer holds
+  lastApplied = r.value;
+  notify();
+  return lastApplied;
+}
+
+/** A fresh draw and fresh striking features at `variation`, the `hold` sliders as given (randomFace, randomFaceAsync). */
+function draw(defs: SliderDef[], variation: number, hold: Weights): void {
   newState();
   candidate = null;
   lastDraw = Object.fromEntries(defs.filter((d) => d.kind === "identity").map((d) => [d.target, gaussian()]));
@@ -281,9 +313,6 @@ export function randomFace(defs: SliderDef[], variation: number = randomState.va
   striking = pickStriking(defs);
   held = hold;
   randomState.variation = variation;
-  lastApplied = fitted(defs, variation);
-  notify();
-  return lastApplied;
 }
 
 const hasRandomFace = () => asIs !== null || Object.keys(lastDraw).length > 0;
