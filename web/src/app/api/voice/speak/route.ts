@@ -5,6 +5,7 @@
 import { after } from "next/server";
 import { z } from "zod";
 
+import { captureClip, type ClipMeta } from "@/lib/server/devClips";
 import { ApiError, errorResponse, jsonBody } from "@/lib/server/errors";
 import { UpstreamError } from "@/lib/server/elevenlabs";
 import { guard } from "@/lib/server/guards";
@@ -36,8 +37,10 @@ export async function POST(request: Request) {
     after(() => voiceSpoken(record!, body.take, voiceId)); // in use: the pool evicts it last
     const text = spokenText(body.text, body.emotion, body.intensity); // "[happy] Hello there."
     if (!text.replace(/^\[[^\]]*\]\s*/, "")) throw new ApiError("bad_request", "Type a line to say.", 400);
+    // development: the line is saved for /dev/lipsync too (lib/server/devClips.ts)
+    const meta = (cached: boolean): ClipMeta => ({ text: body.text, spoken: text, voiceId, descKey: body.descKey, take: body.take ?? null, emotion: body.emotion, intensity: body.intensity, cached });
     const cached = await cachedSpeech(voiceId, text);
-    if (cached) return new Response(cached, { headers: speechHeaders(true) }); // cache hits are free
+    if (cached) return new Response(captureClip(cached, meta(true)), { headers: speechHeaders(true) }); // cache hits are free
     // A generation is paid: its characters (the tag counts: it is billed) are reserved against the daily cap before
     // ElevenLabs is called, so a visitor over the cap gets nothing generated, and given back if the call fails.
     await consumeDailyCap("speakChars", text.length);
@@ -53,7 +56,7 @@ export async function POST(request: Request) {
       }
       throw e;
     }
-    return new Response(stream, { headers: speechHeaders(false) });
+    return new Response(captureClip(stream, meta(false)), { headers: speechHeaders(false) });
   } catch (e) {
     return errorResponse(e);
   }
