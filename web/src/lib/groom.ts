@@ -57,6 +57,7 @@ import { onTier, quality } from "@/lib/quality";
 import { skinUniforms } from "@/lib/skinShader";
 import { skinOffsets, skinShape, skinSurface } from "@/lib/skinSurface";
 import { installStrandMorph } from "@/lib/morphShader";
+import { cellKey, skinGrid, type SkinGrid, type StyleTies, type Tie, tiePoints, type TieWanted } from "@/lib/skinTie";
 import { decodeStrandsHere, type Strands } from "@/lib/strandsDecode";
 import type { FromStrandsWorker, ToStrandsWorker } from "@/lib/strandsWorker";
 
@@ -112,12 +113,17 @@ let strandsWorker: Worker | null | undefined; // undefined: not tried yet, null:
 let strandsJob = 0;
 const strandsWaiting = new Map<number, (r: FromStrandsWorker) => void>();
 
+/** The skin the strands worker was last sent (it keeps one), so its rest positions go over once per registration. */
+let skinSent: { rest: Float32Array; m: string; key: number } | null = null;
+let skinKeys = 0;
+
 /**
  * Decode a .strands.bin (gzip): positions (N·P·3, metres, head space) and per-point shade (0..1). In a worker where there
  * is one (lib/strandsWorker.ts: the same code, lib/strandsDecode.ts, off a slow phone's main thread: ~60–80 ms per hair
- * style), otherwise here.
+ * style), otherwise here. The worker also ties the style to the skin (`wanted`, lib/skinTie.ts) when the head is in:
+ * `ties`, for the skin `skinRest`, which groom.ts uses only while that is still the skin.
  */
-export async function decodeStrands(gz: ArrayBuffer): Promise<Strands> {
+export async function decodeStrands(gz: ArrayBuffer, wanted?: TieWanted): Promise<Strands & { ties?: StyleTies; skinRest?: Float32Array }> {
   if (strandsWorker === undefined) {
     strandsWorker = null;
     try {
@@ -141,11 +147,21 @@ export async function decodeStrands(gz: ArrayBuffer): Promise<Strands> {
   const worker = strandsWorker;
   if (!worker) return decodeStrandsHere(gz);
   const id = ++strandsJob;
+  let tie: ToStrandsWorker["tie"];
+  const shape = skinShape();
+  if (wanted && shape) {
+    const m = skinSurface.toHead.elements, mKey = m.join();
+    const fresh = skinSent?.rest !== shape.rest || skinSent.m !== mKey;
+    if (fresh) skinSent = { rest: shape.rest, m: mKey, key: ++skinKeys };
+    tie = { skin: { key: skinSent!.key, rest: fresh ? shape.rest.slice() : undefined, m: [...m] }, wanted };
+  }
+  const sent = skinSent;
   const r = await new Promise<FromStrandsWorker>((resolve) => {
     strandsWaiting.set(id, resolve);
-    worker.postMessage({ id, gz } satisfies ToStrandsWorker); // copied, not transferred: the caller keeps its bytes
+    worker.postMessage({ id, gz, tie } satisfies ToStrandsWorker); // copied, not transferred: the caller keeps its bytes
   });
-  return "error" in r ? decodeStrandsHere(gz) : r;
+  if ("error" in r) return decodeStrandsHere(gz);
+  return { ...r, skinRest: r.ties && sent && sent.key === r.skinKey ? sent.rest : undefined };
 }
 
 function floatTexture(texels: number): { tex: DataTexture; data: Float32Array } {
@@ -343,7 +359,9 @@ export async function buildGroom(
   opts: { scalp?: boolean; fine?: boolean; soft?: boolean; lidFix?: Int8Array; shapeFollow?: boolean } = {},
 ): Promise<Group> {
   const { scalp: tintScalp = true, fine = false, soft = false, lidFix, shapeFollow = false } = opts;
-  const { n, p, positions, shade } = await decodeStrands(gz);
+  const { n, p, positions, shade, ties, skinRest } = await decodeStrands(gz, { tips: !!def.eyeFollow, points: shapeFollow });
+  // tied by the worker for the skin shown now: used (the same ties groom.ts would make here); otherwise tied here, later
+  const made = ties && skinRest && skinRest === skinShape()?.rest ? ties : undefined;
   const pos = floatTexture(n * p);
   for (let i = 0; i < n * p; i++) {
     pos.data[i * 4] = positions[i * 3];
@@ -443,7 +461,7 @@ export async function buildGroom(
   material.uniforms.uLid.value = lid.tex;
   // brows: every point follows the face's shape (followShapePoints)
   const shapePts = shapeFollow ? floatTexture(n * p) : floatTexture(1);
-  const shapeFollowUpdate = shapeFollow ? followShapePoints(positions, p, shapePts) : null;
+  const shapeFollowUpdate = shapeFollow ? followShapePoints(positions, p, shapePts, made?.points) : null;
   material.uniforms.uShapePts.value = shapePts.tex;
   material.uniforms.uShapeFollow.value = shapeFollow ? 1 : 0;
   material.uniforms.uEyeL = eyeUniforms.uEyeL; // shared: Head.tsx moves them every frame
@@ -493,7 +511,7 @@ export async function buildGroom(
     tips = new Float32Array(n * 3);
     for (let s = 0; s < n; s++) tips.set(positions.subarray((s * p + p - 1) * 3, (s * p + p) * 3), s * 3);
   }
-  const follow = followSkin(roots, root, tips);
+  const follow = followSkin(roots, root, tips, made);
   const offTier = onTier(() => applyTier());
 
   const group = new Group();
@@ -569,7 +587,6 @@ class SetWatch<K, V> extends Map<K, V> {
 }
 
 /** A grid cell's key: a number, not an "x,y,z" string (a hair attach looked up ~1M cells: the strings were most of it). */
-const cellKey = (x: number, y: number, z: number) => ((x + 1024) * 2048 + (y + 1024)) * 2048 + (z + 1024);
 
 /** While `group` is on the head, tint the scalp under `roots` towards the hair's root colour (lib/skinShader.ts). */
 function scalpTint(group: Object3D, roots: Float32Array, reach: Float32Array | null, rootColour: Color): void {
@@ -599,78 +616,28 @@ const SHAPE = new Set(sliders.sliders.filter((d) => d.kind === "identity" || d.k
 const shapeWeight = (t: string) => (SHAPE.has(t) ? morphs.effective(t) : 0);
 const yz = (y: number, z: number) => Math.atan2(y, z); // a direction's angle about the head's x axis (the lash turn)
 
-/** The rest skin in head space, bucketed in a 1 cm grid: the same for every piece tied to it (hair, brows, lashes and
- *  beard attach together on a Random character), so built once per skin registration. Read only. */
-let skinGrid: { rest: Float32Array; m: string; head: Float32Array; grid: Map<number, number[]>; cell: number } | null = null;
-function restSkinGrid(rest: Float32Array, m: Matrix4): { head: Float32Array; grid: Map<number, number[]>; cell: number } {
+/** The rest skin in head space, bucketed in a 1 cm grid (lib/skinTie.ts): the same for every piece tied to it (hair,
+ *  brows, lashes and beard attach together on a Random character), so built once per skin registration. Read only. */
+let skinGridCache: { rest: Float32Array; m: string; grid: SkinGrid } | null = null;
+function restSkinGrid(rest: Float32Array, m: Matrix4): SkinGrid {
   const key = m.elements.join();
-  if (skinGrid?.rest === rest && skinGrid.m === key) return skinGrid;
-  const count = rest.length / 3;
-  const v = new Vector3();
-  const head = new Float32Array(rest.length);
-  for (let i = 0; i < count; i++) v.fromArray(rest, i * 3).applyMatrix4(m).toArray(head, i * 3);
-  const cell = 0.01;
-  const grid = new Map<number, number[]>();
-  for (let i = 0; i < count; i++) {
-    const k = cellKey(Math.floor(head[i * 3] / cell), Math.floor(head[i * 3 + 1] / cell), Math.floor(head[i * 3 + 2] / cell));
-    let b = grid.get(k);
-    if (!b) grid.set(k, (b = []));
-    b.push(i);
-  }
-  skinGrid = { rest, m: key, head, grid, cell };
-  return skinGrid;
+  if (skinGridCache?.rest !== rest || skinGridCache.m !== key) skinGridCache = { rest, m: key, grid: skinGrid(rest, m.elements) };
+  return skinGridCache.grid;
 }
 
+type SkinTie = Tie & { head: Float32Array; lin: Matrix3 };
+
 /**
- * Tie points (head space) to their three nearest rest skin vertices, 1/d⁴ (the nearest dominates: a lash root on the
- * lid edge must move with the edge, not the fold above it). Also the rest skin in head space and the skin → head
- * direction matrix. Null before the head loads.
+ * Tie points (head space) to their three nearest rest skin vertices (lib/skinTie.ts), or take the tie the strands worker
+ * made while decoding (`made`, for the same skin). Also the rest skin in head space and the skin → head direction
+ * matrix. Null before the head loads.
  */
-function tieToSkin(pts: Float32Array): { idx: Int32Array; wts: Float32Array; head: Float32Array; lin: Matrix3 } | null {
+function tieToSkin(pts: Float32Array, made?: Tie): SkinTie | null {
   const shape = skinShape();
   if (!shape) return null;
   const m = skinSurface.toHead;
-  const { head, grid, cell } = restSkinGrid(shape.rest, m);
-  const n = pts.length / 3;
-  const idx = new Int32Array(n * 3);
-  const wts = new Float32Array(n * 3);
-  for (let s = 0; s < n; s++) {
-    const x = pts[s * 3], y = pts[s * 3 + 1], z = pts[s * 3 + 2];
-    const best = [-1, -1, -1], bestD = [Infinity, Infinity, Infinity];
-    for (let r = 1; r <= 3 && best[2] < 0; r++) {
-      const cx = Math.floor(x / cell), cy = Math.floor(y / cell), cz = Math.floor(z / cell);
-      for (let i = cx - r; i <= cx + r; i++)
-        for (let j = cy - r; j <= cy + r; j++)
-          for (let k = cz - r; k <= cz + r; k++) {
-            const b = grid.get(cellKey(i, j, k));
-            if (!b) continue;
-            for (const vi of b) {
-              const dx = head[vi * 3] - x, dy = head[vi * 3 + 1] - y, dz = head[vi * 3 + 2] - z;
-              const d = dx * dx + dy * dy + dz * dz;
-              if (d < bestD[2] && !best.includes(vi)) {
-                // insert sorted
-                let at = 2;
-                while (at > 0 && d < bestD[at - 1]) {
-                  bestD[at] = bestD[at - 1];
-                  best[at] = best[at - 1];
-                  at--;
-                }
-                bestD[at] = d;
-                best[at] = vi;
-              }
-            }
-          }
-    }
-    let sum = 0;
-    for (let q = 0; q < 3; q++) {
-      const w = best[q] < 0 ? 0 : 1 / (bestD[q] * bestD[q] + 1e-16);
-      idx[s * 3 + q] = Math.max(0, best[q]);
-      wts[s * 3 + q] = w;
-      sum += w;
-    }
-    for (let q = 0; q < 3; q++) wts[s * 3 + q] /= sum || 1;
-  }
-  return { idx, wts, head, lin: new Matrix3().setFromMatrix4(m) };
+  const grid = restSkinGrid(shape.rest, m);
+  return { ...(made ?? tiePoints(pts, grid)), head: grid.head, lin: new Matrix3().setFromMatrix4(m) };
 }
 
 /** The distinct skin vertices of `idx` (`uniq`) and each entry's place among them (`slot`): neighbouring points share
@@ -693,7 +660,7 @@ function uniqueSkin(idx: Int32Array): { uniq: Int32Array; slot: Int32Array } {
  * the root's own offset, with blinks and expressions, still moves the whole hair). So a hair keeps its distance from
  * its own skin; blinks and expressions move it as before. Live: follows a slider drag.
  */
-function followShapePoints(points: Float32Array, p: number, out: { tex: DataTexture; data: Float32Array }) {
+function followShapePoints(points: Float32Array, p: number, out: { tex: DataTexture; data: Float32Array }, made?: Tie) {
   const count = points.length / 3;
   let tie: ReturnType<typeof tieToSkin> = null;
   let shared: ReturnType<typeof uniqueSkin> | null = null; // every point's three skin vertices, once each
@@ -703,7 +670,7 @@ function followShapePoints(points: Float32Array, p: number, out: { tex: DataText
   const d = new Float32Array(count * 3);
   let rest: Float32Array | null = null; // the skin registration the sums belong to
   const update = () => {
-    tie ??= tieToSkin(points);
+    tie ??= tieToSkin(points, made);
     if (!tie) return;
     shared ??= uniqueSkin(tie.idx);
     offs ??= new Float32Array(shared.uniq.length * 3);
@@ -753,7 +720,7 @@ function followShapePoints(points: Float32Array, p: number, out: { tex: DataText
  * towards the lash (a deep-set eye's overhang, a low brow) the lash turns with it, away from the skin, never towards
  * it (out.data w). Blinks and expressions keep their own turns (the eye-follow turn and the baked lid fix).
  */
-function followSkin(roots: Float32Array, out: { tex: DataTexture; data: Float32Array }, tips?: Float32Array): () => void {
+function followSkin(roots: Float32Array, out: { tex: DataTexture; data: Float32Array }, tips?: Float32Array, made?: { roots: Tie; tips?: Tie }): () => void {
   const n = roots.length / 3;
   const idx = new Int32Array(n * 3);
   const wts = new Float32Array(n * 3);
@@ -765,13 +732,13 @@ function followSkin(roots: Float32Array, out: { tex: DataTexture; data: Float32A
   const lin = new Matrix3();
 
   const bind = (): boolean => {
-    const r = tieToSkin(roots);
+    const r = tieToSkin(roots, made?.roots);
     if (!r) return false;
     idx.set(r.idx);
     wts.set(r.wts);
     lin.copy(r.lin);
     if (tips && tipIdx && tipWts && under && above) {
-      const t = tieToSkin(tips)!;
+      const t = tieToSkin(tips, made?.tips)!;
       tipIdx.set(t.idx);
       tipWts.set(t.wts);
       for (let s = 0; s < n; s++) {

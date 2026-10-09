@@ -96,7 +96,8 @@ seen. Thin-lipped extremes keep their mouth shapes capped low on purpose (teeth 
   each as a camera-facing ribbon in the vertex shader; per-tier child strands are generated on the GPU around each
   guide; alpha-to-coverage under MSAA replaces sorting; Kajiya-Kay shading with a per-point baked self-shadow; no shadow
   maps.
-- **Following the skin.** Each root is tied to a skin triangle at load. Per frame only the morph weights that changed
+- **Following the skin.** Each root is tied to its three nearest skin vertices at load (by the strands worker while it
+  decodes, `skinTie.ts`). Per frame only the morph weights that changed
   are summed into a root-offset texture, so hair, brows and lashes follow sliders, blinks, expressions and speech.
   Lashes also turn with the live eye and their own skin's shape change; brows follow shape changes per point.
 - **Glasses** are built from numbers (`config/glasses.toml`) and seated on the average head by an optician's solver
