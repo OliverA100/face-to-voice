@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The face panel: a title, a sticky tab bar (pinned to the screen's bottom on phones) and one tab at a time.
+ * The face panel: a title, a tab bar that sticks to the top as the panel scrolls, and one tab at a time.
  *   Shape       Random face, Age, one group per feature (the semantic sliders), raw GNM sliders (Advanced)
  *   Style       skin and eye colour, hair, brows, lashes, facial hair, glasses
  *   Expression  emotion buttons + intensity, fine-tune sliders
@@ -137,9 +137,10 @@ export function SliderPanel() {
       <div ref={sentinel} aria-hidden className="h-px" />
       {/* Segmented tray: one white marker slides under the chosen tab (placeMarker). The tray floats over the tab as it
           scrolls: the bar itself has no background and lets clicks through, so only the pill covers the content.
-          Phones (below md): the bar comes last (order-last) and sticks to the bottom of the screen, in thumb reach, while the panel is in view. */}
-      <div ref={bar} className="pointer-events-none sticky z-10 px-5 py-3 max-md:order-last max-md:bottom-0 md:top-0">
-        <div ref={list} className="pointer-events-auto relative flex rounded-full bg-surface p-1 transition-shadow duration-(--dur-2) max-md:shadow-float md:in-data-stuck:shadow-float" role="tablist" aria-label="Face controls" onKeyDown={onKey}>
+          Phones (below md): the bar is a solid card-coloured strip instead (no float shadow), sticking just under the head
+          (-top-px: flush with the column's top edge, past its 1px padding, so no sliver of the rows shows above it). */}
+      <div ref={bar} className="sticky top-0 z-10 px-5 py-3 max-md:-top-px max-md:bg-card md:pointer-events-none">
+        <div ref={list} className="pointer-events-auto relative flex rounded-full bg-surface p-1 transition-shadow duration-(--dur-2) md:in-data-stuck:shadow-float" role="tablist" aria-label="Face controls" onKeyDown={onKey}>
           <span ref={marker} aria-hidden className="absolute inset-y-1 left-0 w-0 rounded-full bg-card shadow-control transition-[transform,width] duration-(--dur-2) ease-soft" />
           {TABS.map((t) => (
             <button
