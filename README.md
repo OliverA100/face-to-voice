@@ -168,7 +168,6 @@ Code: MIT ([LICENSE](LICENSE)). Third-party work and the licence of every shippe
   (ideas only, no code).
 - **Voices and speech** by [ElevenLabs](https://elevenlabs.io); casting and slider names by
   [Claude](https://www.anthropic.com/claude).
-- **Built with [Claude Code](https://www.anthropic.com/claude-code)** as a pair programmer.
 
 The UI's design language is inspired by elevenlabs.io; no ElevenLabs logo, wordmark or asset is used. This is an
 independent project, not affiliated with or endorsed by ElevenLabs, Google or Anthropic.
