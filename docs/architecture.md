@@ -68,8 +68,10 @@ passes the exact check. It answers three questions:
    face doing the same thing plus 0.5 mm, so GNM's own motion is never "broken".
 3. **reach** (Random face): how far a striking feature may be pushed.
 
-Caps and look-ahead spans run in a Web Worker (`capsWorker.ts`) on a copy of the tested vertices; the page keeps a
-lazy stand-in (`limiter.ts`) so the 80 KB-gzip limiter chunk loads after the head's first frame.
+Caps, look-ahead spans and the reach questions of Random face and Random character run in a Web Worker
+(`capsWorker.ts`) on a copy of the tested vertices; the page keeps a lazy stand-in (`limiter.ts`) so the 80 KB-gzip
+limiter chunk loads after the head's first frame. Morph targets carry no normals, so `normals.ts` recomputes them as
+the shape moves; on a slow device the live recomputes run in `normalsWorker.ts` (same arithmetic), the final one here.
 
 **Coverage grows from failures.** `validate --vlimits` and `validate/grow.py` find broken faces (slider pairs, random
 multi-slider rays, failing animation poses) and add their crossing triangles to `limits.json`.

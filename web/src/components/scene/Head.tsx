@@ -39,9 +39,11 @@ import { disposeMaterials, materialFor } from "./materials";
 /**
  * Live normals and eye pivots while the face moves (a morph, a drag, an emotion blend). A refresh costs ~3 ms on a
  * desktop; it runs at most once per `budget` × its own last cost, so a slow phone refreshes every few frames instead
- * of dropping them. The exact settle still runs at the end.
+ * of dropping them. Where one costs more than `workerFromMs` (a phone: ~25 ms), the live normals are worked out in a
+ * worker instead (NormalRefresher.refreshLater: the same normals, a frame or two later). The exact settle still runs
+ * here at the end.
  */
-const LIVE_SETTLE = { budget: 3 };
+const LIVE_SETTLE = { budget: 3, workerFromMs: 8 };
 
 /** Objects the idle animation drives. Plain module state: no React re-renders involved. */
 export const headRig = {
@@ -108,7 +110,7 @@ export function Head() {
   const warmFrames = useRef(0); // frames left drawing the look variant once to warm it up (compileLook)
   const refresher = useMemo(() => new NormalRefresher(), []);
   const swayRef = useRef<Group>(null);
-  const settleRef = useRef<(() => void) | null>(null);
+  const settleRef = useRef<((later?: boolean) => void) | null>(null);
   const live = useRef({ seen: morphs.shapeVersion, last: 0, cost: 0 }); // the live settle below (useFrame)
 
   useEffect(() => {
@@ -213,10 +215,11 @@ export function Head() {
       basis: Object.entries(manifest.nodes[name].identity_pivot_basis),
     }));
     const tmp = new Vector3();
-    const settle = () => {
+    const settle = (later = false) => {
       live.current.seen = morphs.shapeVersion; // this shape is done: the live settle needn't do it again this frame
       scheduleAnimCaps(); // how far blink, emotion and speech may go on this face (idle time)
-      refresher.refresh((t) => morphs.effective(t, PASSING_LAYERS)); // the held shape: a blink or a word must not stay in the shading
+      const held = (t: string) => morphs.effective(t, PASSING_LAYERS); // the held shape: a blink or a word must not stay in the shading
+      if (!later || !refresher.refreshLater(held)) refresher.refresh(held);
       for (const p of pivots) {
         if (!p.node) continue;
         tmp.copy(p.base);
@@ -255,7 +258,7 @@ export function Head() {
       setMorphLookAll(true); // the bubble's look on everything (+ the skin's spikes), compiled in the background (below)
       morphLookOn.current = true;
     }, compileLook);
-    const unsubscribe = morphs.onSettle(settle);
+    const unsubscribe = morphs.onSettle(() => settle());
     settle();
     settleRef.current = settle;
     // One delta array per idle slice (requestIdleCallback where it exists, else a timer). Only the raw identity targets
@@ -339,6 +342,7 @@ export function Head() {
     const l = live.current;
     const settle = settleRef.current;
     if (!settle || morphs.shapeVersion === l.seen) return;
+    if (l.cost > LIVE_SETTLE.workerFromMs && refresher.canRefreshLater()) return settle(true); // a slow device
     const now = performance.now();
     if (now - l.last < l.cost * LIVE_SETTLE.budget) return; // over budget: try again next frame
     l.seen = morphs.shapeVersion;

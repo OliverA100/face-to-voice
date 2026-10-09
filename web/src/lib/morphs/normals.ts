@@ -3,11 +3,17 @@
  * file size). Big identity changes would then shade wrongly, so whenever the held shape changes we
  * recompute smooth vertex normals on the CPU from base + Σ weight·delta and upload them.
  * ~1-3 ms for the whole head; Head.tsx runs it live while the shape moves (within its LIVE_SETTLE
- * frame budget) and once more when it settles.
+ * frame budget) and once more when it settles. On a slow device (a phone: ~25 ms each) the live refreshes run in
+ * lib/morphs/normalsWorker.ts instead (refreshLater): the same arithmetic (normalsCompute.ts), so the same normals.
  */
 import { BufferAttribute, Float32BufferAttribute, type Mesh } from "three";
 
+import { computeShape } from "./normalsCompute";
+import type { FromNormalsWorker, ToNormalsWorker } from "./normalsWorker";
+
 type Entry = {
+  id: number; // for the worker
+  sent: Set<string> | null; // targets whose deltas the worker has (null: the mesh isn't there yet)
   mesh: Mesh;
   index: Uint16Array | Uint32Array;
   base: Float32Array;
@@ -59,9 +65,14 @@ function toFloat(attr: BufferAttribute): Float32Array {
   return out;
 }
 
+let meshIds = 0;
+
 export class NormalRefresher {
   private entries: Entry[] = [];
   private listeners = new Set<(mesh: Mesh, positions: Float32Array) => void>();
+  private worker: Worker | null | undefined; // undefined: not started yet; null: none, or it failed
+  private stamp = 0; // bumped by every refresh: a worker answer for an older one is dropped
+  private inFlight = false;
 
   /** Called after a mesh's shape is recomputed (positions in the mesh's own, quantised space; the rest pose too). */
   onRefresh(fn: (mesh: Mesh, positions: Float32Array) => void): () => void {
@@ -138,6 +149,8 @@ export class NormalRefresher {
     g.setAttribute("normal", normal);
     const base = toFloat(pos);
     this.entries.push({
+      id: ++meshIds,
+      sent: null,
       mesh,
       // only the mesh's own triangles: beard shells append copies of some after them (lib/beardShells.ts)
       index: (g.index!.array as Uint16Array | Uint32Array).subarray(0, (g.userData.baseIndexCount as number | undefined) ?? g.index!.count),
@@ -151,12 +164,20 @@ export class NormalRefresher {
   }
 
   clear(): void {
+    for (const e of this.entries) this.drop(e);
     this.entries = [];
+    this.stamp++;
   }
 
   /** Forget one mesh (its morph targets changed: head.extra.glb appends more; add() it again). */
   remove(mesh: Mesh): void {
+    for (const e of this.entries) if (e.mesh === mesh) this.drop(e);
     this.entries = this.entries.filter((e) => e.mesh !== mesh);
+    this.stamp++;
+  }
+
+  private drop(e: Entry): void {
+    if (e.sent) this.worker?.postMessage({ type: "drop", id: e.id } satisfies ToNormalsWorker);
   }
 
   /**
@@ -176,44 +197,93 @@ export class NormalRefresher {
 
   /** `weight(target)` returns the effective influence currently applied to that target. */
   refresh(weight: (target: string) => number): void {
+    this.stamp++; // a live refresh still in the worker is older than this one
     for (const e of this.entries) {
-      const active = e.deltas.filter(({ target }) => weight(target) !== 0);
+      const active = this.active(e, weight);
       if (active.length === 0 && !e.dirty) continue; // at rest the file's normals are already right
       e.dirty = active.length > 0;
-      const p = e.scratch;
-      p.set(e.base);
-      for (const d of active) {
-        const w = weight(d.target);
-        const data = (d.data ??= toFloat(d.attr));
-        for (let i = 0; i < p.length; i++) p[i] += w * data[i];
-      }
-      const n = e.normal.array as Float32Array;
-      n.fill(0);
-      const idx = e.index;
-      const weld = e.weld;
-      for (let t = 0; t < idx.length; t += 3) {
-        const a = (weld ? weld[idx[t]] : idx[t]) * 3, b = (weld ? weld[idx[t + 1]] : idx[t + 1]) * 3, c = (weld ? weld[idx[t + 2]] : idx[t + 2]) * 3;
-        const abx = p[b] - p[a], aby = p[b + 1] - p[a + 1], abz = p[b + 2] - p[a + 2];
-        const acx = p[c] - p[a], acy = p[c + 1] - p[a + 1], acz = p[c + 2] - p[a + 2];
-        const nx = aby * acz - abz * acy, ny = abz * acx - abx * acz, nz = abx * acy - aby * acx;
-        n[a] += nx; n[a + 1] += ny; n[a + 2] += nz;
-        n[b] += nx; n[b + 1] += ny; n[b + 2] += nz;
-        n[c] += nx; n[c + 1] += ny; n[c + 2] += nz;
-      }
-      for (let i = 0; i < n.length; i += 3) {
-        const len = Math.hypot(n[i], n[i + 1], n[i + 2]) || 1;
-        n[i] /= len; n[i + 1] /= len; n[i + 2] /= len;
-      }
-      if (weld) {
-        for (let i = 0; i < weld.length; i++) {
-          const k = weld[i];
-          if (k !== i) {
-            n[i * 3] = n[k * 3]; n[i * 3 + 1] = n[k * 3 + 1]; n[i * 3 + 2] = n[k * 3 + 2];
-          }
-        }
-      }
+      computeShape(e, active.map(({ d, w }) => ({ w, data: (d.data ??= toFloat(d.attr)) })), e.scratch, e.normal.array as Float32Array);
       e.normal.needsUpdate = true;
-      for (const fn of this.listeners) fn(e.mesh, p);
+      for (const fn of this.listeners) fn(e.mesh, e.scratch);
     }
+  }
+
+  /** Whether refreshLater can run (workers exist and this one hasn't failed). */
+  canRefreshLater(): boolean {
+    return this.worker !== null && typeof Worker !== "undefined";
+  }
+
+  /**
+   * refresh() in the worker: the same normals, written a frame or two later, and nothing to compute here. While one is
+   * still out, this is skipped (the next shape change asks again; the exact settle runs here at the end). False when
+   * there is no worker (refresh() here instead).
+   */
+  refreshLater(weight: (target: string) => number): boolean {
+    const w = this.startWorker();
+    if (!w) return false;
+    if (this.inFlight) return true;
+    const jobs: { id: number; active: [string, number][] }[] = [];
+    const dirty = new Map<number, boolean>();
+    for (const e of this.entries) {
+      const active = this.active(e, weight);
+      if (active.length === 0 && !e.dirty) continue;
+      if (!e.sent) {
+        w.postMessage({ type: "mesh", id: e.id, mesh: { base: e.base, index: e.index, weld: e.weld } } satisfies ToNormalsWorker); // copied
+        e.sent = new Set();
+      }
+      for (const { d } of active) {
+        if (e.sent.has(d.target)) continue;
+        w.postMessage({ type: "delta", id: e.id, target: d.target, data: (d.data ??= toFloat(d.attr)) } satisfies ToNormalsWorker); // copied: the page keeps its own
+        e.sent.add(d.target);
+      }
+      jobs.push({ id: e.id, active: active.map(({ d, w: weightNow }) => [d.target, weightNow]) });
+      dirty.set(e.id, active.length > 0);
+    }
+    if (!jobs.length) return true;
+    const req = ++this.stamp;
+    this.inFlight = true;
+    w.onmessage = (ev: MessageEvent<FromNormalsWorker>) => {
+      this.inFlight = false;
+      const r = ev.data;
+      if ("error" in r || r.req !== this.stamp) return; // failed (the settle at the end fixes it), or a newer refresh ran here
+      for (const o of r.out) {
+        const e = this.entries.find((x) => x.id === o.id);
+        if (!e) continue;
+        e.dirty = dirty.get(o.id)!;
+        e.scratch.set(o.positions);
+        (e.normal.array as Float32Array).set(o.normals);
+        e.normal.needsUpdate = true;
+        for (const fn of this.listeners) fn(e.mesh, e.scratch);
+      }
+    };
+    w.postMessage({ type: "refresh", req, jobs } satisfies ToNormalsWorker);
+    return true;
+  }
+
+  /** The non-zero targets and their weights, in the entry's order (the order the sums are made in). */
+  private active(e: Entry, weight: (target: string) => number): { d: Entry["deltas"][number]; w: number }[] {
+    const out: { d: Entry["deltas"][number]; w: number }[] = [];
+    for (const d of e.deltas) {
+      const w = weight(d.target);
+      if (w !== 0) out.push({ d, w });
+    }
+    return out;
+  }
+
+  private startWorker(): Worker | null {
+    if (this.worker !== undefined) return this.worker;
+    this.worker = null;
+    try {
+      if (typeof Worker === "undefined") return null;
+      const w = new Worker(new URL("./normalsWorker.ts", import.meta.url), { type: "module" });
+      w.onerror = () => {
+        this.worker = null; // live refreshes here again (Head.tsx asks canRefreshLater)
+        this.inFlight = false;
+      };
+      this.worker = w;
+    } catch {
+      this.worker = null;
+    }
+    return this.worker;
   }
 }
