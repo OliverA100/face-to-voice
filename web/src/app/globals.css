@@ -317,10 +317,19 @@ input[type="checkbox"].switch:checked {
 }
 
 /* Keyboard focus never hides under the sticky tab bar (WCAG 2.4.11): a control that Tab scrolls into view keeps the
-   bar's height (64px) and a little air clear above it (the bar on top, tablets and up) and below it (phones, bar at the
-   bottom). */
+   bar's height (64px) and a little air clear above it, and the same below it. Below lg the page scrolls and the bar
+   sticks under the header and the head's band (--tabs-top, FaceBuilder), so the whole stack is kept clear above. The
+   voice card sits above the sliders, so only the header and the band are over it: they and a little air stay clear. */
 [role="tabpanel"] :is(button, input, summary, a, textarea) {
   scroll-margin-block: 76px;
+}
+@media (width < 64rem) {
+  [role="tabpanel"] :is(button, input, summary, a, textarea) {
+    scroll-margin-top: calc(var(--tabs-top) + 76px);
+  }
+  section[aria-label="Voice"] :is(button, input, summary, a, textarea) {
+    scroll-margin-top: calc(var(--tabs-top) + 12px);
+  }
 }
 
 /* Keyboard focus: a black ring with an offset, as in ElevenLabs' app. */
