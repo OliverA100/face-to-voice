@@ -13,10 +13,16 @@
  * has to move. (A ray, not the nearest triangle: next to the ears and the eye sockets the nearest skin often faces the
  * wrong way.) Mirrored by pipeline validate/addons_check.py, so the stress test measures what this draws.
  * Behind the ear root the arms' tips are left free to tuck in, as the pipeline's fit does. Tweak in GLASSES_FIT.
+ *
+ * The rays run off the main thread (lib/glassesSolve.ts in lib/glassesWorker.ts; in place where there are no workers):
+ * a phone took up to half a second per fit, once when the frame went on and again every few frames while a face morphed.
+ * A new frame is shown once its first fit is on (`fitted`, which the add-on swap waits for).
  */
 import { BufferAttribute, Matrix3, Matrix4, type Mesh, type Object3D, Vector3 } from "three";
 
 import { meshesOf } from "@/lib/hair";
+import { type FitResult, prepareSolve, type Solve, solveFit, type SolveInput } from "@/lib/glassesSolve";
+import type { FromGlassesWorker, ToGlassesWorker } from "@/lib/glassesWorker";
 import { onSkinShape, skinShape, skinSurface } from "@/lib/skinSurface";
 
 export const GLASSES_FIT = {
@@ -38,40 +44,119 @@ export const glassesFitState = { seatMm: 0, splayLeft: 0, splayRight: 0, stillIn
 type Part = { mesh: Mesh; rest: Float32Array; toHead: Matrix4; fromHead: Matrix3; lever: Float32Array; offset: number };
 type Prep = NonNullable<ReturnType<typeof prepare>>;
 
-/** Fit `node` (a glasses style, under the head's root node `root`) to the skin now and whenever the shape settles. */
-export function fitGlasses(node: Object3D, root: Object3D): () => void {
+// --- where the arithmetic runs (lib/glassesSolve.ts): a worker, or here where there is none --------------------------
+
+let worker: Worker | null | undefined; // undefined: not tried yet; null: none (or it failed): solve here
+const waiting = new Map<number, (r: FromGlassesWorker) => void>();
+let requests = 0;
+let frames = 0;
+const solvedHere = new Map<number, Solve>();
+
+function solver(): Worker | null {
+  if (worker !== undefined) return worker;
+  worker = null;
+  try {
+    if (typeof Worker !== "undefined") {
+      const w = new Worker(new URL("./glassesWorker.ts", import.meta.url), { type: "module" });
+      w.onmessage = (e: MessageEvent<FromGlassesWorker>) => {
+        waiting.get(e.data.req)?.(e.data);
+        waiting.delete(e.data.req);
+      };
+      w.onerror = () => {
+        worker = null; // solve here from now on (the waiting fits too)
+        for (const [req, done] of waiting) done({ req, error: "worker failed" });
+        waiting.clear();
+      };
+      worker = w;
+    }
+  } catch {
+    worker = null;
+  }
+  return worker;
+}
+
+/** Fit a prepared frame to the skin shown now (`current`, skin space; `pts`, the tested points as shown): in the worker,
+ *  or here. Null when it couldn't be done. */
+async function solveNow(prep: Prep, read: () => { current: Float32Array; pts: Float32Array }): Promise<FitResult | null> {
+  const limits = { maxSeatMm: GLASSES_FIT.maxSeatMm, maxSplay: GLASSES_FIT.maxSplay };
+  const skinMatrix = skinSurface.toHead.elements.slice();
+  const w = solver();
+  if (w && prep.inWorker) {
+    const req = ++requests;
+    const { current, pts } = read();
+    const reply = await new Promise<FromGlassesWorker>((done) => {
+      waiting.set(req, done);
+      w.postMessage({ type: "fit", id: prep.id, req, current, skinMatrix, pts, limits } satisfies ToGlassesWorker, [current.buffer, pts.buffer]);
+    });
+    if (!("error" in reply)) return reply;
+    if (worker) return null; // still running: a real error
+    prep.inWorker = false; // the worker failed: solve here from now on
+  }
+  const { current, pts } = read();
+  let solve = solvedHere.get(prep.id);
+  if (!solve) solvedHere.set(prep.id, (solve = prepareSolve(prep.input)));
+  return solveFit(solve, current, skinMatrix, pts, limits);
+}
+
+/**
+ * Fit `node` (a glasses style, under the head's root node `root`) to the skin now and whenever the shape settles.
+ * `fitted` resolves once the first fit is on (or couldn't be done; at most FIRST_FIT_WAIT_MS), so a swap can wait for it
+ * and the frame never shows unfitted; `unfit` takes it off.
+ */
+export function fitGlasses(node: Object3D, root: Object3D): { fitted: Promise<void>; unfit: () => void } {
   let prepared: Prep | null = null;
   let gone = false;
-  const run = () => {
+  let latest = 0; // the newest fit asked for: an older answer arriving late is dropped
+  const run = async (): Promise<void> => {
     if (gone) return;
     if (!prepared) {
       const t0 = performance.now();
       prepared = prepare(node, root);
       glassesFitState.prepareMs = performance.now() - t0;
     }
-    if (prepared) fit(prepared);
+    if (!prepared || !skinShape()) return;
+    const prep = prepared;
+    const ask = ++latest;
+    const r = await solveNow(prep, () => ({ current: skinShape()!.current.slice(), pts: sampled(prep, true) }));
+    if (gone || !r || ask !== latest) return;
+    for (const p of prep.parts) write(p, r.seat, r.splayLeft, r.splayRight);
+    Object.assign(glassesFitState, { seatMm: r.seat * 1000, splayLeft: r.splayLeft, splayRight: r.splayRight, stillIn: r.stillIn, ms: r.ms });
   };
-  // in idle time (a few tens of ms): never on the frame a slider is let go
+  // in idle time (a few ms here; the rays run in the worker): never on the frame a slider is let go
   let queued = false;
   const later = () => {
     if (queued) return;
     queued = true;
     const go = () => {
       queued = false;
-      run();
+      void run();
     };
     if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 200 });
     else setTimeout(go, 0);
   };
-  later();
+  // the first fit at once (the frame is not shown yet when it goes on in a cross-fade)
+  const first = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(run).catch((err: unknown) => console.warn("glasses: fit failed", err));
+  const fitted = Promise.race([first, new Promise<void>((resolve) => setTimeout(resolve, FIRST_FIT_WAIT_MS))]);
   const off = onSkinShape(later);
-  return () => {
+  const unfit = () => {
     gone = true;
     off();
-    if (prepared) for (const p of prepared.parts) write(p, 0, 0, 0); // the file's own shape back
+    if (prepared) {
+      for (const p of prepared.parts) write(p, 0, 0, 0); // the file's own shape back
+      if (prepared.inWorker) worker?.postMessage({ type: "drop", id: prepared.id } satisfies ToGlassesWorker);
+      solvedHere.delete(prepared.id);
+    }
   };
+  return { fitted, unfit };
 }
 
+/** The longest a swap waits for the glasses' first fit before showing them anyway. */
+const FIRST_FIT_WAIT_MS = 1000;
+
+/**
+ * The frame measured on the page (its meshes, in head space as the file has them; the arms, the tested points), handed
+ * to the solver once: it finds each tested point's nearby skin triangles and how far in it may be.
+ */
 function prepare(node: Object3D, root: Object3D) {
   const shape = skinShape();
   const index = skinSurface.mesh?.geometry.index;
@@ -123,49 +208,24 @@ function prepare(node: Object3D, root: Object3D) {
   }
   const every = (list: number[], n: number) => list.filter((_, k) => k % Math.max(1, Math.ceil(list.length / n)) === 0);
   const samples = Int32Array.from([...every(fronts, GLASSES_FIT.samples / 2), ...every(arms, GLASSES_FIT.samples / 2)]);
-  // the skin in head space (average face) and, per point, the triangles near its ray
-  const m = skinSurface.toHead;
-  const skinRest = new Float32Array(shape.rest.length);
-  for (let i = 0; i < shape.rest.length / 3; i++) v.fromArray(shape.rest, i * 3).applyMatrix4(m).toArray(skinRest, i * 3);
   // the skin's own triangles: a shell beard appends copies of the beard's (lib/beardShells.ts), which would count twice
   const tris = (index.array as Uint16Array | Uint32Array).subarray(0, (skinSurface.mesh!.geometry.userData.baseIndexCount as number | undefined) ?? index.count);
-  const T = tris.length / 3;
-  const cen = new Float32Array(T * 3);
-  for (let t = 0; t < T; t++)
-    for (let a = 0; a < 3; a++) cen[t * 3 + a] = (skinRest[tris[t * 3] * 3 + a] + skinRest[tris[t * 3 + 1] * 3 + a] + skinRest[tris[t * 3 + 2] * 3 + a]) / 3;
-  const reach = GLASSES_FIT.reachMm / 1000, r2 = reach * reach;
-  // triangle centres bucketed by `reach` across each ray's direction: (y, z) for the arms, (x, y) for the front
-  const cell = (u: number, w: number) => `${Math.floor(u / reach)},${Math.floor(w / reach)}`;
-  const grids = [new Map<string, number[]>(), new Map<string, number[]>()];
-  for (let t = 0; t < T; t++) {
-    for (const [grid, u, w] of [[grids[0], cen[t * 3 + 1], cen[t * 3 + 2]], [grids[1], cen[t * 3], cen[t * 3 + 1]]] as const) {
-      const key = cell(u, w);
-      let b = grid.get(key);
-      if (!b) grid.set(key, (b = []));
-      b.push(t);
-    }
-  }
-  const start: number[] = [0], list: number[] = [];
-  for (const g of samples) {
-    const arm = side[g] !== 0;
-    const [u, w] = arm ? [head[g * 3 + 1], head[g * 3 + 2]] : [head[g * 3], head[g * 3 + 1]];
-    const cu = Math.floor(u / reach), cw = Math.floor(w / reach);
-    const near: number[] = [];
-    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) near.push(...(grids[arm ? 0 : 1].get(`${cu + a},${cw + b}`) ?? []));
-    for (const t of near) {
-      // distance from the triangle's centre to the point's ray line (x line for an arm, z line for the front)
-      const d2 = arm
-        ? (cen[t * 3 + 1] - head[g * 3 + 1]) ** 2 + (cen[t * 3 + 2] - head[g * 3 + 2]) ** 2
-        : (cen[t * 3] - head[g * 3]) ** 2 + (cen[t * 3 + 1] - head[g * 3 + 1]) ** 2;
-      if (d2 < r2 && (!arm || cen[t * 3] * side[g] > 0)) list.push(t);
-    }
-    start.push(list.length);
-  }
-  const prep = { parts, owner, side, lever, samples, start: Int32Array.from(start), cand: Int32Array.from(list), tris, skin: new Float32Array(skinRest.length), allow: new Float32Array(samples.length) };
-  // what each point may have on the average face: how far in it already is there (+ the tolerance)
-  const pts = sampled(prep, false);
-  for (let s = 0; s < samples.length; s++) prep.allow[s] = exitOf(prep, skinRest, pts, s, 0, 0) + GLASSES_FIT.toleranceMm / 1000;
-  return prep;
+  const input: SolveInput = {
+    head,
+    side,
+    lever,
+    samples,
+    restPts: sampled({ parts, owner, samples }, false),
+    skinRest: shape.rest.slice(),
+    skinMatrix: skinSurface.toHead.elements.slice(),
+    tris: tris.slice(),
+    reachMm: GLASSES_FIT.reachMm,
+    toleranceMm: GLASSES_FIT.toleranceMm,
+  };
+  const id = ++frames;
+  const w = solver();
+  w?.postMessage({ type: "prepare", id, input } satisfies ToGlassesWorker); // copied: the input stays for solving here
+  return { id, parts, owner, samples, input, inWorker: !!w };
 }
 
 /** The tested points in head space, with the frame's morphs as shown now (`live`) or as the file has them. */
@@ -188,71 +248,6 @@ function sampled(prep: Pick<Prep, "parts" | "owner" | "samples">, live: boolean)
     v.applyMatrix4(p.toHead).toArray(out, s * 3);
   });
   return out;
-}
-
-/**
- * How far point s (moved by dx, dz) has to go along its ray to be out of the skin P (0 when it is out): the front's
- * ray runs forward (+z), an arm's outwards (±x). Odd number of crossings ahead = inside; the nearest one is the way out.
- */
-function exitOf(prep: Prep, P: Float32Array, pts: Float32Array, s: number, dx: number, dz: number): number {
-  const g = prep.samples[s], sd = prep.side[g];
-  const p = [pts[s * 3] + dx, pts[s * 3 + 1], pts[s * 3 + 2] + dz];
-  // the ray's axis (k) and the two across it (i, j)
-  const [k, i, j] = sd ? [0, 1, 2] : [2, 0, 1];
-  const dir = sd || 1;
-  let hits = 0, near = Infinity;
-  for (let c = prep.start[s]; c < prep.start[s + 1]; c++) {
-    const t = prep.cand[c];
-    const a = prep.tris[t * 3] * 3, b = prep.tris[t * 3 + 1] * 3, e = prep.tris[t * 3 + 2] * 3;
-    // where the ray's line meets the triangle's plane, by barycentric coordinates in the (i, j) projection
-    const ai = P[a + i] - p[i], aj = P[a + j] - p[j], bi = P[b + i] - p[i], bj = P[b + j] - p[j], ei = P[e + i] - p[i], ej = P[e + j] - p[j];
-    const w0 = bi * ej - bj * ei, w1 = ei * aj - ej * ai, w2 = ai * bj - aj * bi; // twice the signed areas
-    if ((w0 < 0 || w1 < 0 || w2 < 0) && (w0 > 0 || w1 > 0 || w2 > 0)) continue; // the line misses this triangle
-    const sum = w0 + w1 + w2;
-    if (!sum) continue;
-    const at = (w0 * P[a + k] + w1 * P[b + k] + w2 * P[e + k]) / sum;
-    const ahead = (at - p[k]) * dir;
-    if (ahead <= 0) continue;
-    hits++;
-    near = Math.min(near, ahead);
-  }
-  return hits % 2 ? near : 0;
-}
-
-function fit(prep: Prep): void {
-  const t0 = performance.now();
-  const shape = skinShape();
-  if (!shape) return;
-  const m = skinSurface.toHead.elements;
-  const P = prep.skin, cur = shape.current;
-  for (let n = 0; n < cur.length / 3; n++) {
-    const x = cur[n * 3], y = cur[n * 3 + 1], z = cur[n * 3 + 2];
-    P[n * 3] = m[0] * x + m[4] * y + m[8] * z + m[12];
-    P[n * 3 + 1] = m[1] * x + m[5] * y + m[9] * z + m[13];
-    P[n * 3 + 2] = m[2] * x + m[6] * y + m[10] * z + m[14];
-  }
-  const pts = sampled(prep, true);
-  const { samples, side, lever, allow } = prep;
-  // the front first (sliding moves the arms too), then each arm with the slide in place
-  let seat = 0;
-  samples.forEach((g, s) => {
-    if (!side[g]) seat = Math.max(seat, exitOf(prep, P, pts, s, 0, 0) - allow[s]);
-  });
-  seat = Math.min(seat, GLASSES_FIT.maxSeatMm / 1000);
-  const splay = [0, 0]; // left, right
-  samples.forEach((g, s) => {
-    if (!side[g]) return;
-    const need = (exitOf(prep, P, pts, s, 0, seat) - allow[s]) / Math.abs(lever[g]);
-    const k = side[g] > 0 ? 0 : 1;
-    splay[k] = Math.min(GLASSES_FIT.maxSplay, Math.max(splay[k], need));
-  });
-  let stillIn = 0;
-  samples.forEach((g, s) => {
-    const dx = side[g] ? lever[g] * splay[side[g] > 0 ? 0 : 1] : 0;
-    if (exitOf(prep, P, pts, s, dx, seat) > allow[s] + 1e-5) stillIn++;
-  });
-  for (const p of prep.parts) write(p, seat, splay[0], splay[1]);
-  Object.assign(glassesFitState, { seatMm: seat * 1000, splayLeft: splay[0], splayRight: splay[1], stillIn, ms: performance.now() - t0 });
 }
 
 /** The frame's positions = the file's + the fit (a head-space move, turned back into the mesh's own space). */

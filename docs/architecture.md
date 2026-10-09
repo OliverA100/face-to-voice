@@ -102,7 +102,8 @@ seen. Thin-lipped extremes keep their mouth shapes capped low on purpose (teeth 
 - **Glasses** are built from numbers (`config/glasses.toml`) and seated on the average head by an optician's solver
   (pads on the nose, arms past the temples onto the ears). In the app they are rigid: identity targets on their anchor
   points (best-fit transform plus arm splay) and, when the
-  shape settles, a ray-parity inside test on the skin decides how far to slide them forward (≤ 6 mm) and open the arms.
+  shape settles, a ray-parity inside test on the skin decides how far to slide them forward (≤ 6 mm) and open the arms
+  (in a worker: `glassesWorker.ts`; a new frame shows once its first fit is on).
 - **Pipeline fits.** Hair is fitted onto the GNM head by similarity ICP on the cranium, roots snapped to the scalp,
   strands pushed out of the skin. Brows and beards grow inside outlines read from saved CC0 guides
   (`pipeline/config/guides/`); lashes grow along the lid margins. The stress test's add-on family checks clipping and

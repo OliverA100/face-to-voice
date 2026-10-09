@@ -435,13 +435,17 @@ function detach(category: AddonCategory, crossfade = false, next: Object3D | nul
 }
 
 /** The old style stays on the head until the new one is ready; then swapped at once, or cross-faded (see detach). */
-function attach(category: AddonCategory, node: Object3D, parent: Object3D, crossfade = false): void {
+/** Resolves when the piece is ready to be seen: glasses once their first fit to this face is on. */
+function attach(category: AddonCategory, node: Object3D, parent: Object3D, crossfade = false): Promise<void> | undefined {
   detach(category, crossfade, node);
   parent.add(node);
   addonRig.meshes[category] = node;
   for (const m of meshesOf(node)) if (!m.userData.groom) morphs.bind(m); // strand pieces follow the skin themselves
   applyAddons(0, category);
-  if (category === "glasses") node.userData.unfit = fitGlasses(node, parent); // on this face, not only the baked one
+  if (category !== "glasses") return;
+  const { fitted, unfit } = fitGlasses(node, parent); // on this face, not only the baked one
+  node.userData.unfit = unfit;
+  return fitted;
 }
 
 // Per category: only the latest request attaches, and the superseded fetch is aborted.
@@ -471,7 +475,7 @@ export async function syncAddon(category: AddonCategory, crossfade = false): Pro
       disposePiece(node); // superseded (or the head went away) while parsing
       return;
     }
-    attach(category, node, addonRig.parent, crossfade);
+    await attach(category, node, addonRig.parent, crossfade);
   } catch (err) {
     if (!controller.signal.aborted) {
       console.error("addons: failed to load", style.file, err);
