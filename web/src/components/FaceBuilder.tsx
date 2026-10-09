@@ -114,8 +114,11 @@ if (debugHandle) {
 
 export function FaceBuilder() {
   return (
-    <div className="flex h-dvh w-dvw flex-col bg-page text-ink">
-      <header className="flex h-14 shrink-0 items-center justify-between px-3 md:h-16 lg:px-5">
+    // Below lg the page itself scrolls (not a box inside it), so iOS Safari shrinks its bars and the cards pass under the
+    // toolbar; the header and the head stick. --head-top / --tabs-top: where the head and the slider tabs stick.
+    // viewport-fit=cover (app/layout.tsx) lets the page reach under the notch and the bars, so the edges keep clear of the safe areas.
+    <div className="flex min-h-dvh w-full flex-col bg-page pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] text-ink [--head-top:calc(env(safe-area-inset-top)_+_3.5rem)] [--tabs-top:calc(var(--head-top)_+_44svh_+_0.75rem)] md:[--head-top:calc(env(safe-area-inset-top)_+_4rem)] lg:h-dvh">
+      <header className="sticky top-0 z-20 box-content flex h-14 shrink-0 items-center justify-between bg-page px-3 pt-[env(safe-area-inset-top)] md:h-16 lg:static lg:px-5">
         <div className="flex items-center gap-3">
           <h1 className="flex items-center gap-2 whitespace-nowrap text-input font-medium tracking-[-0.01em]">
             <LogoOrb size={18} />
@@ -138,21 +141,25 @@ export function FaceBuilder() {
         </nav>
       </header>
 
-      <main className="grid min-h-0 flex-1 grid-rows-[44dvh_1fr] gap-3 px-3 pb-3 lg:grid-cols-[1fr_360px] lg:grid-rows-1 lg:px-5 lg:pb-5">
-        <section className="relative min-h-0 overflow-hidden rounded-card bg-surface shadow-hairline lg:col-start-1 lg:row-start-1" aria-label="The face">
-          <FaceCanvas />
-          <Toolbar />
-          <PerfOverlay />
-          <LipSyncOverlay />
-        </section>
+      <main className="grid flex-1 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:min-h-0 lg:grid-cols-[1fr_360px] lg:grid-rows-1 lg:gap-3 lg:px-5 lg:pb-5">
+        {/* Below lg: the head sticks under the header on a page-coloured band (the cards slide behind it). svh, not dvh: the
+            head keeps its size while Safari's bars shrink and grow. From lg the band is `contents` and the head is the grid's cell. */}
+        <div className="sticky top-(--head-top) z-20 -mx-3 h-[calc(44svh_+_0.75rem)] bg-page px-3 pb-3 lg:contents">
+          <section className="relative min-h-0 overflow-hidden rounded-card bg-surface shadow-hairline max-lg:h-full lg:col-start-1 lg:row-start-1" aria-label="The face">
+            <FaceCanvas />
+            <Toolbar />
+            <PerfOverlay />
+            <LipSyncOverlay />
+          </section>
+        </div>
 
-        {/* Phones: one scrolling column (voice card, then sliders). Tablets/laptops (lg): the same column
+        {/* Phones and tablets: one column (voice card, then sliders) that scrolls with the page. Laptops (lg): the same column
             sits beside the head, the sliders scrolling inside it. Wide screens (xl): `contents`, so the
             voice card floats in the head's cell and the sliders take the second column on their own.
             -m-px p-px: the cards' 0.5px ring is a box-shadow, which the column's overflow would clip at its edges.
             relative (here and on the panel): absolute bits inside, like sr-only labels, stay in the scroller instead of
             stretching the page. */}
-        <div className="no-scrollbar relative -m-px flex min-h-0 flex-col gap-3 overflow-y-auto p-px lg:col-start-2 lg:row-start-1 lg:overflow-hidden xl:contents">
+        <div className="relative -m-px flex flex-col gap-3 p-px lg:col-start-2 lg:min-h-0 lg:row-start-1 lg:overflow-hidden xl:contents">
           <div className="shrink-0 xl:pointer-events-none xl:z-10 xl:col-start-1 xl:row-start-1 xl:m-4 xl:flex xl:max-h-[calc(100%-2rem)] xl:flex-col xl:self-end xl:justify-self-end">
             <VoicePanel />
           </div>

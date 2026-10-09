@@ -67,16 +67,27 @@ export function SliderPanel() {
     return () => ro.disconnect();
   }, []);
 
-  // The tray's float shadow shows only once content scrolls under it (data-stuck; no React state).
+  // The tray's float shadow shows only once content scrolls under it (data-stuck; no React state). Below lg the page
+  // scrolls and the bar sticks under the head, so the sentinel counts as gone once it passes the bar's sticky top.
   useEffect(() => {
     const s = sentinel.current;
     const b = bar.current;
     if (!s || !b) return;
-    const io = new IntersectionObserver(([e]) => {
-      b.toggleAttribute("data-stuck", !e.isIntersecting && e.boundingClientRect.top < b.getBoundingClientRect().bottom);
-    });
-    io.observe(s);
-    return () => io.disconnect();
+    let io: IntersectionObserver | undefined;
+    const watch = () => {
+      io?.disconnect();
+      io = new IntersectionObserver(
+        ([e]) => b.toggleAttribute("data-stuck", !e.isIntersecting && e.boundingClientRect.top < b.getBoundingClientRect().bottom),
+        { rootMargin: `${-stickyTop(b)}px 0px 0px 0px` },
+      );
+      io.observe(s);
+    };
+    watch();
+    window.addEventListener("resize", watch);
+    return () => {
+      window.removeEventListener("resize", watch);
+      io?.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -111,7 +122,7 @@ export function SliderPanel() {
     const b = body.current;
     const t = bar.current;
     if (b && t && t.hasAttribute("data-stuck")) {
-      b.style.scrollMarginTop = getComputedStyle(t).top === "auto" ? "0px" : `${t.offsetHeight}px`;
+      b.style.scrollMarginTop = `${stickyTop(t) + t.offsetHeight}px`;
       b.scrollIntoView({ block: "start" });
     }
   };
@@ -128,7 +139,7 @@ export function SliderPanel() {
     document.getElementById(`tab-${next}`)?.focus();
   };
 
-  // Below lg the whole column scrolls (FaceBuilder); from lg the panel scrolls inside its card.
+  // Below lg the page scrolls (FaceBuilder); from lg the panel scrolls inside its card.
   return (
     <div className="no-scrollbar relative flex flex-col rounded-card bg-card text-ink lg:h-full lg:overflow-y-auto">
       <header className="px-5 pt-5">
@@ -137,9 +148,11 @@ export function SliderPanel() {
       <div ref={sentinel} aria-hidden className="h-px" />
       {/* Segmented tray: one white marker slides under the chosen tab (placeMarker). The tray floats over the tab as it
           scrolls: the bar itself has no background and lets clicks through, so only the pill covers the content.
-          Phones (below md): the bar is a solid card-coloured strip instead (no float shadow), sticking just under the head
-          (-top-px: flush with the column's top edge, past its 1px padding, so no sliver of the rows shows above it). */}
-      <div ref={bar} className="sticky top-0 z-10 px-5 py-3 max-md:-top-px max-md:bg-card md:pointer-events-none">
+          Phones (below md): the bar is a solid card-coloured strip instead (no float shadow). Below lg the page scrolls and
+          the bar sticks just under the head's band (--tabs-top, FaceBuilder; 1px into it, so no sliver of the rows shows between).
+          The strip only paints once stuck (on its own card it needn't): iOS Safari 26 fills the space under its toolbar with
+          whatever a sticky element near the bottom edge paints, which hid the page there while the bar sat low on load. */}
+      <div ref={bar} className="sticky top-0 z-10 px-5 py-3 max-lg:top-[calc(var(--tabs-top,1px)_-_1px)] max-md:data-stuck:bg-card md:pointer-events-none">
         <div ref={list} className="pointer-events-auto relative flex rounded-full bg-surface p-1 transition-shadow duration-(--dur-2) md:in-data-stuck:shadow-float" role="tablist" aria-label="Face controls" onKeyDown={onKey}>
           <span ref={marker} aria-hidden className="absolute inset-y-1 left-0 w-0 rounded-full bg-card shadow-control transition-[transform,width] duration-(--dur-2) ease-soft" />
           {TABS.map((t) => (
@@ -173,4 +186,9 @@ export function SliderPanel() {
       </div>
     </div>
   );
+}
+
+/** Where a sticky element sticks, in px from the top of its scroller (0 when it has no top). */
+function stickyTop(el: HTMLElement) {
+  return parseFloat(getComputedStyle(el).top) || 0;
 }

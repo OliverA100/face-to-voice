@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "@/components/ui/loader/orbPoster.css";
@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   openGraph: { type: "website", url: "/", siteName: "Face to Voice", title: TITLE, description: DESCRIPTION },
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
+
+// cover: the page reaches under the notch and Safari's toolbar (the app keeps its edges clear with env(safe-area-inset-*)).
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
