@@ -673,6 +673,19 @@ function tieToSkin(pts: Float32Array): { idx: Int32Array; wts: Float32Array; hea
   return { idx, wts, head, lin: new Matrix3().setFromMatrix4(m) };
 }
 
+/** The distinct skin vertices of `idx` (`uniq`) and each entry's place among them (`slot`): neighbouring points share
+ *  their skin, so its offsets are summed once per vertex instead of once per point that uses it (same values). */
+function uniqueSkin(idx: Int32Array): { uniq: Int32Array; slot: Int32Array } {
+  const at = new Map<number, number>();
+  const slot = new Int32Array(idx.length);
+  for (let i = 0; i < idx.length; i++) {
+    let u = at.get(idx[i]);
+    if (u === undefined) at.set(idx[i], (u = at.size));
+    slot[i] = u;
+  }
+  return { uniq: Int32Array.from(at.keys()), slot };
+}
+
 /**
  * Brows (`shapeFollow`): hairs lie on the skin, and a face's shape bends the skin under a hair, not only where its root
  * is (a low brow folds the upper lid over the brow's lower hairs, a deep-set eye rolls the brow ridge). Every point is
@@ -683,7 +696,8 @@ function tieToSkin(pts: Float32Array): { idx: Int32Array; wts: Float32Array; hea
 function followShapePoints(points: Float32Array, p: number, out: { tex: DataTexture; data: Float32Array }) {
   const count = points.length / 3;
   let tie: ReturnType<typeof tieToSkin> = null;
-  const offs = new Float32Array(count * 9);
+  let shared: ReturnType<typeof uniqueSkin> | null = null; // every point's three skin vertices, once each
+  let offs: Float32Array | null = null;
   const last = new Map<string, number>();
   const seen = new Map<string, number>(); // shape weights at the last write
   const d = new Float32Array(count * 3);
@@ -691,6 +705,8 @@ function followShapePoints(points: Float32Array, p: number, out: { tex: DataText
   const update = () => {
     tie ??= tieToSkin(points);
     if (!tie) return;
+    shared ??= uniqueSkin(tie.idx);
+    offs ??= new Float32Array(shared.uniq.length * 3);
     // head.extra.glb re-registers the skin with its targets (a new rest array). The semantic sliders' weights didn't
     // change, so nothing below would notice: start the sums again, or brows that attached first never follow them.
     const skin = skinShape();
@@ -708,12 +724,12 @@ function followShapePoints(points: Float32Array, p: number, out: { tex: DataText
         changed = true;
       }
     }
-    if (!changed || !skinOffsets(tie.idx, last, offs, shapeWeight)) return;
+    if (!changed || !skinOffsets(shared.uniq, last, offs, shapeWeight)) return;
     const e = tie.lin.elements;
     for (let q = 0; q < count; q++) {
       let x = 0, y = 0, z = 0;
       for (let c = 0; c < 3; c++) {
-        const j = (q * 3 + c) * 3, w = tie.wts[q * 3 + c];
+        const j = shared.slot[q * 3 + c] * 3, w = tie.wts[q * 3 + c];
         x += w * offs[j];
         y += w * offs[j + 1];
         z += w * offs[j + 2];
@@ -772,9 +788,8 @@ function followSkin(roots: Float32Array, out: { tex: DataTexture; data: Float32A
     return true;
   };
 
-  /** Every frame: the bound skin vertices' current morph offsets, straight from the morph store. Kept once per
-   *  skin vertex (`uniq`; `slot`: each tie's place in it), since neighbouring roots share their skin: the same sums,
-   *  done once instead of for every root that uses the vertex. */
+  /** Every frame: the bound skin vertices' current morph offsets, straight from the morph store, once per skin vertex
+   *  (uniqueSkin). */
   let offs: Float32Array | null = null;
   let uniq: Int32Array | null = null;
   let slot: Int32Array | null = null;
@@ -813,16 +828,7 @@ function followSkin(roots: Float32Array, out: { tex: DataTexture; data: Float32A
   };
   return () => {
     if (!bound && !bind()) return;
-    if (!uniq || !slot) {
-      const at = new Map<number, number>();
-      slot = new Int32Array(idx.length);
-      for (let i = 0; i < idx.length; i++) {
-        let u = at.get(idx[i]);
-        if (u === undefined) at.set(idx[i], (u = at.size));
-        slot[i] = u;
-      }
-      uniq = Int32Array.from(at.keys());
-    }
+    if (!uniq || !slot) ({ uniq, slot } = uniqueSkin(idx));
     offs ??= new Float32Array(uniq.length * 3);
     lastWeights.changed = lastShapeRoot.changed = lastShapeTip.changed = false;
     if (!skinOffsets(uniq, lastWeights, offs)) return;
