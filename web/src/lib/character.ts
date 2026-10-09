@@ -6,12 +6,12 @@
  * emotion. Pose is left alone. Every piece goes through the same setters the panel uses, so the panel,
  * the saved choices and the voice's look all follow.
  *
- * The change (`transition` below): the skin, eye and hair colours start blending on the live head at once (the new
- * pieces are built wearing them), while the new hair and add-ons are built, hidden. The face then morphs into the new
- * one and the emotion blends in, waiting up to CHARACTER.holdFor for those pieces so they arrive with it rather than
- * after it. CHARACTER.styleAt seconds into the morph the old hair and add-ons cross-fade to the new ones
- * (lib/pieceFade.ts: the head is rendered with the old pieces and with the new ones, both live and opaque, and the two
- * frames are mixed), so there is never a second face and no see-through hair. The simpler options don't hold up: a
+ * The change (`transition` below): the new hair and add-ons are built, hidden, while nothing moves yet (usually done
+ * already: their files were downloaded ahead). Then everything starts on the same frame: the face morphs into the new
+ * one, the emotion blends in, the skin, eye and hair colours blend on the live head (the new pieces were built in the
+ * old hair colour and blend with the rest), and the old hair and add-ons cross-fade to the new ones (CHARACTER.styleAt
+ * moves that later; lib/pieceFade.ts: the head is rendered with the old pieces and with the new ones, both live and
+ * opaque, and the two frames are mixed), so there is never a second face and no see-through hair. The simpler options don't hold up: a
  * screenshot cross-fade over the morph shows a double image, a dip to the backdrop hides the morph, and fading the
  * pieces themselves dissolves or turns patchy.
  *
@@ -53,7 +53,7 @@ import { setSkinTone, SKIN_DEFAULT, SKIN_TONES, type SkinToneId } from "@/lib/sk
 /** Tweak freely. Chances are 0..1; weights are relative. */
 export const CHARACTER = {
   duration: MOTION.morph, // seconds for the face to morph into the new one (colours, expression and pose change as long)
-  holdFor: 0.4, // seconds the morph may wait for the new hair and add-ons to be built, so they arrive with it (0 = never waits)
+  holdFor: 5, // seconds the morph may wait for the new hair and add-ons, so everything changes together (maxDownload and maxAttach end it sooner)
   aheadAfterLoad: 4, // seconds after the head appears before the first character's files download ahead
   styleAt: 0, // seconds after the morph starts when the hair and add-ons cross-fade: 0 = with the morph, 0.9 = after it
   styleFade: MOTION.crossfade, // seconds for the old hair and add-ons to fade out and the new ones in
@@ -221,20 +221,22 @@ function track(change: Change): Promise<void> {
 }
 
 /**
- * Blend the colours, build the new hair and add-ons hidden, run `motion` (the face morph, emotion, pose) once `faceReady`
- * has resolved and the pieces are ready or CHARACTER.holdFor has passed, and cross-fade the pieces CHARACTER.styleAt
- * seconds into the morph. `landed` resolves when that fade has finished (the Toolbar keeps its buttons disabled until
- * then), `morphed` when the morph has.
+ * Build the new hair and add-ons hidden; once `faceReady` has resolved and the pieces are ready (or CHARACTER.holdFor has
+ * passed), run `motion` (the face morph, emotion, pose), blend the colours and cross-fade the pieces, together.
+ * `landed` resolves when that fade has finished (the Toolbar keeps its buttons disabled until then), `morphed` when the
+ * morph has.
  */
 function transition(style: Style, motion: () => void, faceReady: Promise<unknown> = Promise.resolve()): Change {
   const id = ++run;
   let started = () => {};
   const morphed = new Promise<void>((resolve) => (started = resolve)).then(() => wait(CHARACTER.duration));
-  // 1. The colours blend at once: on the old hair, brows, lashes and beard, and the new ones are built wearing them.
-  setSkinTone(style.skin, CHARACTER.duration);
-  setEyeColour(style.eyes, CHARACTER.duration);
-  setHairColour(style.hairColour, CHARACTER.duration);
-  if (addonState.facialHairColour !== style.facialHairColour) setFacialHairColour(style.facialHairColour, CHARACTER.duration);
+  // 1. The colours, started with the morph (3.): on the hair, brows, lashes and beard shown then, new ones included.
+  const colours = () => {
+    setSkinTone(style.skin, CHARACTER.duration);
+    setEyeColour(style.eyes, CHARACTER.duration);
+    setHairColour(style.hairColour, CHARACTER.duration);
+    if (addonState.facialHairColour !== style.facialHairColour) setFacialHairColour(style.facialHairColour, CHARACTER.duration);
+  };
   // 2. The new pieces: downloaded (usually already, prepareNext), then put on hidden in a cross-fade batch. Re-applying
   //    an unchanged piece would re-tint it at once and cut its colour blend short, so those are left alone.
   let opened = false;
@@ -261,12 +263,16 @@ function transition(style: Style, motion: () => void, faceReady: Promise<unknown
     });
   const landed = (async () => {
     try {
-      // 3. The morph, as soon as the face is worked out and the pieces are ready or the hold is up (a slow device morphs
-      //    first and fades them in late).
+      // 3. The morph, the colours and (styleAt 0) the pieces' cross-fade together, once the face is worked out and the
+      //    pieces are on (or the hold is up: then they fade in late).
       await Promise.all([within(ready.catch(() => {}), CHARACTER.holdFor), faceReady]);
-      if (id === run) motion();
+      if (id === run) {
+        motion();
+        colours();
+      }
       started();
-      await Promise.all([ready, wait(CHARACTER.styleAt)]);
+      await ready;
+      if (CHARACTER.styleAt > 0) await wait(CHARACTER.styleAt); // (a 0 s timer would start the fade a frame late)
       if (!opened) return;
       if (id !== run) return finishPieceFade();
       await runPieceFade(CHARACTER.styleFade);
