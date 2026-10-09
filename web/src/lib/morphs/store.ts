@@ -53,6 +53,7 @@ export class MorphStore implements LimitStore {
   private readonly settleListeners = new Set<() => void>();
   private readonly quickSetters = new Map<string, (value: number) => void>();
   private settleTimer: ReturnType<typeof setTimeout> | null = null;
+  private settleQueued = false;
   /**
    * Bumped whenever the face's shape may have changed (a slider, a tween, an emotion blend). Head.tsx refreshes the
    * normals and eye pivots live while it moves, so nothing jumps when the change settles. The lip-sync and blink layers
@@ -303,10 +304,20 @@ export class MorphStore implements LimitStore {
     return () => this.settleListeners.delete(fn);
   }
 
+  /**
+   * Settle before the next frame, once however many tweens land together (a Random character's face, emotion and
+   * intensity end on the same frame: each settle recomputes the whole head's normals), after they have all written
+   * their last values.
+   */
   settleNow(): void {
     if (this.settleTimer) clearTimeout(this.settleTimer);
     this.settleTimer = null;
-    for (const fn of this.settleListeners) fn();
+    if (this.settleQueued) return;
+    this.settleQueued = true;
+    queueMicrotask(() => {
+      this.settleQueued = false;
+      for (const fn of this.settleListeners) fn();
+    });
   }
 
   private notify(target: string, value: number, source: ChangeSource): void {

@@ -109,6 +109,7 @@ export function Head() {
   const refresher = useMemo(() => new NormalRefresher(), []);
   const swayRef = useRef<Group>(null);
   const settleRef = useRef<(() => void) | null>(null);
+  const live = useRef({ seen: morphs.shapeVersion, last: 0, cost: 0 }); // the live settle below (useFrame)
 
   useEffect(() => {
     const meshes: Mesh[] = [];
@@ -213,6 +214,7 @@ export function Head() {
     }));
     const tmp = new Vector3();
     const settle = () => {
+      live.current.seen = morphs.shapeVersion; // this shape is done: the live settle needn't do it again this frame
       scheduleAnimCaps(); // how far blink, emotion and speech may go on this face (idle time)
       refresher.refresh((t) => morphs.effective(t, PASSING_LAYERS)); // the held shape: a blink or a word must not stay in the shading
       for (const p of pivots) {
@@ -333,7 +335,6 @@ export function Head() {
   });
 
   // While the shape moves, keep the normals (light and shadow) and eye pivots following it (see LIVE_SETTLE).
-  const live = useRef({ seen: morphs.shapeVersion, last: 0, cost: 0 });
   useFrame(() => {
     const l = live.current;
     const settle = settleRef.current;
