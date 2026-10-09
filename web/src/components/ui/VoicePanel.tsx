@@ -11,7 +11,7 @@
  * One black pill per state: "Find my voice" while idle, "Speak" once a voice is ready.
  * Tokens and pill/card classes: globals.css.
  */
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { captureFace } from "@/components/scene/Capture";
 import { extraReady } from "@/lib/headExtra";
@@ -25,6 +25,7 @@ import { useHeightTransition } from "@/components/ui/useHeightTransition";
 import { VoiceBlob, VoiceBlobPlaceholder, usePrefetchVoiceBlobs } from "@/components/ui/VoiceBlob";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { currentFaceSignature, requestDesign, requestSelect, VoiceApiError, type DesignResult, type Preview, type SelectResult } from "@/lib/voice/client";
+import { saveVoiceSession, subscribeVoiceSession, voiceSession } from "@/lib/voice/voiceSession";
 
 type Phase = "idle" | "designing" | "previews" | "selecting" | "ready";
 
@@ -62,6 +63,22 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [stage, setStage] = useState<"describe" | "design">("describe");
+  // The voice step before a reload (lib/voice/voiceSession.ts): the server renders the first visit, the client then
+  // picks up where this tab left off, once.
+  const restored = useSyncExternalStore(subscribeVoiceSession, voiceSession, () => null);
+  const [restoredOnce, setRestoredOnce] = useState(false);
+  if (restored && !restoredOnce) {
+    setRestoredOnce(true);
+    setDesign(restored.design);
+    setSelection(restored.selection);
+    setChosen(restored.chosen);
+    setDesignedFace(restored.designedFace);
+    setPhase(restored.selection ? "ready" : "previews");
+  }
+  // … and kept as it changes (never cleared here: a new design replaces it)
+  useEffect(() => {
+    if (design) saveVoiceSession({ design, selection, chosen, designedFace });
+  }, [design, selection, chosen, designedFace]);
   const card = useRef<HTMLElement>(null);
   const cardContent = useRef<HTMLDivElement>(null);
   useHeightTransition(card, cardContent);

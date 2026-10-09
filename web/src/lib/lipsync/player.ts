@@ -371,9 +371,11 @@ class SpeechPlayer {
  * iOS (Safari 16.4+): Web Audio follows the ringer's silent switch unless the session says this is playback (the <audio>
  * previews already ignore it, so Speak was the only silent thing). "playback" pauses other apps' audio (music, a
  * podcast), so it is asked for only while a line is loading or playing and handed back ("auto") when it ends.
+ * iPhone and iPad only (touch: iPadOS says it is a Mac): on a Mac there is no silent switch, and Safari answered these
+ * switches by muting the tab's Web Audio after it had sat in the background a while, until a new tab was opened.
  */
 function audioSession(type: "playback" | "auto"): void {
-  if (typeof navigator === "undefined" || !("audioSession" in navigator)) return;
+  if (typeof navigator === "undefined" || !("audioSession" in navigator) || !(navigator.maxTouchPoints > 1)) return;
   try {
     const session = (navigator as AudioSessionNavigator).audioSession;
     if (session.type !== type) session.type = type;

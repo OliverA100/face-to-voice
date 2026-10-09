@@ -1,7 +1,7 @@
 "use client";
 
 /** Preset lines + a short custom line; Speak streams the voice and drives the mouth. */
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { RadioGroup } from "@/components/ui/RadioGroup";
@@ -10,6 +10,7 @@ import { Status } from "@/components/ui/Status";
 import { paintRange, speakRange } from "@/components/ui/panel/rangeFill";
 import { currentEmotion } from "@/lib/emotion";
 import { speechPlayer, type PlayerState } from "@/lib/lipsync/player";
+import { staleTabSnapshot, subscribeStaleTab } from "@/lib/lipsync/staleTab";
 import { perf } from "@/lib/perf";
 
 const PRESET_LINES = [
@@ -29,6 +30,8 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
   const [state, setState] = useState<PlayerState>(speechPlayer.state);
   const [error, setError] = useState<string | null>(null);
   const [showSync, setShowSync] = useState(false);
+  // Safari on a computer, back from a long time in the background: its sound can come late or not at all (staleTab.ts)
+  const staleTab = useSyncExternalStore(subscribeStaleTab, staleTabSnapshot, () => false);
   const lineIds = useId();
   const speakButton = useRef<HTMLButtonElement>(null);
   const stopFocused = useRef(false);
@@ -138,6 +141,15 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
         </div>
       </div>
       {showSync && <SyncControl />}
+      {staleTab && (state === "playing" || state === "done") && (
+        <p className="enter text-label text-ink-3">
+          Sound late or silent?{" "}
+          <button type="button" onClick={() => window.location.reload()} className="text-ink transition-colors hover:text-ink-2">
+            Reload the page
+          </button>
+          <span className="sr-only"> (the face and the voice are kept)</span>
+        </p>
+      )}
       {error && <Alert>{error}</Alert>}
       {/* The speaking state for screen readers (the counter above changes on every key, so it is not a live region). */}
       <Status message={state === "loading" ? "Generating the line…" : state === "playing" ? "Speaking." : state === "done" ? "Finished speaking." : ""} />

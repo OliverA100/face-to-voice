@@ -198,15 +198,25 @@ describe("SpeechPlayer", () => {
 
   it("unlock() asks iOS for a playback audio session, so the silent switch does not mute speech", async () => {
     const audioSession = { type: "auto" };
-    vi.stubGlobal("navigator", { audioSession });
+    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5 });
     const { speechPlayer } = await import("../player");
     speechPlayer.unlock();
     expect(audioSession.type).toBe("playback");
   });
 
+  it("leaves the audio session alone on a computer (Safari on a Mac muted Web Audio after a while in the background)", async () => {
+    const audioSession = { type: "auto" };
+    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 0 });
+    const { speechPlayer } = await import("../player");
+    await speechPlayer.speak(async () => stream(1));
+    expect(audioSession.type).toBe("auto");
+    speechPlayer.stop();
+    expect(audioSession.type).toBe("auto");
+  });
+
   it("hands the audio session back when the line ends, is stopped or fails, so other apps' audio can resume", async () => {
     const audioSession = { type: "auto" };
-    vi.stubGlobal("navigator", { audioSession });
+    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5 });
     const { speechPlayer } = await import("../player");
     await speechPlayer.speak(async () => stream(1));
     expect(audioSession.type).toBe("playback"); // while the line plays
@@ -224,6 +234,7 @@ describe("SpeechPlayer", () => {
 
   it("unlock() still works where the audio session refuses the type", async () => {
     vi.stubGlobal("navigator", {
+      maxTouchPoints: 5,
       audioSession: {
         set type(_: string) {
           throw new Error("not allowed");

@@ -157,7 +157,9 @@ PCM + character times ◄──────── NDJSON passed through, then wr
   the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly), then blends with anticipation, closure
   dominance and smoothing; `LipSync.tsx` writes the result into the viseme morph layer, capped per face by the limiter
   and held to a top speed for the lips and the jaw (`visemes.json` "speed"). Mouth openings follow the loudness
-  measured against the loudest moment nearby, so a line that trails off still forms its last words.
+  measured against the loudest moment nearby, so a line that trails off still forms its last words. Safari on a
+  computer can play a tab's Web Audio late or not at all after it has sat in the background, while reporting it as on
+  time; the speak bar then offers a reload, and the face and the voice survive it.
 
 ## Export
 
