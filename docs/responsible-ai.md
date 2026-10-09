@@ -63,7 +63,7 @@ Every paid route (`/api/voice/design`, `/select`, `/speak`) runs, in order:
 2. Vercel BotID;
 3. a per-visitor sliding window in Upstash Redis: 5 designs, 3 new voices and 30 lines a day;
 4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters (configurable);
-5. ElevenLabs' and Anthropic's own per-key quotas and spend limits, set in their dashboards (see DEPLOY.md).
+5. ElevenLabs' and Anthropic's own per-key quotas and spend limits, set in their dashboards.
 
 Any Vercel deployment (production or preview) refuses the paid routes without Redis or without a rate-limit salt
 (fail closed), and a slow Redis counts as a refusal. Speech reserves its characters against the daily cap before the

@@ -1,6 +1,6 @@
 /**
  * Studio voices: pre-designed voices the app falls back to once the day's or month's new voices are spent
- * (STUDIO_VOICE_IDS, DEPLOY.md). They are cast with the app's own prompt template, so they sound like the voices
+ * (STUDIO_VOICE_IDS). They are cast with the app's own prompt template, so they sound like the voices
  * visitors get. Run from web/ (needs ELEVENLABS_API_KEY in .env.local; jiti resolves the `@/` imports of prompt.ts):
  *
  *   JITI_ALIAS="{\"@\":\"$PWD/src\"}" pnpm exec jiti scripts/studio-voices.ts design [slot …] --yes
