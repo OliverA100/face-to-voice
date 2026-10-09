@@ -9,7 +9,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { sectionOf, sliders, visibleSliders } from "@/lib/data";
 import { askLimiter, canAsk, geometryKey } from "@/lib/morphs/capsClient";
-import { canVary, onRandomChange, precomputeVariations, randomFace, randomState, VARIATION, variationNotches, varyFace } from "@/lib/morphs/random";
+import { canVary, onRandomChange, precomputeVariations, randomFace, randomFaceAsync, randomState, VARIATION, variationNotches, varyFace } from "@/lib/morphs/random";
 import { morphs } from "@/lib/morphs/store";
 import { MOTION } from "@/lib/motion";
 
@@ -113,6 +113,12 @@ function RandomRow() {
     speakRange(input.current, sayVariation);
     paintRange(input.current);
   }, []);
+  // the face fitted in the caps worker (a distinctive one is seconds of checks on a phone); a newer click overtakes it
+  const newRandomFace = async () => {
+    const defs = visibleSliders();
+    const w = await randomFaceAsync(defs, askLimiter, randomState.variation).catch(() => randomFace(defs, randomState.variation));
+    if (w) morphs.tweenTo(w, MOTION.morph);
+  };
   const reset = (el: HTMLInputElement) => {
     stopRide(el);
     setRange(el, VARIATION.default);
@@ -127,7 +133,7 @@ function RandomRow() {
         className="pill-secondary h-9 shrink-0"
         data-tip={RANDOM_FACE_TIP}
         aria-describedby={tipId}
-        onClick={() => morphs.tweenTo(randomFace(visibleSliders(), randomState.variation), MOTION.morph)}
+        onClick={() => void newRandomFace()}
       >
         Random face
       </button>
