@@ -17,7 +17,7 @@ import { LipSyncOverlay } from "@/components/ui/LipSyncOverlay";
 import { PerfOverlay } from "@/components/ui/PerfOverlay";
 import { SliderPanel } from "@/components/ui/SliderPanel";
 import { Toolbar } from "@/components/ui/Toolbar";
-import { LogoOrb } from "@/components/ui/LogoOrb";
+import { SiteHeader } from "@/components/ui/SiteHeader";
 import { VoicePanel } from "@/components/ui/VoicePanel";
 import { addonRig, addonState, syncAddon } from "@/lib/addons";
 import { AGE, ageUniforms, setAge } from "@/lib/age";
@@ -41,9 +41,6 @@ import { characterSettled } from "@/lib/character";
 import { quality, setTier } from "@/lib/quality";
 import { pieceFade } from "@/lib/pieceFade";
 import { setSkinTone, skinRig } from "@/lib/skin";
-
-/** The source repository; the top bar links to it. */
-const REPO_URL = "https://github.com/OliverA100/face-to-voice";
 
 // Runs once when this client module loads: ranges, defaults and kinds for every slider.
 morphs.configure(sliders.sliders);
@@ -118,28 +115,7 @@ export function FaceBuilder() {
     // toolbar; the header and the head stick. --head-top / --tabs-top: where the head and the slider tabs stick.
     // viewport-fit=cover (app/layout.tsx) lets the page reach under the notch and the bars, so the edges keep clear of the safe areas.
     <div className="flex min-h-dvh w-full flex-col bg-page pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] text-ink [--head-top:calc(env(safe-area-inset-top)_+_3.5rem)] [--tabs-top:calc(var(--head-top)_+_44svh_+_0.75rem)] md:[--head-top:calc(env(safe-area-inset-top)_+_4rem)] lg:h-dvh">
-      <header className="sticky top-0 z-20 box-content flex h-14 shrink-0 items-center justify-between bg-page px-3 pt-[env(safe-area-inset-top)] md:h-16 lg:static lg:px-5">
-        <div className="flex items-center gap-3">
-          <h1 className="flex items-center gap-2 whitespace-nowrap text-input font-medium tracking-[-0.01em]">
-            <LogoOrb size={18} />
-            Face to Voice
-          </h1>
-          <p className="hidden text-label text-ink-3 lg:block">Every face suggests a voice. Shape one and hear it.</p>
-        </div>
-        <nav className="flex items-center gap-2" aria-label="Links">
-          <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="pill-secondary hidden h-9 sm:inline-flex">
-            Built with ElevenLabs
-            <span aria-hidden className="-ml-1 text-ink-3">
-              ↗
-            </span>
-            <span className="sr-only">(opens in a new tab)</span>
-          </a>
-          <a href={REPO_URL} target="_blank" rel="noreferrer" className="pill-primary h-8 px-3 text-label sm:h-9 sm:px-4 sm:text-body">
-            GitHub
-            <span className="sr-only"> (opens in a new tab)</span>
-          </a>
-        </nav>
-      </header>
+      <SiteHeader home />
 
       <main className="grid flex-1 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:min-h-0 lg:grid-cols-[1fr_360px] lg:grid-rows-1 lg:gap-3 lg:px-5 lg:pb-5">
         {/* Below lg: the head sticks under the header on a page-coloured band (the cards slide behind it). svh, not dvh: the

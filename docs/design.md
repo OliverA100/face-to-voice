@@ -81,6 +81,9 @@ analytically, so startup is one shader compile.
   materials fade in. The variant's shaders compile in the background before the reveal, so every reveal frame is
   17 ms on desktop.
 - **Knobs:** `CHROME` in `chrome.tsx` (size, bumps, speeds), `CHROME_GL` in `chromeGl.ts` (noise, light, halo, film).
+- **The 404 page** (`app/not-found.tsx`) shows the same sphere on its own, swinging and never settling
+  (`loader/LoaderSphere.tsx`): the same poster and worker, no engine and no three.js. With reduced motion it is the
+  poster.
 
 The loader's finish, its looks and reveal styles, the spinner, the voice orbs, the icons and the tooltip were chosen in
 style labs that stay outside the repository; what they rendered (the poster and logo CSS, the spinner and orb strips,

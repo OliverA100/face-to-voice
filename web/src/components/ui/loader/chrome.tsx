@@ -11,11 +11,9 @@
  *
  * Tweak here: CHROME (the scene itself: ./chromeGl.ts CHROME_GL).
  */
-import gsap from "gsap";
+import type { ScreenCircle } from "@/lib/headMorph";
 
-import { type ScreenCircle } from "@/lib/headMorph";
-
-import { type LoaderState } from "./engine";
+import type { LoaderState } from "./engine";
 import type { ChromeFinish, ChromeFlowConfig, ChromeGl, ChromeLook, createChromeFlow } from "./chromeGl";
 import type { FromChromeWorker, ToChromeWorker } from "./chromeWorker";
 import { centred } from "./wave";
@@ -149,7 +147,7 @@ export function chromeMotion(
     canvas?.remove();
     canvas = null;
     still?.getAnimations().forEach((a) => a.cancel());
-    gsap.set(still, { visibility: "visible" });
+    if (still) still.style.visibility = "visible";
     settledNow(); // nothing left to wait for
   };
   /** The page draws it itself (no OffscreenCanvas, or the worker couldn't do WebGL). The renderer loads only then: the worker has its own copy. */
