@@ -10,6 +10,8 @@
  *    terminator goes warm and soft instead of grey and hard.
  *  - Pores and fine lines: `skin_detail`, a tileable height map laid on the rest position from three sides (no UVs,
  *    no stretching), bumped with screen-space derivatives. Medium and high tiers only (lib/quality.ts).
+ *  - Lips: a soft vermilion edge into the skin, their own roughness and a moist highlight (the clearcoat).
+ *  - Round the eyes: darker, slightly cooler skin under the eyes and in the upper lid crease.
  *  - Scalp under procedural hair: a per-vertex `aHairCover` (0..1, lib/groom.ts writes it from the strand roots) takes
  *    the skin towards the hair's root colour, so gaps between strands show hair-dark scalp, not bare skin.
  *
@@ -35,14 +37,18 @@ export const SKIN_SHADE = {
   redTint: [1.0, 0.74, 0.74], // linear RGB multiplier at full redness
   lips: 0.55, // extra tint where G is lip-strong
   lipTint: [0.92, 0.62, 0.66],
+  lipEdge: [0.55, 0.97] as [number, number], // where in G the lip tint starts and is full (wide: a soft vermilion edge)
+  lipRough: 0.34, // the lips' roughness …
+  lipSheen: 1.4, // … and their moist highlight (clearcoat, × oilSheen)
+  eyeShadow: 0.55, // darker, cooler skin under the eyes and in the upper lid crease
   blotch: 0.35, // how uneven the redness is (low-frequency noise, 0 = smooth)
   roughDry: 0.8, // roughness where B = 0 (cheeks, neck) …
   roughOily: 0.52, // … and B = 1 (nose, forehead, lips)
   oilSheen: 0.15, // clearcoat strength at B = 1 (a soft second highlight on the T-zone)
   oilSheenRoughness: 0.32,
   // subsurface look
-  wrap: [0.22, 0.08, 0.04], // per-channel light wrap (red reaches furthest round the form); normalised, so it softens
-  // the terminator without brightening the tone
+  wrap: [0.1, 0.04, 0.02], // per-channel light wrap (red reaches furthest round the form); normalised, so it softens
+  // the terminator without brightening the tone (0.22/0.08/0.04 turned shadow edges orange)
   translucency: 0.3, // back-light through thin skin (A)
   transColour: [1.0, 0.4, 0.3], // the blood colour of light that went through
   transPower: 3.0, // how tight the glow is round the light direction
@@ -69,6 +75,9 @@ export const skinUniforms = {
   uRedTint: { value: v3(SKIN_SHADE.redTint) },
   uLips: { value: SKIN_SHADE.lips },
   uLipTint: { value: v3(SKIN_SHADE.lipTint) },
+  uLipRough: { value: SKIN_SHADE.lipRough },
+  uLipSheen: { value: SKIN_SHADE.lipSheen },
+  uEyeShadow: { value: SKIN_SHADE.eyeShadow },
   uBlotch: { value: SKIN_SHADE.blotch },
   uRoughDry: { value: SKIN_SHADE.roughDry },
   uRoughOily: { value: SKIN_SHADE.roughOily },
@@ -100,6 +109,9 @@ export function applySkinShade(material?: MeshPhysicalMaterial | null): void {
   u.uRedTint.value.copy(v3(s.redTint));
   u.uLips.value = s.lips;
   u.uLipTint.value.copy(v3(s.lipTint));
+  u.uLipRough.value = s.lipRough;
+  u.uLipSheen.value = s.lipSheen;
+  u.uEyeShadow.value = s.eyeShadow;
   u.uBlotch.value = s.blotch;
   u.uRoughDry.value = s.roughDry;
   u.uRoughOily.value = s.roughOily;
@@ -123,6 +135,7 @@ uniform vec3 uScalpColour;
 uniform float uScalp, uScalpDarken;
 uniform float uRedness, uLips, uBlotch, uRoughDry, uRoughOily;
 uniform vec3 uRedTint, uLipTint;
+uniform float uLipRough, uLipSheen, uEyeShadow;
 uniform vec3 uWrap, uTransColour;
 uniform float uTrans, uTransPower, uTransDistort;
 uniform float uDetailDepth, uDetailTile;
@@ -135,16 +148,27 @@ varying vec3 vSkinN;
 vec4 skinReg = vec4(1.0, 0.0, 0.5, 1.0); // AO, redness, oiliness, thickness (neutral until the maps arrive)
 float stubbleH = 0.0; // stubble's bump height (0..-1) and how matte it makes the skin, set in the colour step
 float stubbleRough = 0.0;
+float skinLip = 0.0; // how much this is lip (0..1, a soft edge)
 `;
 
-// After three's colour: read the regions once, tint by redness (uneven, like real flushing) and the lips.
+// After three's colour: read the regions once, tint by redness (uneven, like real flushing) and the lips, and darken
+// round the eyes.
 const REGIONS = /* glsl */ `
 #include <color_fragment>
 #ifdef USE_AOMAP
   skinReg = texture2D(aoMap, vAoMapUv);
   float blotch = mix(1.0, 0.55 + 0.9 * ageNoise(vRest * 0.08), uBlotch);
   diffuseColor.rgb *= mix(vec3(1.0), uRedTint, clamp(skinReg.g * blotch, 0.0, 1.0) * uRedness);
-  diffuseColor.rgb *= mix(vec3(1.0), uLipTint, smoothstep(0.7, 0.95, skinReg.g) * uLips);
+  skinLip = smoothstep(${SKIN_SHADE.lipEdge[0].toFixed(2)}, ${SKIN_SHADE.lipEdge[1].toFixed(2)}, skinReg.g);
+  diffuseColor.rgb *= mix(vec3(1.0), uLipTint, skinLip * uLips);
+  {
+    // round the eyes (vRest is in mm): under the eye (towards the inner corner) and the upper lid crease
+    vec2 e = vec2(abs(vRest.x) - 30.9, vRest.y - 303.2);
+    float under = exp(-pow((e.x + 3.0) / 15.0, 2.0) - pow((e.y + 11.0) / 7.0, 2.0));
+    float crease = 0.5 * exp(-pow(e.x / 16.0, 2.0) - pow((e.y - 9.0) / 4.5, 2.0));
+    float front = smoothstep(55.0, 80.0, vRest.z);
+    diffuseColor.rgb *= mix(vec3(1.0), vec3(0.8, 0.73, 0.77), clamp((under + crease) * front, 0.0, 1.0) * uEyeShadow);
+  }
 #ifdef USE_STUBBLE
   {
     // stubble: the mask says where (and how patchy), the follicle texture (on the rest position from three sides, like
@@ -174,13 +198,14 @@ const ROUGHNESS = /* glsl */ `
 #ifdef USE_AOMAP
   roughnessFactor = mix(uRoughDry, uRoughOily, skinReg.b);
   roughnessFactor = mix(roughnessFactor, 0.92, stubbleRough); // stubble is matte
+  roughnessFactor = mix(roughnessFactor, uLipRough, skinLip);
 #endif
 `;
 
 const OIL = /* glsl */ `
 #include <lights_physical_fragment>
 #ifdef USE_CLEARCOAT
-  material.clearcoat *= skinReg.b * skinReg.b;
+  material.clearcoat *= mix(skinReg.b * skinReg.b, uLipSheen, skinLip); // the oily T-zone, and moist lips
 #endif
 `;
 
@@ -247,7 +272,7 @@ export function installSkinShader(material: MeshPhysicalMaterial): void {
       .replace("#include <aomap_fragment>", AO_DIRECT)
       .replace("#include <alphamap_fragment>", SCALP);
   };
-  material.customProgramCacheKey = () => "skin-v10";
+  material.customProgramCacheKey = () => "skin-v11";
 }
 
 /** Pores on or off for the current tier (Head.tsx calls this again when the tier drops). */

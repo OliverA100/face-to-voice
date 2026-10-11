@@ -13,7 +13,7 @@
 import { AdditiveBlending, Color, MeshPhysicalMaterial } from "three";
 
 import { eyeHex } from "@/lib/eyes";
-import { installIrisShader, installScleraShader } from "@/lib/eyeShader";
+import { installIrisShader, installScleraShader, registerCornea } from "@/lib/eyeShader";
 import { installMorph } from "@/lib/morphShader";
 import { installMouthShade } from "@/lib/mouthShade";
 import { skinHex, skinSheen } from "@/lib/skin";
@@ -43,7 +43,7 @@ const FACTORIES: Record<string, Factory> = {
   tongue: () => mouthPart({ color: new Color("#a9505a"), roughness: 0.55, sheen: 0.3, sheenColor: new Color("#f0a0a0") }),
   // Eyes (lib/eyeShader.ts): iris, pupil and sclera are drawn from their UVs; the wet gloss comes from the cornea.
   sclera: () => {
-    const m = new MeshPhysicalMaterial({ color: new Color("#e6e4e1"), roughness: 0.45, metalness: 0 });
+    const m = new MeshPhysicalMaterial({ color: new Color("#ddd7d0"), roughness: 0.45, metalness: 0 }); // a little warm and grey, like real whites
     installScleraShader(m);
     return m;
   },
@@ -53,10 +53,15 @@ const FACTORIES: Record<string, Factory> = {
     return m;
   },
   // The clear eye shell: black and additive, so only its reflections show (the catchlight and the wet sheen).
-  cornea: () => new MeshPhysicalMaterial({
-    color: new Color("#000000"), roughness: 0.04, metalness: 0, specularIntensity: 1, ior: 1.376,
-    envMapIntensity: 0.7, transparent: true, blending: AdditiveBlending, depthWrite: false,
-  }),
+  // Its reflections are CORNEA_BOOST × the environment (lib/eyeShader.ts setCorneaEnvironment).
+  cornea: () => {
+    const m = new MeshPhysicalMaterial({
+      color: new Color("#000000"), roughness: 0.04, metalness: 0, specularIntensity: 1, ior: 1.376,
+      transparent: true, blending: AdditiveBlending, depthWrite: false,
+    });
+    registerCornea(m);
+    return m;
+  },
 };
 
 function mouthPart(params: ConstructorParameters<typeof MeshPhysicalMaterial>[0]): MeshPhysicalMaterial {

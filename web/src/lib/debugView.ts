@@ -17,7 +17,11 @@ export type ViewSpec = {
   fov?: number; // degrees
 };
 
-const DEFAULT: ViewSpec = { target: [0, 0.265, 0.05], yaw: 0, pitch: 0.6, dist: 0.9, fov: 24 };
+const DEFAULT: ViewSpec = { target: [0, 0.265, 0.05], yaw: 0, pitch: 0.6, dist: 0.9 };
+
+/** The app's lens is fov 16 (Scene.tsx); a spec without its own fov keeps its framing by standing this much further back
+ *  (the presets were measured with fov 24). */
+const LENS = { fov: 16, distScale: Math.tan((12 * Math.PI) / 180) / Math.tan((8 * Math.PI) / 180) };
 
 /** Whole head and close-ups. Landmarks from data/ageing.json (template space ≈ world at rest). */
 const VIEWS: Record<string, ViewSpec> = {
@@ -62,11 +66,11 @@ export function view(spec: string | ViewSpec): ViewSpec | null {
   controls.maxPolarAngle = reset ? rig.limits.maxPol : Math.PI;
   const yaw = ((v.yaw ?? 0) * Math.PI) / 180;
   const pitch = ((v.pitch ?? 0) * Math.PI) / 180;
-  const d = v.dist ?? 0.9;
+  const d = (v.dist ?? 0.9) * (v.fov === undefined ? LENS.distScale : 1);
   const [x, y, z] = v.target;
   controls.target.set(x, y, z);
   camera.position.set(x + d * Math.sin(yaw) * Math.cos(pitch), y + d * Math.sin(pitch), z + d * Math.cos(yaw) * Math.cos(pitch));
-  camera.fov = v.fov ?? DEFAULT.fov!;
+  camera.fov = v.fov ?? LENS.fov;
   camera.updateProjectionMatrix();
   controls.update();
   return v;
