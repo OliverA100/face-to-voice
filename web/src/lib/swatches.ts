@@ -47,7 +47,7 @@ export const SKIN_TONES = [
   { id: "brown", label: "Brown", hex: "#775034" },
   { id: "deep-brown", label: "Deep brown", hex: "#613d20" },
   { id: "espresso", label: "Espresso", hex: "#492f18" },
-  { id: "ebony", label: "Ebony", hex: "#241c19" },
+  { id: "ebony", label: "Ebony", hex: "#36241c" }, // darker still went near-black under the studio light: features unreadable
 ] as const;
 
 /**
