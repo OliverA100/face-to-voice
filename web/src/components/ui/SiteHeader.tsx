@@ -33,7 +33,7 @@ export function SiteHeader({ home = false }: { home?: boolean }) {
         <p className="hidden text-label text-ink-3 lg:block">Every face suggests a voice. Shape one and hear it.</p>
       </div>
       <nav className="flex items-center gap-2" aria-label="Links">
-        <a href={REPO_URL} target="_blank" rel="noreferrer" className="pill-primary h-8 px-3 text-label sm:h-9 sm:px-4 sm:text-body">
+        <a href={REPO_URL} target="_blank" rel="noreferrer" className="pill-secondary h-8 px-3 text-label sm:h-9 sm:px-4 sm:text-body">
           GitHub
           <span className="sr-only"> (opens in a new tab)</span>
         </a>
