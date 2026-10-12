@@ -151,8 +151,8 @@ describe("POST /api/talk/token", () => {
   });
 
   it("gives the slot and the day's talk back when the visitor has no talks left", async () => {
-    for (let i = 0; i < 30; i++) {
-      const ok = await ticket({}, "7.7.7.7"); // 3 a day, ×10 without Redis
+    for (let i = 0; i < 100; i++) {
+      const ok = await ticket({}, "7.7.7.7"); // 10 a day, ×10 without Redis
       expect(ok.status).toBe(200);
       await releaseSlot(ok.data.room);
     }
@@ -165,7 +165,7 @@ describe("POST /api/talk/token", () => {
   });
 
   it("charges the visitor's daily talks only once a slot is theirs", async () => {
-    for (let i = 0; i < 35; i++) expect((await ticket({ take: 2 }, "8.8.8.8")).status).toBe(410); // more than 3 ×10
+    for (let i = 0; i < 105; i++) expect((await ticket({ take: 2 }, "8.8.8.8")).status).toBe(410); // more than 10 ×10
     const ok = await ticket({}, "8.8.8.8");
     expect(ok.status).toBe(200);
     await releaseSlot(ok.data.room);

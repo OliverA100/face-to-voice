@@ -12,7 +12,7 @@ const from = (ip: string) => new Request("http://localhost/api/voice/select", { 
 
 describe("visitor limits without Redis", () => {
   it("allow 10× the per-visitor limit, per visitor", async () => {
-    for (let i = 0; i < 30; i++) await checkVisitorLimit(from("1.1.1.1"), "select"); // select: 3 per day
+    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("1.1.1.1"), "select"); // select: 10 per day
     await expect(checkVisitorLimit(from("1.1.1.1"), "select")).rejects.toMatchObject({ code: "visitor_limit", status: 429 });
     await expect(checkVisitorLimit(from("2.2.2.2"), "select")).resolves.toBeUndefined();
     await expect(checkVisitorLimit(from("1.1.1.1"), "speak")).resolves.toBeUndefined();

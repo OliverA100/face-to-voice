@@ -17,14 +17,15 @@ import { ApiError, MESSAGES } from "./errors";
 
 export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk" | "invite";
 
-/** Per visitor. Tweak freely; the daily caps below protect the wallet either way. */
+/** Per visitor: room to play, while one person (or a script) can't use up a day on their own. Tweak freely; the daily
+ *  caps below are what protect the wallet. */
 const LIMITS: Record<Route, { tokens: number; window: "1 m" | "10 m" | "1 h" | "1 d"; ms: number }> = {
-  design: { tokens: 5, window: "1 d", ms: 86_400_000 },
-  select: { tokens: 3, window: "1 d", ms: 86_400_000 }, // saving a new voice (paid)
-  switch: { tokens: 30, window: "1 d", ms: 86_400_000 }, // choosing a take that is already saved (free)
-  speak: { tokens: 30, window: "1 d", ms: 86_400_000 },
-  profile: { tokens: 6, window: "1 d", ms: 86_400_000 }, // writing a character profile (Claude); reading a saved one is free
-  talk: { tokens: 3, window: "1 d", ms: 86_400_000 }, // live conversations
+  design: { tokens: 20, window: "1 d", ms: 86_400_000 },
+  select: { tokens: 10, window: "1 d", ms: 86_400_000 }, // saving a new voice (paid)
+  switch: { tokens: 100, window: "1 d", ms: 86_400_000 }, // choosing a take that is already saved (free)
+  speak: { tokens: 100, window: "1 d", ms: 86_400_000 },
+  profile: { tokens: 20, window: "1 d", ms: 86_400_000 }, // writing a character profile (Claude); reading a saved one is free
+  talk: { tokens: 10, window: "1 d", ms: 86_400_000 }, // live conversations
   invite: { tokens: 30, window: "1 d", ms: 86_400_000 }, // tries with an invite code, right or wrong (talk.ts): no guessing at them
 };
 
