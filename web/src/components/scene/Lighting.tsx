@@ -31,6 +31,8 @@ import {
   type WebGLRenderer,
 } from "three";
 
+import { setCorneaEnvironment } from "@/lib/eyeShader";
+
 type V3 = [number, number, number];
 type Panel = { position: V3; size: [number, number]; color: string; intensity: number };
 
@@ -42,21 +44,22 @@ export const LIGHTING = {
   environmentIntensity: 0.5,
   /** The procedural studio seen by reflections and image-based light (metres, around the head). */
   studio: {
-    room: "#1f1d1b", // the studio's walls: dim, so the panels do the lighting
+    room: "#1a1816", // the studio's walls: dark, so the panels do the lighting
     roomIntensity: 1,
     panels: {
       key: { position: [-2.4, 1.9, 2.4], size: [2.4, 2.4], color: "#fff1e2", intensity: 5.5 },
       fill: { position: [2.8, 0.5, 2.0], size: [2.4, 2.0], color: "#eef0f4", intensity: 1.4 },
-      rimLeft: { position: [-2.2, 1.2, -2.4], size: [0.7, 3.2], color: "#edf2ff", intensity: 6 },
-      rimRight: { position: [2.2, 1.2, -2.4], size: [0.7, 3.2], color: "#edf2ff", intensity: 6 },
-      top: { position: [0, 3.2, 0.4], size: [2.0, 2.0], color: "#ffffff", intensity: 1.5 },
-      floor: { position: [0, -2.4, 0.8], size: [5.0, 5.0], color: "#d9c3ad", intensity: 0.35 },
+      // the rims: strongest on the far side from the key, so hair and jaw separate from the backdrop
+      rimLeft: { position: [-2.0, 1.4, -2.6], size: [0.6, 3.0], color: "#e8eeff", intensity: 2.5 },
+      rimRight: { position: [2.2, 1.4, -2.4], size: [0.7, 3.2], color: "#e8eeff", intensity: 7 },
+      top: { position: [0, 3.2, 0.2], size: [1.6, 1.6], color: "#ffffff", intensity: 0.8 },
+      floor: { position: [0, -2.4, 1.0], size: [5.0, 5.0], color: "#d9c3ad", intensity: 0.22 },
     } satisfies Record<string, Panel>,
   },
   /** Directional lights for crisp shape (they also make the speculars that the panels only blur). */
   key: { position: [-1.3, 1.3, 2.0] as V3, intensity: 1.8, color: "#fff4ea" },
   fill: { position: [1.8, 0.3, 0.9] as V3, intensity: 0.3, color: "#e8ecf2" },
-  rim: { position: [1.2, 1.3, -1.6] as V3, intensity: 1.1, color: "#eef3ff" },
+  rim: { position: [1.3, 1.4, -1.7] as V3, intensity: 1.6, color: "#eef3ff" },
   /** What the lights aim at (the middle of the face), so their direction does not depend on the origin. */
   target: [0, 0.27, 0.05] as V3,
 };
@@ -83,7 +86,10 @@ export const lightingRig = {
   },
   apply(): void {
     lightingRig.toneMapping();
-    if (lightingRig.scene) lightingRig.scene.environmentIntensity = LIGHTING.environmentIntensity;
+    if (lightingRig.scene) {
+      lightingRig.scene.environmentIntensity = LIGHTING.environmentIntensity;
+      setCorneaEnvironment(lightingRig.scene);
+    }
     for (const k of ["key", "fill", "rim"] as const) {
       const light = lightingRig.lights[k];
       if (!light) continue;
@@ -126,6 +132,7 @@ function installStudio(gl: WebGLRenderer, scene: Scene): () => void {
     env = pmrem.fromScene(studio, 0.03).texture;
     scene.environment = env;
     scene.environmentIntensity = LIGHTING.environmentIntensity;
+    setCorneaEnvironment(scene); // the cornea's own copy, so its brightness applies (lib/eyeShader.ts)
     pmrem.dispose();
     studio.traverse((o) => {
       if ((o as Mesh).isMesh) {

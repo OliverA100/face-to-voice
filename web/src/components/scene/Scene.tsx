@@ -22,9 +22,11 @@ import { Lighting } from "./Lighting";
 import { LipSync } from "./LipSync";
 import { PerfProbe } from "./PerfProbe";
 
+// An 85 mm portrait lens (16° vertical on full frame) from further back: less wide-angle distortion than the old 24°
+// from 0.9 m, the same bust in frame.
 const CAMERA = {
-  fov: 24,
-  position: [0, 0.27, 0.95] as [number, number, number],
+  fov: 16,
+  position: [0, 0.2726, 1.411] as [number, number, number],
   target: [0, 0.265, 0.05] as [number, number, number],
   /** Portrait canvases (phones) look this much higher, so tall hair keeps headroom. */
   portraitLift: 0.02,

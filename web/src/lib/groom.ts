@@ -88,6 +88,18 @@ export const GROOM = {
   lashTurn: 2.0, // lashes turn this many times the angle the lid edge travels round the eyeball (closed lid → lashes down)
 };
 
+/**
+ * Per kind of groom, what differs from GROOM: hair and beards have darker buried strands (shadowFloor), more
+ * strand-to-strand variation (jitter, brows too) and less flat diffuse light, so the sheen and shade carry the shape;
+ * a beard's extra strands spread wider round their parent (childSpread × its childRadiusMm), filling gaps between clumps.
+ */
+export const GROOM_KIND = {
+  head: { childSpread: 1.0, shade: { shadowFloor: 0.1, jitter: 0.55, diffuse: 0.45 } },
+  beard: { childSpread: 1.8, shade: { shadowFloor: 0.12, jitter: 0.5, diffuse: 0.5 } },
+  brows: { childSpread: 1.0, shade: { jitter: 0.45 } },
+  lashes: { childSpread: 1.0, shade: {} },
+} satisfies Record<string, { childSpread: number; shade: Partial<Pick<typeof GROOM, "shadowFloor" | "jitter" | "diffuse">> }>;
+
 export type GroomDef = {
   count: number;
   points: number;
@@ -359,6 +371,8 @@ export async function buildGroom(
   opts: { scalp?: boolean; fine?: boolean; soft?: boolean; lidFix?: Int8Array; shapeFollow?: boolean } = {},
 ): Promise<Group> {
   const { scalp: tintScalp = true, fine = false, soft = false, lidFix, shapeFollow = false } = opts;
+  const kind = GROOM_KIND[tintScalp ? "head" : soft ? "lashes" : shapeFollow || fine ? "brows" : "beard"];
+  const G = { ...GROOM, ...kind.shade };
   const { n, p, positions, shade, ties, skinRest } = await decodeStrands(gz, { tips: !!def.eyeFollow, points: shapeFollow });
   // tied by the worker for the skin shown now: used (the same ties groom.ts would make here); otherwise tied here, later
   const made = ties && skinRest && skinRest === skinShape()?.rest ? ties : undefined;
@@ -412,7 +426,7 @@ export async function buildGroom(
         uTexW: { value: TEX_W },
         uStrands: { value: n },
         uPoints: { value: p },
-        uChildR: { value: def.childRadiusMm / 1000 },
+        uChildR: { value: (def.childRadiusMm / 1000) * kind.childSpread },
         uWidth: { value: def.widthMm / 1000 },
         uTipW: { value: def.tipWidth },
         uMinPx: { value: GROOM.minPx },
@@ -432,15 +446,15 @@ export async function buildGroom(
         uSky: { value: new Vector3(...GROOM.ambientSky) },
         uGround: { value: new Vector3(...GROOM.ambientGround) },
         uUpView: { value: new Vector3(0, 1, 0) },
-        uDiffuse: { value: GROOM.diffuse },
+        uDiffuse: { value: G.diffuse },
         uSpec1: { value: GROOM.spec1 * (def.shine ?? 1) },
         uSpec2: { value: GROOM.spec2 * (def.shine ?? 1) },
         uShift1: { value: GROOM.shift1 },
         uShift2: { value: GROOM.shift2 },
         uExp1: { value: GROOM.exp1 },
         uExp2: { value: GROOM.exp2 },
-        uJitter: { value: GROOM.jitter },
-        uShadowFloor: { value: GROOM.shadowFloor },
+        uJitter: { value: G.jitter },
+        uShadowFloor: { value: G.shadowFloor },
         uTipFade: { value: GROOM.tipFade },
         uTipSpec: { value: GROOM.tipSpec },
         uRampAmount: { value: GROOM.rampAmount },

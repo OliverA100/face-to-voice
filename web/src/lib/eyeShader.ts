@@ -8,9 +8,11 @@
  *  - Lid shadow (both): the upper lid shades the top of the eyeball. It is measured in head space, not the eye's,
  *    so it stays under the lid when the eye turns.
  *  - Cornea (scene/materials.ts): GNM's clear eye shell, drawn as reflections only (additive), gives the wet highlight.
+ *    It gets its own copy of the scene's environment (setCorneaEnvironment): three uses the scene's environment
+ *    strength for any material without its own envMap, which would leave the cornea as dim as the skin's reflections.
  * Tweak here: EYE_LOOK.
  */
-import { Color, Matrix4, type MeshPhysicalMaterial, type Object3D, type Texture, Vector3 } from "three";
+import { Color, Matrix4, type MeshPhysicalMaterial, type Object3D, type Scene, type Texture, Vector3 } from "three";
 
 import { loadKtx2, TEXTURES_BASE } from "@/lib/textures";
 
@@ -20,7 +22,7 @@ export const EYE_LOOK = {
   iris: 0.185, // UV radius of the iris edge
   warmCentre: 0.35, // warmer, lighter colour inside the collarette (the texture's G)
   limbal: 0.65, // the dark ring at the iris edge before the iris texture arrives (the texture has its own)
-  veins: 0.35, // red veins on the sclera, strongest in the corners
+  veins: 0.45, // red veins on the sclera, strongest in the corners
   corners: 0.2, // sclera a little pinker towards the corners
   lidShadow: 0.4, // how dark the upper lid's shadow on the eyeball gets
   lidShadowMm: [-1.0, 3.5], // from this height above the eye centre (mm) the shadow starts … and is full (the open lid
@@ -175,4 +177,26 @@ export async function loadEyeMaps(iris: MeshPhysicalMaterial): Promise<void> {
   eyeUniforms.uIrisMap.value = await loadKtx2(TEXTURES_BASE + "iris.ktx2");
   iris.defines = { ...iris.defines, IRIS_MAP: "" };
   iris.needsUpdate = true;
+}
+
+/** How much brighter the cornea's reflections are than the scene's environment light (a clear catchlight). */
+export const CORNEA_BOOST = 1.8;
+let cornea: MeshPhysicalMaterial | null = null;
+let lastScene: Scene | null = null;
+
+/** The cornea material (scene/materials.ts registers it when it makes it). */
+export function registerCornea(m: MeshPhysicalMaterial): void {
+  cornea = m;
+  if (lastScene) setCorneaEnvironment(lastScene);
+}
+
+/** Give the cornea the scene's environment at CORNEA_BOOST × its strength (Lighting.tsx, after each studio build). */
+export function setCorneaEnvironment(scene: Scene): void {
+  lastScene = scene;
+  if (!cornea) return;
+  if (cornea.envMap !== scene.environment) {
+    cornea.envMap = scene.environment;
+    cornea.needsUpdate = true;
+  }
+  cornea.envMapIntensity = scene.environmentIntensity * CORNEA_BOOST;
 }
