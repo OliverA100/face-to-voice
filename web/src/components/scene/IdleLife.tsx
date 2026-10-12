@@ -119,7 +119,9 @@ export function IdleLife() {
       sway.rotation.order = "YXZ"; // turn, then nod, then tilt
       sway.rotation.y = pose.headYaw * DEG + calm * s.yaw * wander(t * s.speed * 2 * Math.PI, 0) + headMorph.yaw; // (+ the reveal's turn-in)
       // three's +x rotation tips the face down, so "up" is negative; a little nod while speaking.
-      sway.rotation.x = -pose.headPitch * DEG + calm * s.pitch * wander(t * s.speed * 2 * Math.PI, 1) + br.pitch * breath + s.speechNod * lipsyncState.energy + headMorph.pitch;
+      sway.rotation.x = -pose.headPitch * DEG + calm * s.pitch * wander(t * s.speed * 2 * Math.PI, 1) + br.pitch * breath + s.speechNod * lipsyncState.energy + headMorph.pitch +
+        // a live conversation: nodding along while the visitor talks (not with reduced motion), and a nod to answer
+        calm * s.listenNod * lipsyncState.listening * Math.max(0, Math.sin(2 * Math.PI * s.listenNodHz * t)) + calm * s.ackNod * lipsyncState.nod;
       sway.rotation.z = -pose.headRoll * DEG + calm * s.roll * wander(t * s.speed * 2 * Math.PI, 2);
       sway.position.y = NECK.y + br.bob * breath;
     }

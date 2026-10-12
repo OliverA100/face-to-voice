@@ -24,6 +24,7 @@ vi.mock("../cache", () => ({
   poolList: async () => [],
   poolTouch: async () => {},
   poolEvictions: async () => [],
+  pinnedVoices: async () => new Set<string>(),
   poolRemove: async () => {},
 }));
 vi.mock("../elevenlabs", () => ({

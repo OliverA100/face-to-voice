@@ -10,9 +10,10 @@ import { useState } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { BusySwap, afterEntrance } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
+import type { CharacterProfile } from "@/lib/character/profile";
 import type { DesignResult, SelectResult } from "@/lib/voice/client";
 
-export function ExportButton({ design, selection, chosen }: { design: DesignResult; selection: SelectResult; chosen: number | null }) {
+export function ExportButton({ design, selection, chosen, profile }: { design: DesignResult; selection: SelectResult; chosen: number | null; profile: CharacterProfile | null }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [said, setSaid] = useState({ message: "", count: 0 });
@@ -27,7 +28,7 @@ export function ExportButton({ design, selection, chosen }: { design: DesignResu
       const { buildExport } = await import("@/lib/export/files");
       // The take the saved voice came from: the server's record wins (another visitor may have saved this voice first).
       const take = selection.chosenIndex ?? design.chosenIndex ?? chosen ?? 0;
-      const { blob, filename } = await buildExport({ design, take, studioFallback: !selection.saved || design.studioFallback });
+      const { blob, filename } = await buildExport({ design, take, studioFallback: !selection.saved || design.studioFallback, profile });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -53,7 +54,7 @@ export function ExportButton({ design, selection, chosen }: { design: DesignResu
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-label text-ink">Your character</p>
-          <p className="text-meta text-ink-3">Portrait, voice and licence</p>
+          <p className="text-meta text-ink-3">{profile ? "Portrait, voice, profile and licence" : "Portrait, voice and licence"}</p>
         </div>
         <button
           type="button"

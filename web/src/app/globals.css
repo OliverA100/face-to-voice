@@ -198,6 +198,12 @@ details.disclose[open]::details-content {
 [data-switched] > [role="tabpanel"]:not([hidden]) {
   animation: tab-in var(--dur-2) var(--ease-out-soft);
 }
+/* The voice card's steps (Face › Voice › Speak › Meet) switch as the tabs do: from the side of the step chosen
+   (--tab-dir set by VoicePanel: +1 forward, −1 back, 0 within a step), while the card eases to the new height
+   (useHeightTransition, --dur-3). */
+.step-enter {
+  animation: tab-in var(--dur-2) var(--ease-out-soft);
+}
 
 /*
  * Range sliders: a soft 4px track with a warm grey fill (--fill), a white thumb with a soft edge (--shadow-thumb).

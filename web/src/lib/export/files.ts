@@ -9,6 +9,7 @@
  *     voice-sample.mp3        the take the voice came from, saying the character's line (.wav in mock mode)
  *     voice.md                casting, the Voice Design prompt and line, how to make a similar voice in your own account
  *     voice.json              the same, machine-readable
+ *     profile.json            the character's profile, when one was written (the version this visitor sees)
  *     LICENCE-AND-CREDITS.md  per character (lib/export/licence.ts)
  *
  * The exact voice can't be handed over (Voice Design voices stay in the workspace that made them) and re-running Voice
@@ -17,6 +18,7 @@
 import { ADDON_CATEGORIES, ADDONS, addonState, addonStyleById } from "@/lib/addons";
 import { addonIndex } from "@/lib/data";
 import { hairState, hairStyleById } from "@/lib/hair";
+import type { CharacterProfile } from "@/lib/character/profile";
 import type { DesignResult, VoiceRecipe } from "@/lib/voice/client";
 
 import { characterLink, currentCharacter } from "./character";
@@ -28,6 +30,7 @@ export interface ExportVoice {
   design: DesignResult;
   take: number; // the preview the voice came from (the visitor's pick when a studio stand-in speaks)
   studioFallback: boolean; // the app spoke with a studio stand-in: the take and prompt are still this face's voice
+  profile?: CharacterProfile | null; // the character's profile (CharacterCard), when one was written
 }
 
 export interface ExportResult {
@@ -41,7 +44,7 @@ const slug = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]
 const title = (s: string) => s.replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 
 export async function buildExport(voice: ExportVoice): Promise<ExportResult> {
-  const { design, take, studioFallback } = voice;
+  const { design, take, studioFallback, profile = null } = voice;
   const f = design.fields;
   const name = title(f.persona || "Character");
   const folder = `face-to-voice-${slug(f.persona)}`;
@@ -55,12 +58,13 @@ export async function buildExport(voice: ExportVoice): Promise<ExportResult> {
   const sampleName = sample ? `voice-sample.${sample.ext}` : null;
 
   const entries: ZipEntry[] = [
-    { name: "README.md", data: readme({ name, link, pieces, sampleName, date }) },
+    { name: "README.md", data: readme({ name, link, pieces, sampleName, date, profile }) },
     { name: "portrait.png", data: new Uint8Array(await portrait.arrayBuffer()) },
     { name: "character.json", data: json(character) },
     ...(sample && sampleName ? [{ name: sampleName, data: sample.bytes }] : []),
     { name: "voice.md", data: voiceMarkdown({ name, design, take, studioFallback, sampleName }) },
     { name: "voice.json", data: json(voiceJson(design, take, studioFallback, sampleName)) },
+    ...(profile ? [{ name: "profile.json", data: json(profile) }] : []),
     { name: "LICENCE-AND-CREDITS.md", data: licenceMarkdown({ name, pieces, appUrl, date, hasSample: !!sample }) },
   ].map((e) => ({ ...e, name: `${folder}/${e.name}` }));
 
@@ -99,7 +103,7 @@ function facePieces(): Piece[] {
 
 const USE_SHORT = { commercial: "yes", "share-alike": "yes, share alike (CC BY-SA 4.0)", "non-commercial": "no, non-commercial only" };
 
-function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: string | null; date: string }): string {
+function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: string | null; date: string; profile: CharacterProfile | null }): string {
   return [
     `# ${o.name}`,
     "",
@@ -112,8 +116,10 @@ function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: st
     ...(o.sampleName ? [`| ${o.sampleName} | The voice, saying the character's own line |`] : []),
     "| voice.md | Who the voice is, the ElevenLabs Voice Design prompt, and how to make a similar voice in your own account |",
     "| voice.json | The same, machine-readable |",
+    ...(o.profile ? ["| profile.json | Who the character is: name, backstory, traits and how they talk |"] : []),
     "| LICENCE-AND-CREDITS.md | What you may do with each part, and the credits to keep with it |",
     "",
+    ...(o.profile ? characterSection(o.profile) : []),
     "## Open it in Face to Voice again",
     "",
     "This link rebuilds the face in the app (everything is inside the link itself; nothing is stored on a server):",
@@ -125,6 +131,28 @@ function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: st
     `The face: ${USE_SHORT[overallUse(o.pieces)]}. ${o.sampleName ? "The voice sample: yes, with conditions. " : ""}See LICENCE-AND-CREDITS.md.`,
     "",
   ].join("\n");
+}
+
+/** The profile as the app's Character card shows it. A made-up character, written by Claude. */
+function characterSection(p: CharacterProfile): string[] {
+  return [
+    `## Character: ${p.name}`,
+    "",
+    ...(p.title ? [`*${p.title.charAt(0).toUpperCase() + p.title.slice(1)}*`, ""] : []),
+    p.backstory,
+    "",
+    `- **Traits:** ${p.traits.join(", ")}`,
+    `- **Habits:** ${p.habits.join("; ")}`,
+    `- **Quirks:** ${p.quirks.join("; ")}`,
+    `- **Loves:** ${p.interests.join(", ")}`,
+    ...(p.dislikes?.length ? [`- **Hates:** ${p.dislikes.join(", ")}`] : []),
+    `- **Talks:** ${p.pace}, ${p.vocabulary} words`,
+    `- **Catchphrase:** ${p.catchphrases.map((c) => `"${c}"`).join(", ")}`,
+    ...(p.want ? [`- **Wants:** ${p.want}`] : []),
+    "",
+    "A made-up character: any likeness to a real person is accidental.",
+    "",
+  ];
 }
 
 /** The casting as the app shows it in "Reads as", one line per field. */

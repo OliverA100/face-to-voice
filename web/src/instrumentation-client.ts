@@ -9,6 +9,8 @@ if (process.env.NEXT_PUBLIC_VERCEL_ENV) {
       { path: "/api/voice/design", method: "POST" },
       { path: "/api/voice/select", method: "POST" },
       { path: "/api/voice/speak", method: "POST" },
+      { path: "/api/character/profile", method: "POST" },
+      { path: "/api/talk/token", method: "POST" },
     ],
   });
 }

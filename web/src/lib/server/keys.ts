@@ -25,6 +25,17 @@ export function descriptionKey(fields: Record<string, string | string[]>): strin
   return sha([PROMPT_VERSION, normalised]);
 }
 
+/** Bump when the profile prompt or schema changes, so old cached profiles are ignored. */
+const PROFILE_VERSION = "p3"; // p2: dislikes; p3: title and want
+
+/**
+ * A character's profile is shared by everyone who meets that voice (like the voice record), and kept apart per persona:
+ * everyday castings share a voice across personas (prompt.ts descriptionIdentity), but not a name and a life story.
+ */
+export function profileKey(descKey: string, persona: string): string {
+  return sha([PROFILE_VERSION, descKey, persona.toLowerCase().replace(/\s+/g, " ").trim()]);
+}
+
 /** `text` includes the emotion tag, so the same line in another mood is another clip. */
 export function ttsKey(voiceId: string, model: string, text: string): string {
   return sha([voiceId, model, text.trim().replace(/\s+/g, " ")]);

@@ -15,7 +15,7 @@ import { createHmac } from "node:crypto";
 import { env } from "./env";
 import { ApiError, MESSAGES } from "./errors";
 
-export type Route = "design" | "select" | "switch" | "speak";
+export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk" | "invite";
 
 /** Per visitor. Tweak freely; the daily caps below protect the wallet either way. */
 const LIMITS: Record<Route, { tokens: number; window: "1 m" | "10 m" | "1 h" | "1 d"; ms: number }> = {
@@ -23,6 +23,9 @@ const LIMITS: Record<Route, { tokens: number; window: "1 m" | "10 m" | "1 h" | "
   select: { tokens: 3, window: "1 d", ms: 86_400_000 }, // saving a new voice (paid)
   switch: { tokens: 30, window: "1 d", ms: 86_400_000 }, // choosing a take that is already saved (free)
   speak: { tokens: 30, window: "1 d", ms: 86_400_000 },
+  profile: { tokens: 6, window: "1 d", ms: 86_400_000 }, // writing a character profile (Claude); reading a saved one is free
+  talk: { tokens: 3, window: "1 d", ms: 86_400_000 }, // live conversations
+  invite: { tokens: 30, window: "1 d", ms: 86_400_000 }, // tries with an invite code, right or wrong (talk.ts): no guessing at them
 };
 
 let redis: Redis | null | undefined;
@@ -90,10 +93,10 @@ export async function checkVisitorLimit(request: Request, route: Route): Promise
   }
 }
 
-type CapKind = "castings" | "designs" | "saves" | "speakChars";
-const CAP_KINDS: readonly CapKind[] = ["castings", "designs", "saves", "speakChars"];
+type CapKind = "castings" | "designs" | "saves" | "speakChars" | "profiles" | "talks";
+const CAP_KINDS: readonly CapKind[] = ["castings", "designs", "saves", "speakChars", "profiles", "talks"];
 const capLimit = (kind: CapKind) =>
-  ({ castings: env.caps.castingsPerDay, designs: env.caps.designsPerDay, saves: env.caps.savesPerDay, speakChars: env.caps.speakCharsPerDay })[kind];
+  ({ castings: env.caps.castingsPerDay, designs: env.caps.designsPerDay, saves: env.caps.savesPerDay, speakChars: env.caps.speakCharsPerDay, profiles: env.caps.profilesPerDay, talks: env.caps.talksPerDay })[kind];
 const todayKey = (kind: CapKind) => `ftv:cap:${new Date().toISOString().slice(0, 10)}:${kind}`;
 
 /** Reserve `units` of a daily global cap; throws (and rolls back) when the cap would be exceeded. */

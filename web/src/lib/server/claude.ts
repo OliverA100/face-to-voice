@@ -44,7 +44,8 @@ Fields:
 Use the enum values exactly as given (lower-case).`;
 
 let client: Anthropic | null = null;
-function getClient(): Anthropic {
+/** The shared Anthropic client (the casting here, character profiles in profileClaude.ts). */
+export function getClient(): Anthropic {
   if (!env.anthropicKey()) throw new ApiError("unavailable", MESSAGES.unavailable, 503);
   return (client ??= new Anthropic({ apiKey: env.anthropicKey(), timeout: 30_000, maxRetries: 1 }));
 }
@@ -103,7 +104,7 @@ async function castWithClaude(input: DescribeInput): Promise<Casting> {
   return parsed.data;
 }
 
-function safeJson(text: string): unknown {
+export function safeJson(text: string): unknown {
   try {
     return JSON.parse(text);
   } catch {

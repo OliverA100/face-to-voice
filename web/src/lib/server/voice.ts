@@ -9,7 +9,7 @@ import "server-only";
 import { summariseSliders } from "@/lib/voice/sliderSummary";
 
 import { describeFace } from "./claude";
-import { acquireLock, cacheDel, cacheGet, cacheSet, poolEvictions, poolList, poolRefresh, poolRemove, poolTouch, releaseLock, storeAudio } from "./cache";
+import { acquireLock, cacheDel, cacheGet, cacheSet, pinnedVoices, poolEvictions, poolList, poolRefresh, poolRemove, poolTouch, releaseLock, storeAudio } from "./cache";
 import { createVoice, deleteVoice, designVoice, listAppVoices, subscription, UpstreamError, type DesignSettings } from "./elevenlabs";
 import { env } from "./env";
 import { ApiError, MESSAGES } from "./errors";
@@ -83,6 +83,8 @@ export interface DesignResult {
 const faceCacheKey = (visitor: string, k: string) => `ftv:face:${visitor}:${k}`;
 const descCacheKey = (k: string) => `ftv:desc:${k}`;
 const accentCacheKey = (visitor: string, k: string) => `ftv:accent:${visitor}:${k}`;
+/** The look a casting was made from, for the profile prompt (characterProfile.ts): the server's copy, not the browser's. */
+const lookCacheKey = (visitor: string, k: string) => `ftv:look:${visitor}:${k}`;
 
 /** The design route's time (its maxDuration is 120 s): Voice Design gets what Claude left, so it never outlives the function. */
 export const DESIGN_BUDGET_MS = 110_000;
@@ -90,7 +92,7 @@ export const DESIGN_BUDGET_MS = 110_000;
 const WAIT_MS = 30_000;
 
 /** Polls `get` every second until it gives something, or `ms` have passed (null). */
-async function waitFor<T>(get: () => Promise<T | null>, ms: number): Promise<T | null> {
+export async function waitFor<T>(get: () => Promise<T | null>, ms: number): Promise<T | null> {
   for (const until = Date.now() + ms; Date.now() < until; ) {
     await new Promise((r) => setTimeout(r, 1000));
     const v = await get();
@@ -140,6 +142,7 @@ export async function designForFace(input: {
     fields = { ...r.fields, emotion, emotionIntensity };
     if (r.replaced.length) console.warn(`[voice] replaced free text that hit the policy: ${r.replaced.join(", ")}`);
     await cacheSet(faceCacheKey(input.visitor, fKey), fields);
+    await cacheSet(lookCacheKey(input.visitor, fKey), input.look);
   }
 
   // 2. Previews + voice (cached per normalised description).
@@ -240,7 +243,7 @@ export interface SelectOptions {
   chargeVisitor?: () => Promise<void>;
 }
 
-/** What the voice panel says when its previews can't become a voice any more; "Find a new voice" designs fresh ones. */
+/** What the voice panel says when its previews can't become a voice any more; "New voices" designs fresh ones. */
 const EXPIRED = {
   gone: "These voices have expired. Find the voice again to hear new ones.",
   redesigned: "These voices were just designed again. Find the voice again to hear the new ones.",
@@ -309,16 +312,24 @@ async function saveTake(record: VoiceRecord, previewIndex: number): Promise<Sele
       blocked = "day";
     }
   }
-  if (blocked) {
+  const studio = async (why: "month" | "slots" | "day"): Promise<SelectResult> => {
     const voiceId = closestStudioVoice(record.cast, descKey);
-    if (!voiceId) throw new ApiError("voice_quota", NO_STUDIO[blocked], 429);
+    if (!voiceId) throw new ApiError("voice_quota", NO_STUDIO[why], 429);
     takes[previewIndex] = { voiceId, studioFallback: true };
     await cacheSet(descCacheKey(descKey), { ...record, takes, voiceId, studioFallback: true, chosenIndex: previewIndex });
     return { voiceId, saved: false, chosenIndex: previewIndex, message: MESSAGES.voice_quota };
-  }
+  };
+  if (blocked) return studio(blocked);
 
-  // Make room in the pool first, then save.
+  // Make room in the pool first, then save. A chat may have pinned one of them since the list was read: it stays, and
+  // when that leaves no free slot the save becomes a studio voice after all.
+  const pinned = await pinnedVoices(evictions.map((e) => e.voiceId));
+  if (pinned.size && sub && sub.voiceSlotsUsed - (evictions.length - pinned.size) >= sub.voiceLimit) {
+    await refundDailyCap("saves", 1);
+    return studio("slots");
+  }
   for (const old of evictions) {
+    if (pinned.has(old.voiceId)) continue;
     await deleteVoice(old.voiceId);
     await poolRemove(old.voiceId);
     await forgetVoice(old.descKey.split("#")[0], old.voiceId);
@@ -405,6 +416,16 @@ async function deleteForgottenVoice(): Promise<boolean> {
   console.warn("[voice] slots full; deleting an app voice the pool had forgotten");
   await deleteVoice(forgotten.voiceId);
   return true;
+}
+
+/** The casting this visitor was given for this face (designForFace caches it), or null when it expired or isn't theirs. */
+export async function castingFor(visitor: string, fKey: string): Promise<DescriptionFields | null> {
+  return cacheGet<DescriptionFields>(faceCacheKey(visitor, fKey));
+}
+
+/** The look this visitor's casting was made from ({} for castings cached before the look was kept). */
+export async function castingLook(visitor: string, fKey: string): Promise<Look> {
+  return (await cacheGet<Look>(lookCacheKey(visitor, fKey))) ?? {};
 }
 
 /** The record behind a design, for the speak route. */

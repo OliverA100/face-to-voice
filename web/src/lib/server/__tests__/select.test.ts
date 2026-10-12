@@ -35,6 +35,7 @@ vi.mock("../cache", () => ({
   poolList: async () => (store.get("pool") as { voiceId: string }[] | undefined) ?? [],
   poolTouch: async (descKey: string, voiceId: string) => void store.set("pool", [{ descKey, voiceId, lastUsed: Date.now() }]),
   poolEvictions: async () => (store.get("evict") as unknown[] | undefined) ?? [],
+  pinnedVoices: async () => new Set((store.get("pinned") as string[] | undefined) ?? []),
   poolRemove: vi.fn(),
 }));
 vi.mock("../elevenlabs", () => ({
@@ -60,7 +61,7 @@ vi.mock("../elevenlabs", () => ({
 }));
 
 import { ApiError } from "../errors";
-import { consumeDailyCap } from "../ratelimit";
+import { consumeDailyCap, refundDailyCap } from "../ratelimit";
 import { describeFace } from "../claude";
 import { DESIGN_SETTINGS, designVoice } from "../elevenlabs";
 import { closestStudioVoice, designForFace, selectPreview, takeVoice, type VoiceRecord } from "../voice";
@@ -95,6 +96,17 @@ describe("selectPreview when the voice slots are full", () => {
   it("says the slots are full (not 'tomorrow') when nothing can be freed", async () => {
     el.voices = [];
     await expect(selectPreview(DESC, 0)).rejects.toThrow("There's no room for a new voice right now");
+  });
+
+  it("doesn't save over the limit when the voice it would free was pinned by a chat meanwhile", async () => {
+    vi.mocked(refundDailyCap).mockClear();
+    el.voices = []; // nothing forgotten to delete
+    store.set("evict", [{ descKey: "x#0", voiceId: "pool-a", lastUsed: 0 }]);
+    store.set("pinned", ["pool-a"]);
+    await expect(selectPreview(DESC, 0)).rejects.toThrow("There's no room for a new voice right now");
+    expect(el.deleted).toEqual([]);
+    expect(el.created).toEqual([]);
+    expect(refundDailyCap).toHaveBeenCalledWith("saves", 1);
   });
 
   it("names the month when the add/edit budget is spent", async () => {
@@ -222,5 +234,14 @@ describe("switching between the three takes", () => {
     expect(takeVoice(rec(), 0)).toBeNull();
     expect(takeVoice(rec(), 1)).toBe(b.voiceId);
     expect(takeVoice(rec(), 2)).not.toBeNull();
+  });
+
+  it("never deletes a voice a chat pinned after the eviction list was read", async () => {
+    const a = await selectPreview(DESC, 0);
+    store.set("evict", [{ descKey: `${DESC}#0`, voiceId: a.voiceId, lastUsed: 0 }]);
+    store.set("pinned", [a.voiceId]);
+    await selectPreview(DESC, 1);
+    expect(el.deleted).not.toContain(a.voiceId);
+    expect(takeVoice(rec(), 0)).toBe(a.voiceId);
   });
 });

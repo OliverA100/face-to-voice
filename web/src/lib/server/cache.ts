@@ -122,11 +122,38 @@ export async function poolRefresh(descKey: string, voiceId: string): Promise<voi
   if (now?.voiceId === voiceId) await poolTouch(descKey, voiceId); // an evicted voice is not brought back
 }
 
-/** Entries beyond the pool size, oldest first: the caller deletes those voices upstream. */
+/**
+ * Entries beyond the pool size, oldest first: the caller deletes those voices upstream. A voice in a live conversation
+ * (pinVoice) is never one of them: then the oldest voice that is free goes instead, or none, and the save falls back to
+ * a studio voice when that leaves no free slot (voice.ts).
+ */
 export async function poolEvictions(): Promise<PoolEntry[]> {
   const list = (await poolList()).sort((a, b) => a.lastUsed - b.lastUsed);
   const excess = list.length - env.voicePoolSize;
-  return excess > 0 ? list.slice(0, excess) : [];
+  if (excess <= 0) return [];
+  const pinned = await pinnedVoices(list.map((e) => e.voiceId));
+  return list.filter((e) => !pinned.has(e.voiceId)).slice(0, excess);
+}
+
+// --- voices in use: a live conversation pins its voice so the pool can't delete it mid-sentence ----------------------
+
+const pinKey = (voiceId: string) => `ftv:talk:pin:${voiceId}`;
+const memPins = new Map<string, number>(); // voiceId → expiry (ms)
+
+/** Keep `voiceId` out of the pool's evictions for `seconds` (the conversation's length plus a margin). */
+export async function pinVoice(voiceId: string, seconds: number): Promise<void> {
+  const r = getRedis();
+  if (!r) memPins.set(voiceId, Date.now() + seconds * 1000);
+  else await r.set(pinKey(voiceId), 1, { ex: Math.ceil(seconds) });
+}
+
+/** Which of these voices are pinned right now. */
+export async function pinnedVoices(voiceIds: string[]): Promise<Set<string>> {
+  if (!voiceIds.length) return new Set();
+  const r = getRedis();
+  if (!r) return new Set(voiceIds.filter((v) => (memPins.get(v) ?? 0) > Date.now()));
+  const hits = await r.mget<(number | null)[]>(...voiceIds.map(pinKey));
+  return new Set(voiceIds.filter((_, i) => hits[i] !== null));
 }
 
 export async function poolRemove(voiceId: string): Promise<void> {

@@ -135,7 +135,7 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
           )}
           {/* Busy: solid, the spinner in the label's place (BusySwap), so the pill keeps its width and nothing beside it
               moves. aria-disabled rather than disabled, so the keyboard focus stays on it. */}
-          <button ref={speakButton} type="button" onClick={speak} aria-disabled={busy} aria-busy={busy} data-step-focus className="pill-primary grid h-10 px-5">
+          <button ref={speakButton} type="button" onClick={speak} aria-disabled={busy} aria-busy={busy} data-step-focus className="pill-secondary grid h-10 px-5">
             <BusySwap busy={busy}>Speak</BusySwap>
           </button>
         </div>

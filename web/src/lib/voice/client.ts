@@ -1,8 +1,10 @@
 /** Browser-side calls to our own API routes (never to ElevenLabs or Anthropic directly). */
+import type { ProfileResult } from "@/lib/character/profile";
 import { quantiseFace } from "@/lib/voice/faceSignature";
 import { currentLook } from "@/lib/look";
 import { morphs } from "@/lib/morphs/store";
 import { sliderFor, toUi } from "@/lib/morphs/travel";
+import type { TalkTicket } from "@/lib/talk/ticket";
 
 export type Presentation = "neutral" | "feminine" | "masculine";
 
@@ -59,7 +61,7 @@ function sliderPositions(): Record<string, number> {
 }
 
 /**
- * The face as the design cache sees it (lib/voice/faceSignature.ts): equal → "Find a new voice" would find the same
+ * The face as the design cache sees it (lib/voice/faceSignature.ts): equal → "New voices" would find the same
  * voices. Without the cursor follow's head turn: moving the mouse does not change the face (or flicker the button).
  */
 export function currentFaceSignature(): string {
@@ -73,4 +75,19 @@ export function requestDesign(image: string): Promise<DesignResult> {
 /** `generatedVoiceId`: the preview the visitor heard (the server refuses it if the voices were designed again since). */
 export function requestSelect(descKey: string, previewIndex: number, generatedVoiceId?: string): Promise<SelectResult> {
   return post<SelectResult>("/api/voice/select", { descKey, previewIndex, generatedVoiceId });
+}
+
+/** The character's profile for a voice: the saved one, or a new one (`regenerate`: another, kept as this visitor's). */
+export function requestProfile(design: Pick<DesignResult, "faceKey" | "descKey">, regenerate = false): Promise<ProfileResult> {
+  return post<ProfileResult>("/api/character/profile", { faceKey: design.faceKey, descKey: design.descKey, regenerate });
+}
+
+export type { TalkTicket };
+
+/**
+ * A room and a token to talk to this character; the server picks the voice and the instructions. `replaces`: the room
+ * of this browser's previous conversation, which the new one ends ("Have another chat").
+ */
+export function requestTalk(design: Pick<DesignResult, "faceKey" | "descKey">, take: number | null, invite: string | null, replaces?: string): Promise<TalkTicket> {
+  return post<TalkTicket>("/api/talk/token", { faceKey: design.faceKey, descKey: design.descKey, take: take ?? undefined, invite: invite ?? undefined, replaces });
 }

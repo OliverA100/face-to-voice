@@ -37,6 +37,25 @@ jobs:
           FTV_MOCK_ELEVENLABS: "1"
           FTV_MOCK_CLAUDE: "1"
 
+  agent:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: agent/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # runs the TypeScript sources directly
+          cache: pnpm
+          cache-dependency-path: agent/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
   pipeline:
     runs-on: ubuntu-latest
     defaults:

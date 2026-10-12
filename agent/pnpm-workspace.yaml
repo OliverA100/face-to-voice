@@ -1,0 +1,7 @@
+# Install scripts stay off: onnxruntime-node ships its CPU binaries (its script only fetches CUDA ones), sharp ships
+# prebuilt binaries, protobufjs's only prints a version note, and @livekit/local-inference's is an explicit no-op.
+allowBuilds:
+  '@livekit/local-inference': false
+  onnxruntime-node: false
+  protobufjs: false
+  sharp: false

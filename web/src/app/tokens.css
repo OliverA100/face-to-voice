@@ -23,7 +23,7 @@
   --ink-2: #59544f; /* secondary text */
   --ink-3: #746e66; /* muted text, labels, values: 4.5:1 on --surface (the inactive tabs); elevenlabs.io's #777169 is 4.36:1 */
   --ink-4: #a59f97; /* placeholders, slider end labels, counts */
-  --ink-hover: #1a1a1a; /* black pill on hover */
+  --ink-hover: #3b3733; /* black pill on hover: a warm dark grey, clearly lighter than ink (white text 11.8:1) */
 
   /* Lines: used sparingly (spacing separates most things) */
   --line-dotted: #d9d5d0; /* the tick at zero on bipolar sliders */

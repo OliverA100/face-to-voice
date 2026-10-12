@@ -3,11 +3,18 @@
  * use, in sessionStorage, so a reload comes back ready to speak and a new tab starts at "Find my voice". The reload hint
  * (lib/lipsync/staleTab.ts) relies on it.
  */
+import type { ProfileResult } from "@/lib/character/profile";
 import type { DesignResult, SelectResult } from "@/lib/voice/client";
 
 const STORAGE_KEY = "ftv-voice"; // sessionStorage: kept across reloads, but a new tab starts over
 
-export type VoiceSession = { design: DesignResult; selection: SelectResult | null; chosen: number | null; designedFace: string | null };
+export type VoiceSession = {
+  design: DesignResult;
+  selection: SelectResult | null;
+  chosen: number | null;
+  designedFace: string | null;
+  profile?: ProfileResult | null; // the character's profile, once written (Character card)
+};
 
 let cached: VoiceSession | null | undefined; // read once: useSyncExternalStore needs the same object every call
 
@@ -19,7 +26,7 @@ export function voiceSession(): VoiceSession | null {
     const raw = typeof window !== "undefined" ? window.sessionStorage.getItem(STORAGE_KEY) : null;
     const saved = raw ? (JSON.parse(raw) as Partial<VoiceSession>) : null;
     if (saved?.design?.descKey && Array.isArray(saved.design.previews)) {
-      cached = { design: saved.design, selection: saved.selection ?? null, chosen: saved.chosen ?? null, designedFace: saved.designedFace ?? null };
+      cached = { design: saved.design, selection: saved.selection ?? null, chosen: saved.chosen ?? null, designedFace: saved.designedFace ?? null, profile: saved.profile ?? null };
     }
   } catch {
     /* private mode or malformed: start over */

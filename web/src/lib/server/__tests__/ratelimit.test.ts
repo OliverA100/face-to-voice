@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 // The in-memory fallback used without Redis (local development): 10× the production limits.
-const env = vi.hoisted(() => ({ hasRedis: false, isDeployed: false, rateLimitSalt: "test-salt", caps: { castingsPerDay: 3, designsPerDay: 2, savesPerDay: 1, speakCharsPerDay: 100 } }));
+const env = vi.hoisted(() => ({ hasRedis: false, isDeployed: false, rateLimitSalt: "test-salt", caps: { castingsPerDay: 3, designsPerDay: 2, savesPerDay: 1, speakCharsPerDay: 100, profilesPerDay: 5, talksPerDay: 2 } }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ after: vi.fn() }));
 vi.mock("../env", () => ({ env }));
@@ -24,7 +24,7 @@ describe("daily caps without Redis", () => {
     expect(await consumeDailyCap("speakChars", 600)).toEqual({ used: 600, limit: 1000 });
     await expect(consumeDailyCap("speakChars", 401)).rejects.toMatchObject({ code: "daily_cap", status: 429 });
     expect(await consumeDailyCap("speakChars", 400)).toEqual({ used: 1000, limit: 1000 });
-    expect(await dailyUsage()).toEqual({ castings: { used: 0, limit: 3 }, designs: { used: 0, limit: 2 }, saves: { used: 0, limit: 1 }, speakChars: { used: 1000, limit: 100 } });
+    expect(await dailyUsage()).toEqual({ castings: { used: 0, limit: 3 }, designs: { used: 0, limit: 2 }, saves: { used: 0, limit: 1 }, speakChars: { used: 1000, limit: 100 }, profiles: { used: 0, limit: 5 }, talks: { used: 0, limit: 2 } });
   });
 });
 

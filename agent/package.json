@@ -1,0 +1,32 @@
+{
+  "name": "face-to-voice-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The LiveKit agent that speaks as a Face to Voice character (see ../docs/architecture.md, Live conversations).",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/main.ts dev",
+    "start": "node src/main.ts start",
+    "download-files": "livekit-agents download-files",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.24.0",
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.128.0",
+    "@livekit/agents": "1.9.2",
+    "@livekit/agents-plugin-anthropic": "1.9.2",
+    "@livekit/agents-plugin-elevenlabs": "1.9.2",
+    "@livekit/agents-plugin-silero": "1.9.2",
+    "@livekit/rtc-node": "^1.1.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.1"
+  }
+}

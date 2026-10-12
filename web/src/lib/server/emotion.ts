@@ -27,7 +27,7 @@ export const quantiseIntensity = (v: number) => Math.round(Math.min(1, Math.max(
  * it names the delivery too ("shaky and breathless"), not just the feeling. Full names a physical symptom ("gasping for
  * breath"): a stronger feeling word alone sounds the same as clear. Tweak by ear.
  */
-const TAG: Record<string, [hint: string, clear: string, full: string]> = {
+export const TAG: Readonly<Record<string, [hint: string, clear: string, full: string]>> = {
   happy: ["cheerful", "happy, bright and bouncy", "overjoyed, laughing, bursting with energy"],
   sad: ["a little sad", "sad, heavy and slow", "heartbroken, voice cracking, holding back sobs"],
   angry: ["irritated", "angry, hard and clipped", "furious, almost shouting, hard and clipped"],

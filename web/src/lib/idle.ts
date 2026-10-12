@@ -22,6 +22,9 @@ export const IDLE = {
     roll: 0.02,
     speed: 0.12, // Hz-ish; the motion is a sum of slow sines so it never repeats visibly
     speechNod: 0.012, // extra nod per unit of speech energy (lip sync), radians
+    listenNod: 0.008, // a live conversation: slow nods while the visitor talks, radians at full
+    listenNodHz: 0.8,
+    ackNod: 0.03, // … and one nod as the character takes its turn, radians at the bottom of it
   },
   breathing: {
     period: 4.2,

@@ -152,7 +152,7 @@ export async function subscription(): Promise<Subscription | null> {
  * clip start (verified with `uv run el-probe`). `text` is sent as is, audio tag included.
  */
 export async function streamSpeech(voiceId: string, text: string): Promise<ReadableStream<Uint8Array>> {
-  if (MOCK) return mockSpeechStream(text);
+  if (MOCK && !env.savedVoices) return mockSpeechStream(text); // FTV_SAVED_VOICES: a saved studio voice speaks for real
   const res = await call(`/text-to-speech/${voiceId}/stream/with-timestamps`, {
     method: "POST",
     query: { output_format: TTS_OUTPUT_FORMAT },

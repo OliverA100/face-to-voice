@@ -30,6 +30,7 @@ import { GLASSES_FIT, glassesFitState } from "@/lib/glassesFit";
 import { hairRig, loadReviewStyles, setHairColour, setHairStyle } from "@/lib/hair";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { lipsyncState } from "@/lib/lipsync/state";
+import { liveSpeech } from "@/lib/lipsync/source";
 import { currentLook } from "@/lib/look";
 import { lastCaps, updateAnimCaps, visemeCap } from "@/lib/morphs/animCaps";
 import { askLimiter, geometryKey, readySpan, wantSpan } from "@/lib/morphs/capsClient";
@@ -81,6 +82,9 @@ if (debugHandle) {
     // speech and lip sync
     speech: speechPlayer,
     lipsync: lipsyncState,
+    get liveSpeech() {
+      return liveSpeech();
+    },
     // layers: emotion, age, skin, eyes, hair, add-ons
     emotion: { rig: emotionRig, set: setEmotion },
     age: { AGE, uniforms: ageUniforms, set: setAge },
