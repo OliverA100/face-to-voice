@@ -112,8 +112,8 @@ export function CharacterCard({
       {/* Its own row, like the download: what it does on the left, the action on the right. */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-label text-ink">Not quite them?</p>
-          <p className="text-meta text-ink-3">Same voice, a new name and story</p>
+          <p className="text-label text-ink">Someone else?</p>
+          <p className="text-meta text-ink-3">Keep the voice, meet a different character</p>
         </div>
         <button
           type="button"
