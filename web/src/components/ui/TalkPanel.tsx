@@ -201,7 +201,7 @@ function LiveTalk({ session, name, maxSeconds, starting, onAgain }: { session: T
       </header>
       {snap.caption && <p className="text-body text-ink">“{snap.caption}”</p>}
       {snap.heard && !ended && <p className="text-meta text-ink-3">You: {snap.heard}</p>}
-      {snap.state === "waking" && <p className="text-meta text-ink-3">The first conversation in a while takes a few seconds to start.</p>}
+      {snap.state === "waking" && <p className="text-meta text-ink-3">The first conversation in a while can take up to a minute to start.</p>}
       {snap.needsAudioTap && !ended && (
         <button type="button" onClick={() => void session.room.startAudio()} className="pill-secondary h-8 self-start px-3 text-label">
           Tap to hear them

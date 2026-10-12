@@ -47,8 +47,12 @@ export interface TalkSnapshot {
 
 /** No agent after this long: it is starting up from cold (LiveKit Cloud's free plan sleeps idle agents). */
 const WAKING_AFTER_MS = 2500;
-/** No agent after this long: it isn't coming (a cold start takes 10–20 s). */
-const GIVE_UP_MS = 30_000;
+/**
+ * No agent after this long: it isn't coming. LiveKit quotes 10–20 s for a cold start, but waking this agent from sleep
+ * took longer than 30 s, and leaving sooner empties the room, which cancels the agent's wake-up: every chat after a
+ * quiet spell failed until the next deploy (2026-10-12).
+ */
+const GIVE_UP_MS = 90_000;
 
 type AudioSessionNavigator = Navigator & { audioSession?: { type: string } };
 /** iPhone and iPad: talking needs the play-and-record session (speaker and mic together); computers are left alone (lib/lipsync/player.ts). */
