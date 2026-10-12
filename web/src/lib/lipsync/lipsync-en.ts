@@ -8,7 +8,10 @@
  * Changes: TypeScript; a "w" (also in one, once, qu, gu) is rounded lips (U), not the lower lip on the teeth (FF) as in
  * the original; an "h" has no shape of its own (the lips are already in the next vowel's, which is drawn over the h too: a
  * silent "h" in "honestly" no longer spreads the lips before the voice); unstressed vowels the spelling gives away (the
- * article "a"/"an", "the", "of", "-ably", "-able", "-ibly", "-ible") are AX, a schwa that cues.ts makes a weak "aa"; and each viseme records the character span it was produced from, so the timing
+ * article "a"/"an", "the", "of", "-ably", "-able", "-ibly", "-ible") are AX, a schwa that cues.ts makes a weak "aa"; "or",
+ * "oor" and "war" are a rounded O, not a wide "aa" ("morning" opened like "mahning"); "every" is "ev-ree" (E FF RR I),
+ * not "ev-eh-ree"; and each viseme records the
+ * character span it was produced from, so the timing
  * can come from ElevenLabs' per-character timestamps instead of average durations. The original's
  * number/symbol expansion is left out: the input is ElevenLabs' `normalized_alignment`, which is
  * already the spoken text (digits that remain are spelled out in cues.ts numberToWords).
@@ -25,7 +28,7 @@ const RULES: Record<string, string[]> = {
   C: [" [CH]^=kk", "^E[CH]=kk", "[CH]=CH", " S[CI]#=SS aa", "[CI]A=SS", "[CI]O=SS", "[CI]EN=SS", "[C]+=SS", "[CK]=kk", "[COM]%=kk aa PP", "[C]=kk"],
   D: ["#:[DED] =DD I DD", ".E[D] =DD", "#^:E[D] =DD", " [DE]^#=DD I", " [DO] =DD U", " [DOES]=DD aa SS", " [DOING]=DD U I nn", " [DOW]=DD aa", "[DU]A=kk U", "[D]=DD"],
   E: [
-    "#:[E] =", "'^:[E] =", " :[E] =I", "#[ED] =DD", "#:[E]D =", "[EV]ER=E FF", "[E]^%=I", "[ERI]#=I RR I", "[ERI]=E RR I",
+    "#:[E] =", "'^:[E] =", " :[E] =I", "#[ED] =DD", "#:[E]D =", "[EVERY]=E FF RR I", "[EV]ER=E FF", "[E]^%=I", "[ERI]#=I RR I", "[ERI]=E RR I",
     "#:[ER]#=E", "[ER]#=E RR", "[ER]=E", " [EVEN]=I FF E nn", "#:[E]W=", "@[EW]=U", "[EW]=I U", "[E]O=I", "#:&[ES] =I SS",
     "#:[E]S =", "#:[ELY] =nn I", "#:[EMENT]=PP E nn DD", "[EFUL]=FF U nn", "[EE]=I", "[EARN]=E nn", " [EAR]^=E", "[EAD]=E DD", "#:[EA] =I aa",
     "[EA]SU=E", "[EA]=I", "[EIGH]=E", "[EI]=I", " [EYE]=aa", "[EY]=I", "[EU]=I U", "[E]=E",
@@ -44,10 +47,10 @@ const RULES: Record<string, string[]> = {
   M: ["[MOV]=PP U FF", "[M]=PP"],
   N: ["E[NG]+=nn kk", "[NG]R=nn kk", "[NG]#=nn kk", "[NGL]%=nn kk aa nn", "[NG]=nn", "[NK]=nn kk", " [NOW] =nn aa", "[N]=nn"],
   O: [
-    " [OF] =AX FF", "[OF] =aa FF", "[OROUGH]=E O", "#:[OR] =E", "#:[ORS] =E SS", "[OR]=aa RR", " [ONE]=U aa nn", "[OW]=O", " [OVER]=O FF E",
+    " [OF] =AX FF", "[OF] =aa FF", "[OROUGH]=E O", "#:[OR] =E", "#:[ORS] =E SS", "[OR]=O RR", " [ONE]=U aa nn", "[OW]=O", " [OVER]=O FF E",
     "[OV]=aa FF", "[O]^%=O", "[O]^EN=O", "[O]^I#=O", "[OL]D=O nn", "[OUGHT]=aa DD", "[OUGH]=aa FF", " [OU]=aa", "H[OU]S#=aa",
     "[OUS]=aa SS", "[OUR]=aa RR", "[OULD]=U DD", "^[OU]^L=aa", "[OUP]=U OO", "[OU]=aa", "[OY]=O", "[OING]=O I nn", "[OI]=O",
-    "[OOR]=aa RR", "[OOK]=U kk", "[OOD]=U DD", "[OO]=U", "[O]E=O", "[O] =O", "[OA]=O", " [ONLY]=O nn nn I", " [ONCE]=U aa nn SS",
+    "[OOR]=O RR", "[OOK]=U kk", "[OOD]=U DD", "[OO]=U", "[O]E=O", "[O] =O", "[OA]=O", " [ONLY]=O nn nn I", " [ONCE]=U aa nn SS",
     "[ON'T]=O nn DD", "C[O]N=aa", "[O]NG=aa", " ^:[O]N=aa", "I[ON]=aa nn", "#:[ON] =aa nn", "#^[ON]=aa nn", "[O]ST =O",
     "[OF]^=aa FF", "[OTHER]=aa TH E", "[OSS] =aa SS", "#^:[OM]=aa PP", "[O]=aa",
   ],
@@ -70,7 +73,7 @@ const RULES: Record<string, string[]> = {
     "[U]^^=aa", "[UY]=aa", " G[U]#=", "G[U]%=", "G[U]#=U", "#N[U]=I U", "@[U]=U", "[U]=I U",
   ],
   V: ["[VIEW]=FF I U", "[V]=FF"],
-  W: [" [WERE]=U E", "[WA]S=U aa", "[WA]T=U aa", "[WHERE]=U E RR", "[WHAT]=U aa DD", "[WHOL]=I O nn", "[WHO]=I U", "[WH]=U", "[WAR]=U aa RR", "[WOR]^=U E", "[WR]=RR", "[W]=U"],
+  W: [" [WERE]=U E", "[WA]S=U aa", "[WA]T=U aa", "[WHERE]=U E RR", "[WHAT]=U aa DD", "[WHOL]=I O nn", "[WHO]=I U", "[WH]=U", "[WAR]=U O RR", "[WOR]^=U E", "[WR]=RR", "[W]=U"],
   X: [" [X]=SS", "[X]=kk SS"],
   Y: ["[YOUNG]=I aa nn", " [YOU]=I U", " [YES]=I E SS", " [Y]=I", "#^:[Y] =I", "#^:[Y]I=I", " :[Y] =aa", " :[Y]#=aa", " :[Y]^+:#=I", " :[Y]^#=I", "[Y]=I"],
   Z: ["[Z]=SS"],

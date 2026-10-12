@@ -45,6 +45,7 @@ export interface Cue {
   weak?: boolean; // an unstressed vowel (a schwa): formed only to LIPSYNC.weakPeak
   glide?: boolean; // an "r" or "w" (folded to U): rounded like a vowel, but not a syllable: it takes no loudness peak (snapVowels) and rounds no closure (roundingAt)
   nasal?: boolean; // a closure spelled with an "m": it hums on with the lips shut, so it is found in the treble (snapClosures)
+  back?: boolean; // a "k", "g" or "ng" (folded to DD): made with the back of the tongue, out of sight, so the tongue tip stays down (tongueAt)
   n?: number; // its place in the spoken order (the evaluator's snapping keeps the sounds in that order)
 }
 
@@ -184,6 +185,7 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
     const letters = word.slice(v.charStart, v.charEnd);
     const glide = v.viseme === "RR" || (v.viseme === "U" && v.from === 0 && /^w/i.test(letters));
     const nasal = folded === "PP" && /m/i.test(letters);
+    const back = v.viseme === "kk" || /^ng$/i.test(letters); // k, g, and the "ng" of "morning": the back of the tongue
     // Repeats inside a word ("pp" in peppers) merge; across words each closure stays its own cue.
     if (last && last.viseme === folded && start <= last.end + 0.04) {
       last.end = Math.max(last.end, end);
@@ -191,8 +193,9 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
       if (!weak) delete last.weak;
       if (!glide) delete last.glide;
       if (nasal) last.nasal = true;
+      if (!back) delete last.back;
     } else {
-      out.push({ viseme: folded, start, end, text: word.slice(v.charStart, v.charEnd), ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}) });
+      out.push({ viseme: folded, start, end, text: word.slice(v.charStart, v.charEnd), ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}) });
     }
   }
   return out;

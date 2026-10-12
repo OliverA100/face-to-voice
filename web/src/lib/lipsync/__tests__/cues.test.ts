@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { alignmentToCues, mergeAlignments, numberToWords, VISEME_IDS, type Alignment, type Cue } from "../cues";
-import { audioClosureAt, closureSpan, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, windowedLoudness } from "../evaluator";
+import { audioClosureAt, closureSpan, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, tongueAt, windowedLoudness } from "../evaluator";
 import { wordToVisemes } from "../lipsync-en";
 import { visemePreset } from "@/lib/data";
 
@@ -311,3 +311,33 @@ describe("m closures and rounding", () => {
   });
 });
 
+
+describe("rounded 'or' and the tongue", () => {
+  const cuesOf = (text: string) => {
+    const chars = [...text];
+    return alignmentToCues({ characters: chars, character_start_times_seconds: chars.map((_, i) => i * 0.05), character_end_times_seconds: chars.map((_, i) => (i + 1) * 0.05) });
+  };
+
+  it("shapes 'or', 'oor' and 'war' as a rounded O, not a wide aa", () => {
+    expect(wordToVisemes("morning").map((v) => v.viseme)).toEqual(["PP", "O", "RR", "nn", "I", "nn"]);
+    expect(wordToVisemes("door").map((v) => v.viseme)).toContain("O");
+    expect(wordToVisemes("warm").map((v) => v.viseme)).toEqual(["U", "O", "RR", "PP"]);
+  });
+
+  it("says 'every' as 'ev-ree', not 'ev-eh-ree' (and leaves 'ever' alone)", () => {
+    expect(wordToVisemes("every").map((v) => v.viseme)).toEqual(["E", "FF", "RR", "I"]);
+    expect(wordToVisemes("everyone").map((v) => v.viseme).slice(0, 4)).toEqual(["E", "FF", "RR", "I"]);
+    expect(wordToVisemes("ever").map((v) => v.viseme)).toEqual(["E", "FF", "E"]);
+  });
+
+  it("raises the tongue tip for d, t, n and l, not for k, g or ng (the back of the tongue)", () => {
+    const cues = cuesOf("let's go dancing");
+    const dd = cues.filter((c) => c.viseme === "DD");
+    expect(dd.filter((c) => !c.back).map((c) => c.text)).toEqual(expect.arrayContaining(["l", "t", "d", "n"]));
+    expect(dd.filter((c) => c.back).map((c) => c.text)).toEqual(expect.arrayContaining(["g", "ng"]));
+    const n = dd.find((c) => c.text === "n")!;
+    expect(tongueAt(cues, (n.start + n.end) / 2)).toBe(1);
+    const g = dd.find((c) => c.text === "g")!;
+    expect(tongueAt(cues, (g.start + g.end) / 2)).toBe(0);
+  });
+});

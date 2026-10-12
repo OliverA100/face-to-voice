@@ -7,10 +7,13 @@
 import { VISEME_IDS, type Cue, type VisemeId } from "./cues";
 
 export const LIPSYNC = {
-  /** Seconds the mouth runs ahead (+) or behind (−) ElevenLabs' character times. ?lipsyncOffsetMs= overrides. It was
-   *  +0.02 to make up for the slower smoothing; with the quicker smoothing under the speed limit (2026-10-09) the mouth
-   *  lands on the sound at 0 (lip releases and vowel peaks measured against a forced aligner on the saved clips). */
-  lead: 0,
+  /** Seconds the mouth runs ahead (+) or behind (−) the sound: the whole mouth (shapes and loudness) is evaluated this
+   *  far ahead. ?lipsyncOffsetMs= overrides. 0 put the mouth on the sound as computed (against a forced aligner,
+   *  2026-10-09), but as drawn it trailed by 20–30 ms (smoothing, speed limit, the frame reaching the screen), and a
+   *  real mouth moves before its sound: 30 ms looked right by eye (live chats, 2026-10-11: 60 "a slight
+   *  delay", 90 "ahead"), then 80 once the shapes followed the voice more closely (2026-10-11: "−50 ms makes it good"
+   *  on the Sync slider, Speak and chats). */
+  lead: 0.08,
   attack: 0.06, // s before a cue starts that its shape begins to form
   release: 0.09, // s after a cue ends that its shape has faded
   /** Closures snap shut and let go fast, so the vowels around a "p" stay open. */
@@ -27,10 +30,21 @@ export const LIPSYNC = {
   emphasis: 0.45,
   maxGroupSum: 1.3,
   /** Open shapes are scaled by the audio's own loudness: fully open only while there is sound.
-   *  gateFloor keeps quiet vowels visible; gateLevel is the loudness (0..1 of the clip's peak) at
-   *  which the gate is fully open. */
-  gateFloor: 0.2,
-  gateLevel: 0.3,
+   *  gateFloor keeps quiet vowels visible; gateLevel is the loudness (0..1 of the loudest moment around it) at
+   *  which the gate is fully open. Near 1, the loudness rather than the letters decides how far the mouth opens, so
+   *  each syllable opens and closes with the sound (was 0.2 / 0.3: open for whole words; mouth vs loudness correlation
+   *  0.62 → 0.76 on real chat replies, and it looked more like speaking, 2026-10-11). openGain then opens the
+   *  shapes wider (capped at 1): "too closed" at 1. */
+  gateFloor: 0.05,
+  gateLevel: 0.9,
+  openGain: 1.5,
+  /** The lips hold a vowel's shape while the loudness only takes the opening away, as in real speech (the jaw beats
+   *  once a syllable; the lips stay rounded or spread through it). Gated as a whole, a quiet "oo" also lost its
+   *  rounding: vowels reached 45–63% of their pose, and the mouth made ~3.5 open-close cycles a second ("too stiff",
+   *  "o and u not round enough", 2026-10-11). As the gate closes, an "o" keeps its rounding in "u" (rounded,
+   *  jaw nearly shut) and an "eh" its spread in "ee" (O, E: share of the vowel handed over); "ee" and "oo", mostly lip
+   *  shape themselves, keep at least this much of themselves (I, U). The poses stay the solved, capped ones. */
+  shapeHold: { O: 0.7, E: 0.5, I: 0.8, U: 0.85 } as Record<"O" | "E" | "I" | "U", number>,
   gateLookahead: 0.03, // s; the audio is decoded ahead of playback, so the gate can open as the sound starts
   /** The open gate measures the loudness against the loudest moment within ±gateLocal (s), not the line's peak: a voice
    *  trails off toward the end of a line ("…about it" ~20 dB down), and its last words would barely open. The reference
@@ -81,6 +95,17 @@ export const LIPSYNC = {
   closureGapMin: 0.07,
   closureKeep: 0.035,
   closureAhead: 0.04, // s: an audio-anchored closure skips the closure gate once its dip is this close (audioClosureAt)
+  /** The tongue tip for d/t/n/l (tongueAt): up against the ridge behind the upper teeth at full height (the "dd" pose's
+   *  tongue), rising tongueAhead (s) before the contact and down again tongueAfter after it. Formed with the rest of
+   *  the "d" (LIPSYNC.peak.DD, 0.35, behind the vowels' emphasis) it reached 10% of its pose: "D should have the tongue
+   *  on the roof of the mouth" (2026-10-11). */
+  tongueAhead: 0.05,
+  tongueAfter: 0.05,
+  /** followRelease: the sounds after a p/b/m or f/v in its word start at most releaseGap (s) after it lets go, moved
+   *  up by at most releaseMaxShift (s), when the voice is louder than releaseLoud (0..1 of the line's peak) after it. */
+  releaseGap: 0.06,
+  releaseMaxShift: 0.3,
+  releaseLoud: 0.1,
   /** eleven_v4_turbo stamps the first word off from the voice (a silent audio tag in front takes stamp time: "Test"
    *  after "[worried, tense and quick]" came 100 ms late; untagged lines start 40–70 ms early). placeLine moves the
    *  cues earlier by how late the first word is stamped (voice onset − its stamp), at most lineMaxShift (s), fading to
@@ -95,6 +120,17 @@ export const LIPSYNC = {
    *  vowelSearch (s) that stands vowelProm dB above the dips on both sides, plus vowelShift (s; − = earlier, to
    *  make up for the smoothing). Each peak takes one vowel; the letters still choose the shape. */
   vowelSearch: 0.15,
+  /** A peak quieter than vowelSilence (of the line's peak, in a 40 ms window) is a breath or a click, not a vowel; a
+   *  vowel stamped that quiet, with no peak within vowelSearch, looks up to vowelRescue (s) for its syllable. eleven_v4_turbo stamped "like"
+   *  in "…what I sound like" 0.16 s after it was said, its nearest peak was a breath 31 dB down, and the mouth stayed
+   *  shut while it was heard (2026-10-11). */
+  vowelRescue: 0.35,
+  vowelSilence: 0.08,
+  /** fitPhrases: a pause is the voice quieter than pauseLevel (of the line's peak, 40 ms window) for at least pauseMin
+   *  (s): lower than vowelSilence, which an f, th or s can fall under for as long. */
+  pauseLevel: 0.03,
+  pauseMin: 0.15,
+  holdLevel: 0.2, // … and holds its last vowel while the voice is at least this loud (of the line's peak)
   vowelProm: 3,
   vowelShift: 0,
   /** A p/b/m next to a rounded vowel is made with the lips already rounded ("blue", "boots", "moving"): the PP shape
@@ -120,6 +156,18 @@ export const LIPSYNC = {
    *  toward its new shape as both allow (its path is kept, only slowed). From visemes.json "speed". 0 = no limit. */
   gapSpeed: 150,
   jawSpeed: 100,
+  /** How fast (m/s², lips and jaw alike) a movement may speed up: the smoothing moves fastest the moment a shape is
+   *  asked for, so every movement started with a jolt ("still a little jumpy", 2026-10-11). Slowing down is
+   *  left alone, so the mouth never overshoots (a p/b/m still shuts). Sharp speed changes p95 4.0 → 3.2 m/s² on the
+   *  saved clips, timing unchanged. 0 = no limit. */
+  speedUp: 3,
+  /** Top speeds (mm/s) for the mouth's width (corners spread or pulled in) and its rounding (lips pushed forward),
+   *  like gapSpeed / jawSpeed: unlimited, they jumped between spread and rounded sounds ("we should": up to 420 mm/s at
+   *  the corners, 140 mm/s forward; "still jumpy" in testing). Per unit of each shape (mm), from visemes.json's note
+   *  ("ee" spreads ~6 mm, "oo" corners in 15 mm and lips +5 mm, "oh" +2.5 mm; "oh"'s corners taken as half of "oo"'s). */
+  widthSpeed: 120,
+  roundSpeed: 50,
+  shapeMm: { width: { I: 6, O: -7.5, U: -15 }, round: { O: 2.5, U: 5 } } as { width: Partial<Record<VisemeId, number>>; round: Partial<Record<VisemeId, number>> },
   /** While the audio stays above this loudness (0..1 of the clip's peak) with no vowel cue active, the last vowel
    *  is held at sustainLevel. */
   sustainLoud: 0.45,
@@ -135,6 +183,10 @@ export const LIPSYNC_PARTS = {
   rounding: true, // p/b/m before oo/oh made with rounded lips (roundingAt)
   seal: true, // a formed closure pushes the open shapes out of the way (sealWeight)
   trebleM: true, // an "m" closure found in the treble (its hum keeps the line loud), not in the loudness (snapClosures)
+  tongue: true, // the tongue tip up for d/t/n/l at full height, on its own track (tongueAt)
+  fitPhrases: true, // each phrase's last vowel held until the voice stops, the next started where it comes back (fitPhrases)
+  followRelease: true, // the sounds after a p/b/m or f/v in its word start where it lets go (followRelease)
+  shapeHold: true, // the lips hold a vowel's rounding or spread while the loudness takes the opening away (LIPSYNC.shapeHold)
 };
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
@@ -233,6 +285,23 @@ export function targetsAt(cues: Cue[], t: number, out: Activations): Activations
   return out;
 }
 
+/**
+ * How far the tongue tip is up against the ridge behind the upper teeth at t (0..1): the d/t/n/l cues (DD, not a k or
+ * g), eased up from LIPSYNC.tongueAhead before each and down by tongueAfter after it. On its own track, at full height:
+ * the tongue competes with no lip shape, so the vowels around it don't push it aside.
+ */
+export function tongueAt(cues: Cue[], t: number): number {
+  let v = 0;
+  for (const c of cues) {
+    if (c.start - LIPSYNC.tongueAhead > t) break; // sorted by start
+    if (c.viseme !== "DD" || c.back || t > c.end + LIPSYNC.tongueAfter) continue;
+    const x = t < c.start ? 1 - (c.start - t) / LIPSYNC.tongueAhead : t > c.end ? 1 - (t - c.end) / LIPSYNC.tongueAfter : 1;
+    const e = Math.max(0, Math.min(1, x));
+    v = Math.max(v, e * e * (3 - 2 * e));
+  }
+  return v;
+}
+
 /** Factor the open shapes are scaled by once a closure has actually formed (post-smoothing).
  *  1 = untouched, 0 = fully sealed; a smooth ramp so small closure residue does no harm. */
 export function sealWeight(act: Activations): number {
@@ -247,6 +316,38 @@ export function speedShare(dGap: number, dJaw: number, dt: number): number {
   if (LIPSYNC.gapSpeed > 0 && Math.abs(dGap) > LIPSYNC.gapSpeed * dt) share = Math.min(share, (LIPSYNC.gapSpeed * dt) / Math.abs(dGap));
   if (LIPSYNC.jawSpeed > 0 && Math.abs(dJaw) > LIPSYNC.jawSpeed * dt) share = Math.min(share, (LIPSYNC.jawSpeed * dt) / Math.abs(dJaw));
   return share;
+}
+
+/**
+ * The share of this frame's step (dGap, dJaw: mm) the mouth takes when it may speed up by at most LIPSYNC.speedUp:
+ * `share` from speedShare, and last frame's lip and jaw velocities (mm/s, signed: a turn starts again from rest).
+ * Slowing down is never limited.
+ */
+export function speedUpShare(dGap: number, dJaw: number, share: number, gapVel: number, jawVel: number, dt: number): number {
+  if (!(LIPSYNC.speedUp > 0) || dt <= 0) return share;
+  const grow = LIPSYNC.speedUp * 1000 * dt; // mm/s the speed may grow by this frame
+  let k = share;
+  for (const [d, last] of [[dGap, gapVel], [dJaw, jawVel]]) {
+    const speed = (Math.abs(d) * share) / dt;
+    const from = Math.sign(d) === Math.sign(last) ? Math.abs(last) : 0;
+    if (speed > from + grow) k = Math.min(k, (share * (from + grow)) / speed);
+  }
+  return k;
+}
+
+/**
+ * The share of this frame's step the mouth takes when its width and rounding may change at most LIPSYNC.widthSpeed /
+ * roundSpeed: `share` so far, the activations as drawn (`drawn`, open shapes after the seal) and the ones asked for.
+ */
+export function shapeShare(drawn: Activations, target: Activations, share: number, dt: number): number {
+  let dW = 0;
+  let dR = 0;
+  for (const [v, mm] of Object.entries(LIPSYNC.shapeMm.width)) dW += (target[v as VisemeId] - drawn[v as VisemeId]) * mm;
+  for (const [v, mm] of Object.entries(LIPSYNC.shapeMm.round)) dR += (target[v as VisemeId] - drawn[v as VisemeId]) * mm;
+  let k = share;
+  if (LIPSYNC.widthSpeed > 0 && Math.abs(dW) * k > LIPSYNC.widthSpeed * dt) k = (LIPSYNC.widthSpeed * dt) / Math.abs(dW);
+  if (LIPSYNC.roundSpeed > 0 && Math.abs(dR) * k > LIPSYNC.roundSpeed * dt) k = (LIPSYNC.roundSpeed * dt) / Math.abs(dR);
+  return k;
 }
 
 /** Smoothed activations; call once per frame with the elapsed time. */
@@ -348,6 +449,97 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
   return moved;
 }
 
+const followed = new WeakSet<Cue>(); // closures whose word has been moved up to their release (followRelease)
+const fitted = new WeakMap<Cue[], number>(); // how far into the line its pauses have been fitted (fitPhrases)
+
+/**
+ * A phrase's last vowel holds while the voice draws it out, up to the pause after it (the voice under LIPSYNC.pauseLevel
+ * for at least pauseMin) and while it is at least holdLevel: eleven_v4_turbo times its words from the text, so a word
+ * the voice stretches ends early in the stamps. "Well…" in "Ask me anything. Well… almost anything." was held 350 ms
+ * past its stamps, "Honestly," 130 ms, and the mouth closed while it was heard. (Starting each phrase where the voice
+ * comes back was tried too: the stamps were already within ~50 ms there, and moving them made it worse.) Each pause is
+ * fitted once decoded; the line's end once the stream is done. While the voice is still sounding at the edge of what is
+ * decoded with no stamped sound left to cover it (a live reply's audio is measured only ~0.05–0.1 s ahead of the mouth), the last
+ * vowel holds up to that edge already.
+ */
+export function fitPhrases(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number): boolean {
+  const L = LIPSYNC;
+  const voiced = (t: number) => windowedLoudness(loudness, t, 0.04) >= L.pauseLevel;
+  const end = decodedSeconds === Infinity ? (cues.at(-1)?.end ?? 0) + 1 : decodedSeconds - 0.1;
+  let from = fitted.get(cues) ?? 0;
+  let moved = false;
+  const holdTo = (stop: number) => {
+    // the last vowel before the voice stops holds while the voice is still clearly sounding (LIPSYNC.holdLevel)
+    let last: Cue | null = null;
+    for (const c of cues) if (VOWELS.has(c.viseme) && !c.glide && c.start < stop && c.start > stop - 1) last = c;
+    if (!last) return;
+    let until = last.end;
+    while (until + 0.01 < stop && windowedLoudness(loudness, until + 0.01, 0.04) >= L.holdLevel) until += 0.01;
+    if (until > last.end + 0.04) {
+      last.end = until;
+      moved = true;
+    }
+  };
+  let t = from;
+  while (t < end) {
+    // the next pause: quiet from `a` to `b`
+    while (t < end && !voiced(t)) t += 0.01;
+    while (t < end && voiced(t)) t += 0.01;
+    const a = t;
+    while (t < end && !voiced(t)) t += 0.01;
+    if (t >= end) {
+      if (decodedSeconds === Infinity) {
+        if (a > from) holdTo(a); // the voice's end
+        from = Infinity; // the whole line is fitted
+      } else if (voiced(end)) {
+        // still sounding at the edge, with nothing stamped between the last vowel and it: the stamps ran out early
+        const last = cues.findLast((c) => VOWELS.has(c.viseme) && !c.glide && c.start < end);
+        if (last && !cues.some((c) => c.start > last.end && c.start < end)) holdTo(end);
+      }
+      break;
+    }
+    const b = t;
+    from = b;
+    if (b - a < L.pauseMin) continue;
+    holdTo(a);
+  }
+  fitted.set(cues, from);
+  if (moved) cues.sort((p, q) => p.start - q.start);
+  return moved;
+}
+
+/**
+ * The sounds after a p/b/m or f/v in the same word start where it lets go (its end, found in the audio): the lips
+ * release straight into them. eleven_v4_turbo can stamp them well after ("bread": the b let go at 0.95 s into a loud
+ * "rea", stamped from 1.17 s, so the mouth said it after the sound; 2026-10-11). Only moves them earlier, by
+ * more than LIPSYNC.releaseGap, at most LIPSYNC.releaseMaxShift, up to the word's next closure, and only into sound.
+ */
+export function followRelease(cues: Cue[], loudness: (t: number) => number, snapped: WeakSet<Cue>): boolean {
+  let moved = false;
+  const order = spoken(cues);
+  for (let k = 0; k < order.length; k++) {
+    const c = order[k];
+    if ((c.viseme !== "PP" && c.viseme !== "FF") || !fromAudio.has(c) || followed.has(c)) continue;
+    followed.add(c);
+    const rest: Cue[] = [];
+    for (let j = k + 1; j < order.length && order[j].ws === c.ws && !CLOSED_VISEMES.includes(order[j].viseme); j++) rest.push(order[j]);
+    if (!rest.length || rest.some((r) => snapped.has(r))) continue;
+    const late = Math.min(...rest.map((r) => r.start)) - c.end;
+    if (late <= LIPSYNC.releaseGap) continue;
+    let sound = 0;
+    for (let t = c.end; t <= c.end + 0.08; t += 0.01) sound = Math.max(sound, loudness(t));
+    if (sound < LIPSYNC.releaseLoud) continue; // a pause after it: the stamps may be right
+    const shift = Math.min(late - LIPSYNC.releaseGap, LIPSYNC.releaseMaxShift);
+    for (const r of rest) {
+      r.start -= shift;
+      r.end -= shift;
+    }
+    moved = true;
+  }
+  if (moved) cues.sort((p, q) => p.start - q.start);
+  return moved;
+}
+
 /** Whether the sound since `from` (a closure's release) has had a syllable before the dip at t: its loudest moment comes
  *  within LIPSYNC.closureSyllableDb of the loudest one in the closureSearch after t (the vowel the dip leads into). */
 function syllableBetween(loudness: (t: number) => number, from: number, t: number): boolean {
@@ -386,8 +578,21 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
 }
 
 const VOWELS = new Set<VisemeId>(["aa", "E", "I", "O", "U"]);
-/** The cues in the order they are said (Cue.n; hand-made cues without it keep their start order). */
-const spoken = (cues: Cue[]) => [...cues].sort((p, q) => (p.n ?? 0) - (q.n ?? 0) || p.start - q.start);
+/**
+ * The cues in the order they are said (Cue.n; hand-made cues without it keep their start order). Sorted once per line
+ * when every cue has its `n` (the snapping moves starts, never `n`), not every frame.
+ */
+const spokenOrder = new WeakMap<Cue[], Cue[]>();
+const bySpoken = (p: Cue, q: Cue) => (p.n ?? 0) - (q.n ?? 0) || p.start - q.start;
+const spoken = (cues: Cue[]) => {
+  if (cues.some((c) => c.n === undefined)) return [...cues].sort(bySpoken);
+  let order = spokenOrder.get(cues);
+  if (!order || order.length !== cues.length) {
+    order = [...cues].sort(bySpoken);
+    spokenOrder.set(cues, order);
+  }
+  return order;
+};
 const peakOf = new WeakMap<Cue, number>(); // the syllable peak a vowel cue took (snapVowels)
 
 /** Move each vowel cue onto its syllable's loudness peak (LIPSYNC.vowelSearch). Same contract as snapClosures. */
@@ -408,7 +613,7 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
     const c = order[k];
     if (snapped.has(c) || !VOWELS.has(c.viseme) || c.glide || !isPlaced(c)) continue;
     const centre = (c.start + c.end) / 2;
-    if (centre + L.vowelSearch + 0.1 > decodedSeconds) continue;
+    if (centre + L.vowelRescue + 0.1 > decodedSeconds) continue;
     // A vowel is said between the closures spelled around it: its peak lies after the one before has let go and before
     // the next one's quiet stretch (both placed on the audio already: wait for the next one).
     let after = 0, before = Infinity, waiting = false;
@@ -422,10 +627,14 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
       break;
     }
     if (waiting) continue;
+    // the nearest syllable peak within vowelSearch, else within vowelRescue
+    const audible = 20 * Math.log10(L.vowelSilence);
+    const nearest = (search: number) => {
     let best: number | null = null;
-    for (let t = Math.max(0.01, centre - L.vowelSearch); t <= centre + L.vowelSearch; t += 0.01) {
+    for (let t = Math.max(0.01, centre - search); t <= centre + search; t += 0.01) {
       if (t <= after || t >= before) continue;
       const v = lv(t);
+      if (v < audible) continue; // a breath or a click, not a vowel
       if (v < lv(t - 0.01) || v < lv(t + 0.01)) continue; // not a peak
       let left = v, right = v;
       for (let k = 1; k <= 8; k++) {
@@ -436,6 +645,11 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
       if (claimed.some((p) => Math.abs(p - t) < 0.06)) continue;
       if (best === null || Math.abs(t - centre) < Math.abs(best - centre)) best = t;
     }
+    return best;
+    };
+    // stamped where nothing sounds, it is certainly misplaced: it may look further (a vowel on a flat stretch stays put)
+    const quiet = 20 * Math.log10(Math.max(windowedLoudness(loudness, centre, 0.04), 1e-3)) < audible;
+    const best = nearest(L.vowelSearch) ?? (quiet ? nearest(L.vowelRescue) : null);
     snapped.add(c);
     if (best === null) continue;
     const half = (c.end - c.start) / 2;
@@ -520,4 +734,79 @@ export function closureSpan(loudness: (t: number) => number, dip: number, back =
   }
   const end = Math.min(burst, on + LIPSYNC.closureMaxDur);
   return [on, Math.max(end, on + 0.03)];
+}
+
+/**
+ * What the mouth reads speech from: the speech player (a line the visitor asked for, decoded ahead of playback) or a
+ * live conversation's voice (lib/lipsync/live.ts, analysed a short delay ahead of what is heard). Times are seconds of
+ * the current line; loudness is known up to decodedSeconds().
+ */
+export interface SpeechSource {
+  readonly playing: boolean;
+  /** The line's time as the listener hears it now (negative before it starts). */
+  time(): number;
+  readonly cues: Cue[];
+  decodedSeconds(): number;
+  /** The whole line is in: nothing more will be added to the loudness. */
+  readonly streamDone: boolean;
+  loudness(t: number): number;
+  trebleLoudness(t: number): number;
+}
+
+/** What one source's frames keep between frames (LipSync.tsx keeps one per source). */
+export interface FrameMemory {
+  snapped: WeakSet<Cue>;
+  lastOpen: VisemeId; // the vowel held while the voice still sounds after its cue ended
+}
+export const frameMemory = (): FrameMemory => ({ snapped: new WeakSet<Cue>(), lastOpen: "aa" });
+
+/**
+ * The viseme targets at time t (into `out`): the cues placed on the audio (line start, closures, vowels), then gated by
+ * the loudness so the sound decides how far the mouth opens and when the lips may shut. One frame of LipSync.tsx, also
+ * run offline to compare live sources against a whole decoded line.
+ */
+export function frameTargets(src: SpeechSource, t: number, lead: number, out: Activations, mem: FrameMemory): void {
+  // once the stream has ended the whole line is decoded: the last word's windows reach past the audio's end
+  const decoded = src.streamDone ? Infinity : src.decodedSeconds();
+  const loudnessOf = (x: number) => src.loudness(x);
+  placeLine(src.cues, loudnessOf, decoded); // the stamps' offset at the start
+  // an "m" closure is found in the treble (its hum keeps the loudness up): LIPSYNC_PARTS.trebleM
+  const treble = LIPSYNC_PARTS.trebleM ? (x: number) => src.trebleLoudness(x) : loudnessOf;
+  if (LIPSYNC_PARTS.snapClosures) snapClosures(src.cues, loudnessOf, decoded, mem.snapped, treble);
+  if (LIPSYNC_PARTS.snapClosures && LIPSYNC_PARTS.followRelease) followRelease(src.cues, loudnessOf, mem.snapped);
+  if (LIPSYNC_PARTS.fitPhrases) fitPhrases(src.cues, loudnessOf, decoded);
+  if (LIPSYNC_PARTS.snapVowels) snapVowels(src.cues, loudnessOf, decoded, mem.snapped);
+  targetsAt(src.cues, t + lead, out);
+  // The open shapes read a windowed loudness (no wobble on 10 ms dips); closures read the raw one.
+  const loud = src.loudness(t + LIPSYNC.gateLookahead);
+  const loudSmooth = windowedLoudness(loudnessOf, t + LIPSYNC.gateLookahead, LIPSYNC.gateWindow);
+  // measured against the loudest moment nearby, so a line that trails off still opens its last words (gateLocal)
+  const gate = LIPSYNC_PARTS.gates ? loudnessGate(Math.min(1, loudSmooth / localPeak(loudnessOf, t + LIPSYNC.gateLookahead))) * LIPSYNC.openGain : 1;
+  const [preE, preI, preO, preU] = [out.E, out.I, out.O, out.U];
+  for (const v of OPEN_VISEMES) out[v] = Math.min(1, out[v] * gate);
+  if (LIPSYNC_PARTS.gates && LIPSYNC_PARTS.shapeHold) {
+    // the lips keep the vowel's shape as the loudness takes the opening away (LIPSYNC.shapeHold)
+    const quiet = 1 - Math.min(1, gate);
+    const H = LIPSYNC.shapeHold;
+    out.I = Math.min(1, Math.max(out.I, preI * H.I) + preE * quiet * H.E);
+    out.U = Math.min(1, Math.max(out.U, preU * H.U) + preO * quiet * H.O);
+  }
+  const cg = LIPSYNC_PARTS.gates ? closureGate(loud) : 1;
+  // closures and f/v/th hisses found in the audio itself pass
+  const anchoredPP = Math.min(out.PP, audioClosureAt(src.cues, t + lead, loudnessOf, "PP", treble));
+  const anchoredFF = Math.min(out.FF, audioClosureAt(src.cues, t + lead, loudnessOf, "FF"));
+  const anchoredTH = Math.min(out.TH, audioClosureAt(src.cues, t + lead, loudnessOf, "TH"));
+  for (const v of CLOSED_VISEMES) out[v] *= cg;
+  out.PP = Math.max(out.PP, anchoredPP);
+  out.FF = Math.max(out.FF, anchoredFF);
+  out.TH = Math.max(out.TH, anchoredTH);
+  // Hold the last vowel while the voice is still sounding but its (early) cue has ended.
+  let openSum = 0;
+  for (const v of ["aa", "E", "I", "O", "U"] as VisemeId[]) {
+    openSum += out[v];
+    if (out[v] > out[mem.lastOpen] && out[v] > 0.25) mem.lastOpen = v;
+  }
+  if (loudSmooth > LIPSYNC.sustainLoud && openSum < 0.25 && cg > 0.5) {
+    out[mem.lastOpen] = Math.max(out[mem.lastOpen], Math.min(1, LIPSYNC.sustainLevel * gate) * (1 - Math.max(out.PP, out.FF)));
+  }
 }

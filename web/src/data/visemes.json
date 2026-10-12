@@ -1,7 +1,7 @@
 {
   "version": 1,
   "tuned": true,
-  "note": "Hand-built from the slider labels and checked in rendered close-ups; the shapes below are solved to these measurements and checked against the animation caps on random faces. aa/e/i/ss: upper incisors show ~2 mm, the lower lip covers most of the lower teeth, ee spreads ~6 mm; jaw, lip gap, corners and protrusion held, centred. o/u: lips pushed forward (o +2.5 mm, u +5 mm, both lips), round openings (lip gap 8/12 mm out from the middle), u corners in 15 mm. ppr: a p/b/m with the lips rounded, blended in before and after U and O (LIPSYNC.roundAhead). ff: labiodental, the lower lip's inner edge level with the upper incisor tips and tucked just behind them, upper teeth ~1.8 mm, lower teeth hidden, the lopsided component 012 left out. pp: lips pressed, the red of both lips 1.3-1.5 mm thinner, seal and width held. th puts the tongue tip between the incisor edges (dental, nothing inside the teeth); dd raises it to the ridge behind the upper teeth. Tune in /dev/visemes. o/u/ff/i/ppr hold the nose still: nostril wings ≤1 mm (the pucker components alone pulled them 5–6 mm down).",
+  "note": "Hand-built from the slider labels and checked in rendered close-ups; the shapes below are solved to these measurements and checked against the animation caps on random faces. aa/e/i/ss: upper incisors show ~2 mm, the lower lip covers most of the lower teeth, ee spreads ~6 mm; jaw, lip gap, corners and protrusion held, centred. o/u: lips pushed forward (o +2.5 mm, u +5 mm, both lips), round openings (lip gap 8/12 mm out from the middle), u corners in 15 mm. ppr: a p/b/m with the lips rounded, blended in before and after U and O (LIPSYNC.roundAhead). ff: labiodental, the lower lip's inner edge level with the upper incisor tips and tucked just behind them, upper teeth ~1.8 mm, lower teeth hidden, the lopsided component 012 left out; component 008 +0.3 (2026-10-11): the corners up and the lower lip under the teeth, as the upper lip lifted alone bowed the lip line like a frown. pp: lips pressed, the red of both lips 1.3-1.5 mm thinner, seal and width held. th puts the tongue tip between the incisor edges (dental, nothing inside the teeth); dd raises it to the ridge just behind the upper front teeth, far enough forward to show (tongue_000 0.083 → 0.2, 2026-10-11: further forward covers the teeth, a th). Tune in /dev/visemes. o/u/ff/i/ppr hold the nose still: nostril wings ≤1 mm (the pucker components alone pulled them 5–6 mm down).",
   "visemes": {
     "aa": {
       "lower_face_region_009": 1.078,
@@ -135,7 +135,7 @@
       "lower_face_region_018": 0.198,
       "lower_face_region_017": -0.193,
       "lower_face_region_020": -0.184,
-      "lower_face_region_008": -0.171,
+      "lower_face_region_008": 0.129,
       "lower_face_region_021": 0.134,
       "lower_face_region_005": 0.115,
       "lower_face_region_003": -0.093,
@@ -156,7 +156,7 @@
       "lower_face_region_013": 0.5,
       "tongue_mean": 0.5,
       "lower_face_region_000": -0.3,
-      "tongue_000": 0.083
+      "tongue_000": 0.2
     },
     "ss": {
       "lower_face_region_016": 0.479,
