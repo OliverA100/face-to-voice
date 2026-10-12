@@ -156,10 +156,70 @@ PCM + character times ◄──────── NDJSON passed through, then wr
   th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble) and vowels to loudness peaks, keeping
   the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly), then blends with anticipation, closure
   dominance and smoothing; `LipSync.tsx` writes the result into the viseme morph layer, capped per face by the limiter
-  and held to a top speed for the lips and the jaw (`visemes.json` "speed"). Mouth openings follow the loudness
-  measured against the loudest moment nearby, so a line that trails off still forms its last words. Safari on a
+  and held to a top speed for the lips and the jaw (`visemes.json` "speed"). How far the mouth opens follows
+  the loudness syllable by syllable, measured against the loudest moment nearby (so a line that trails off still
+  forms its last words), and the whole mouth runs 80 ms ahead of the sound, as a real mouth does. The lips keep a
+  vowel's rounding or spread while the loudness takes the opening away; the corners and the rounding have top speeds
+  of their own, and every movement eases in. Because eleven_v4_turbo times letters from the text, the audio corrects
+  it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds its syllable (a breath
+  doesn't count), and a phrase's last vowel holds while the voice draws it out. The tongue tip rises for d/t/n/l on
+  a track of its own. Safari on a
   computer can play a tab's Web Audio late or not at all after it has sat in the background, while reporting it as on
   time; the speak bar then offers a reload, and the face and the voice survive it.
+
+## Live conversations
+
+```
+browser (Meet step)                    Next.js                                   LiveKit (room)              agent/ (Node worker)
+Talk ─► mic permission ─► /api/talk/token: guards, invite, limits, one-at-a-time slot
+                          voice id (record) + profile (cache) → instructions (characterPrompt.ts)
+      ◄─ token (20 s, mic only, roomConfig dispatches "ftv-character" + metadata)
+room.connect ─────────────────────────────────────────────────────────────► talk-<uuid> ◄── job ── AgentSession
+◄── voice track, lk.agent.state, lk.transcription, ftv.mood, ftv.end ◄──────────────────────── VAD + turn detector,
+                                                                                             STT (Inference), Claude Haiku 5.5
+                                                                                             (own llmNode), ElevenLabs v4 Turbo
+```
+
+- **Trust boundary.** The token is signed with the API secret, so the agent can trust its dispatch metadata; the
+  browser can read it (a JWT) but not change it. Nothing secret goes in.
+- **The agent's own LLM step.** The Anthropic plugin can't disable thinking or cache, so `CharacterAgent.llmNode`
+  streams from Claude directly (thinking off; prompt caching on the instructions and, automatically, the conversation,
+  which is rebuilt byte for byte each turn so every reply reads the whole conversation so far from the cache) and
+  pulls the reply's leading `[mood n]` tag off: it becomes a v4 audio tag for the voice and the `ftv.mood` attribute
+  for the face.
+- **The voice stays put.** The token route pins the voice (`ftv:talk:pin:<id>`) so the LRU pool never evicts it
+  mid-conversation (a save checks the pins again just before it deletes); a slot set in Redis, taken under a lock,
+  allows one conversation at a time, and LiveKit's own room list frees slots of conversations that ended early. The
+  visitor is charged only once a slot is theirs, and "Have another chat" ends only the room it names.
+- **Limits live in the agent too**: the conversation length (capped at five minutes whatever the metadata says),
+  the away timeout, and close-on-disconnect; session recording is off.
+- **Live lip sync.** The agent forwards each reply's word timings ahead of its audio (`ftv.words`): ElevenLabs'
+  dialogue socket restarts each message's character times at 0, so `agent/src/elevenTimings.ts` rebases them onto the
+  reply's clock (within a sentence, each message follows on from the last one's last character, but never starts later
+  than its own audio) and times each word from its first letter to its last. It also sends where the
+  voice starts on that clock and the reply's loudness as it made it, 10 ms at a time (`agent/src/onset.ts`). The
+  browser plays the voice through Web Audio and meters it with an AudioWorklet (the player's envelopes). It pins each
+  reply's words to the onset it hears, then keeps them on the voice by matching what it hears against the agent's
+  loudness. Where the voice comes back after a pause in the agent's audio, the nearest word moves onto it, because v4
+  Turbo's live stamps come from the text, not the audio ("Someone" 330 ms late). Bursts under 150 ms (breaths, clicks)
+  don't count: matched on the heard audio instead, they pulled a greeting's last words a second early, and the error
+  grew with every pause. `frameTargets` (shared with the speech player) reads both. The voice (and its captions) is
+  held back 130 ms so the lip sync sees each sound before it is heard, as it does a recorded line.
+- **The character.** The profile is written once per voice, under a lock (two visitors meeting the character at the
+  same moment get one profile), from the visitor's cached casting and the look the server kept with it, never the
+  look the browser sends later. It (`profileSchema.ts`) gives them a title and something they want right now; the
+  instructions put the want first ("What's on your mind"), and the agent's first answer to the visitor carries a note
+  to work it in (Haiku left it out otherwise). Reimagine sends Claude the current profile to share nothing with, and a
+  life to centre the new one on.
+- **What the visitor said, once.** LiveKit Inference's AssemblyAI stream sends each turn final twice, formatted and
+  plain, and the session joins them: the agent drops the plain copy before Claude reads it
+  (`withoutPlainCopies`), and the "You:" line keeps one of each (`lib/talk/heard.ts`).
+- **One AudioContext for every chat.** Made in the first tap and paused between chats: a new one per chat ran its clock
+  ahead of the voice in "Have another chat", and the mouth read silence.
+- **The face reacts.** Each reply's mood blends the expression (`MOTION.blend`), the head nods along while the visitor
+  talks and once as the character answers; the visitor's own expression returns after the chat.
+- **Development without paid calls:** `livekit-server --dev` plus `FTV_MOCK_AGENT=1`, a canned character that plays
+  recorded v4 clips with their real timings and takes turns on the visitor's loudness (`agent/src/canned.ts`).
 
 ## Export
 

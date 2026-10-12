@@ -42,28 +42,79 @@ They say nothing about real people. The visitor sees the reading next to the thr
 the exact prompt sent to ElevenLabs. The same face keeps the accent it was first cast with whatever its expression, so changing the mood never
 changes who the character is.
 
+## Character profiles
+
+Once a voice is chosen, the visitor can meet the character: Claude writes a profile (a name and a game-style title,
+a short backstory, traits, habits, quirks, loves and hates, catchphrases, what they want right now, a mood and the
+first words of a conversation) that a live conversation will play.
+
+- **Always made up.** The brief says the character is invented and must never take the name of a real person, living
+  or dead, or of a famous fictional character, nor describe one. Fixed fields (traits, pace, vocabulary, mood) are
+  JSON Schema enums; free text is cut to fixed lengths and cleaned of brackets and markup.
+- **Written from server data.** Claude reads the casting the server cached for this visitor and face, and the look as
+  ids; the browser only names which face and voice. A profile is shared by everyone who meets that voice, like the
+  voice itself; "Reimagine" writes another one for that visitor only. Visitors can't edit a profile.
+- **What they want stays in the story.** A character's want is a small goal from their own life ("to find whoever
+  keeps moving my lobster pots"), never dangerous; asking the visitor's opinion or help with it is part of the game,
+  and nothing they want needs anything from the visitor in real life (no money, details or meetings).
+- **Limits.** 6 new profiles per visitor a day; 100 a day in total (`DAILY_CAP_PROFILES`).
+
+## Live conversations
+
+After meeting the character, a visitor can talk to them out loud for up to three minutes (LiveKit, Claude
+Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
+
+- **The visitor's speech reaches a prompt.** Their microphone is transcribed (AssemblyAI, through LiveKit Inference) and
+  the words become the user turns of Claude's conversation. They only ever reach the visitor's own conversation: the
+  character's replies are spoken to that visitor alone and are not kept.
+- **The character stays a made-up character.** The instructions are built on the server from the profile, quoted as
+  data, with rules after it that always win: never claim to be or imitate a real person; say plainly that it is an AI
+  character when sincerely asked; stay family-friendly and refuse harmful, sexual, hateful, dangerous or illegal
+  requests in character; don't ask for personal details; no medical, legal or financial advice beyond common sense.
+- **The browser can't change the character.** The voice id, the instructions and the limits are read from the
+  server's own records and signed into the LiveKit token; the browser only names which face and voice. The token lets
+  it join one room with a microphone and nothing else (no data, no video), within 20 seconds.
+- **Limits, enforced by the server and the agent:** one conversation at a time; 3 a day per
+  visitor and 5 a day in total; at most three minutes (the agent says goodbye and ends it, and never runs past five
+  minutes whatever it is told); ended after the visitor has been quiet for a while; the microphone is asked for before
+  anything is paid for. Talking can also be made invite-only (`TALK_INVITE_CODES`, with `TALK_PUBLIC` unset).
+- **What is stored:** by Face to Voice, nothing of the conversation (no audio, no transcripts); the agent's logs hold
+  timings and token counts, never words (the agent framework's own logs, which can quote them, are kept to fatal
+  errors). LiveKit carries the audio between the browser and the agent; its session
+  recording is turned off for every conversation (`record: false`). The transcription, Claude and ElevenLabs requests
+  fall under those providers' own API data policies.
+
 ## What reaches the models
 
 - **From the browser:** the screenshot, the slider values (numbers in −1 … 1) and the look as short ids (hair style,
   colours, add-ons, emotion, pose). The server accepts only ids it ships and builds every sentence Claude reads (the
-  slider summary, the look, the age and the expression) itself; no free text from the browser reaches a prompt.
+  slider summary, the look, the age and the expression) itself; no free text from the browser reaches a prompt, except
+  the visitor's own speech in a live conversation (above).
 - **To ElevenLabs:** a voice description built from a fixed template and Claude's enum fields, plus the line the
   character says; for speech, the visitor's line (at most 300 characters) with an audio tag built on the server from
   the emotion id.
-- **Stored:** cached castings (per visitor), voice records and audio clips, keyed by hashes of the face and text. No accounts, no
+- **Stored:** cached castings (per visitor), voice records and audio clips, keyed by hashes of the face and text;
+  character profiles (shared per voice, or the visitor's own "Reimagine"), 30 days. No accounts, no
   screenshots, no raw IP addresses: visitors are counted by a salted HMAC of the IP. A character's rebuild link lives in
   the URL hash, which browsers never send to a server.
 
 ## Abuse and cost protection
 
-Every paid route (`/api/voice/design`, `/select`, `/speak`) runs, in order:
+Every paid route (`/api/voice/design`, `/select`, `/speak`, `/api/character/profile`, `/api/talk/token`) runs, in order:
 
 1. a same-origin check (`Sec-Fetch-Site` and `Origin` must match; requests with no browser headers are refused in
    production);
 2. Vercel BotID;
-3. a per-visitor sliding window in Upstash Redis: 5 designs, 3 new voices and 30 lines a day;
-4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters (configurable);
+3. a per-visitor sliding window in Upstash Redis: 5 designs, 3 new voices, 30 lines, 6 new profiles and 3
+   conversations a day;
+4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters, 100 profiles, 5 conversations
+   (configurable);
 5. ElevenLabs' and Anthropic's own per-key quotas and spend limits, set in their dashboards.
+
+Two routes charge only what they use. `/api/character/profile` spends the visitor's window and the cap only when it
+writes a profile (a saved one is free). `/api/talk/token` (when invite-only, it first counts every try with an invite
+code, 30 a day, so codes can't be guessed at) reserves the daily cap, and spends the visitor's conversation last, once a
+conversation slot is theirs and the token is made; anything that fails before that gives the cap back.
 
 Any Vercel deployment (production or preview) refuses the paid routes without Redis or without a rate-limit salt
 (fail closed), and a slow Redis counts as a refusal. Speech reserves its characters against the daily cap before the

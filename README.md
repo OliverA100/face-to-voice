@@ -24,10 +24,10 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 | Model export | 125 morph targets, every vertex and delta within 6 µm of the source; 2.88 MB brotli for both files |
 | Limiter | blocks only impossible geometry; a slider grab costs one frame, per-face animation caps run off the main thread |
 | Stress test | 8 families of states, each exact-checked: Random face, Random character and animation driven in the real app in headless Chrome, single sliders, pairs, multi-slider faces, fine-tune and add-ons generated with the limiter's Python mirror; 0 of 223 single-slider ends and 0 of 4,224 slider pairs broken |
-| Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 565 KB initial JS gzip |
+| Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 569 KB initial JS gzip |
 | Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 / 61–62 |
 | Accessibility | WCAG 2.2 AA pass: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; Lighthouse 100 / 96 |
-| Tests | 279 vitest tests (web) and 162 pytest tests (pipeline), run in CI on every push |
+| Tests | 340 vitest tests (web, plus 28 for the agent) and 162 pytest tests (pipeline), run in CI on every push |
 
 Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
 
@@ -88,7 +88,8 @@ the chosen take, a rebuild link, and a licence file written from the licence of 
 | **Caching** | Voices are cached per voice description (a design is never paid for twice), castings per visitor and face, spoken lines in Vercel Blob by voice and text, and only when the stream was the whole line. |
 | **Voice slots** | Saved voices live in a small LRU pool sized to the plan; when the day's saves or the month's operations run out, the visitor gets the closest pre-designed studio voice instead of an error. |
 | **Rate limits and cost** | Same-origin, Vercel BotID, per-visitor limits and global daily caps in Upstash Redis on every paid route; one request at a time designs a description or saves a take. Production refuses to run without Redis. |
-| **Mock mode** | `FTV_MOCK_ELEVENLABS=1` and `FTV_MOCK_CLAUDE=1` replace every paid call, so the whole flow and the lip sync run without keys. |
+| **Live conversations** | A LiveKit agent speaks as the character in its own designed voice (`eleven_v4_turbo` over the text-to-dialogue websocket), with Claude Haiku 5.5 and live lip sync from ElevenLabs' word timings, forwarded ahead of the audio. Open to everyone, within daily limits. |
+| **Mock mode** | `FTV_MOCK_ELEVENLABS=1` and `FTV_MOCK_CLAUDE=1` replace every paid call, so the whole flow and the lip sync run without keys; `FTV_SAVED_VOICES=1` alongside lets Speak use the saved studio voices for real speech, still designing no new voices. |
 
 ## Known limitations
 
@@ -112,6 +113,8 @@ the chosen take, a rebuild link, and a licence file written from the licence of 
   is too (see [Credits and licences](#credits-and-licences)).
 - **Phone numbers are emulated.** Frame rates and timings come from a desktop with 4× CPU throttling; an older phone's
   GPU may struggle with long hair at full resolution.
+- **Live conversations are limited:** English only, one at a time, three minutes long and a few a day. The character is
+  an AI: it is told to stay in character and within the rules, but it can still say something odd.
 - **The image check is shallow.** The voice route checks that it got a small same-origin JPEG, not that it is a render
   of this app. [Responsible AI](docs/responsible-ai.md)
 
@@ -150,7 +153,8 @@ cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 
 The characters are synthetic heads, and the casting leans into stereotypes on purpose, the way game casting does. The
 guard rails: Claude must never name or guess a real person; no voice is cloned (Voice Design creates new voices from a
-text description); no free text from the browser reaches a prompt; every paid call is rate-limited and capped.
+text description); no free text from the browser reaches a prompt, except a visitor's own speech in a live
+conversation, which only ever reaches their own conversation; every paid call is rate-limited and capped.
 Details: [docs/responsible-ai.md](docs/responsible-ai.md).
 
 ## Credits and licences
