@@ -148,6 +148,14 @@ export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "
             </BusySwap>
           </button>
         </div>
+        {/* credited where it comes in, as ElevenLabs is beside "Find my voice" (VoicePanel) */}
+        <p className="text-meta text-ink-3">
+          Live on{" "}
+          <a href="https://livekit.io" target="_blank" rel="noreferrer" className="underline-offset-2 transition-colors hover:text-ink hover:underline">
+            LiveKit<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          . Not affiliated.
+        </p>
         {error && <Alert>{error}</Alert>}
       </div>
     );
