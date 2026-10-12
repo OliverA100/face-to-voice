@@ -22,7 +22,9 @@ export const LLM_MODEL = process.env.CLAUDE_MODEL_TALK || "claude-haiku-5-5";
 export const TTS_MODEL = process.env.TTS_MODEL_TALK || "eleven_v4_turbo";
 /** ElevenLabs' dialogue socket (eleven_v3*, eleven_v4*): its word times need rebasing (elevenTimings.ts). */
 export const DIALOGUE_MODEL = /^eleven_v[34]/.test(TTS_MODEL);
-/** A spoken reply is under ~35 words (the instructions say so); this stops a runaway at ~90 words. */
+/** A spoken reply is one or two short sentences (the instructions and each turn's note say so); a reply still going
+ *  past this many words ends with the sentence it is in (SentenceCap), and MAX_TOKENS stops a runaway outright. */
+export const REPLY_WORDS = 22;
 const MAX_TOKENS = 120;
 
 type Turn = Anthropic.MessageParam;
@@ -110,7 +112,8 @@ export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (repl
     if (visitor) visitorTurns++;
     const notes = [
       ...(opening && visitor && visitorTurns === 1 ? ["work what's on your mind (what you want right now) into this reply, in your own way"] : []),
-      ...(moodOf ? ["begin your reply with your mood tag"] : []),
+      "reply in one or two short sentences, under 20 words",
+      ...(moodOf ? ["begin it with your mood tag"] : []),
     ];
     return { role, content: notes.length ? `${text}\n\n(Note from the app: ${notes.join("; ")}.)` : text };
   });
@@ -134,7 +137,8 @@ const SILENT = "(The visitor says nothing.)";
 
 /** The opening of a later chat in the same visit: new words, not the greeting they heard last time. */
 export const againNote = (greeting: string) =>
-  `The visitor has come back for another chat. Open with something new, in one or two short sentences, in the middle ` +
+  `The visitor has come back for another chat. Open with something new, in one or two short sentences (under 20 words ` +
+  `in all), in the middle ` +
   `of something else in your world; don't repeat or reword your first greeting ("${greeting}"), and don't claim to ` +
   `remember what was said last time.`;
 
@@ -204,6 +208,7 @@ export class CharacterAgent extends voice.Agent {
         cache_control: { type: "ephemeral" },
       });
       current = stream;
+      const cap = new SentenceCap(REPLY_WORDS);
       let first = true;
       try {
         for await (const event of stream) {
@@ -219,9 +224,15 @@ export class CharacterAgent extends voice.Agent {
             }
             log("first text", { ms: Math.round(performance.now() - started) });
           }
-          if (text) yield text;
+          const said = text && cap.push(text);
+          if (said) yield said;
+          if (cap.done) break; // long enough: the rest is never said (or paid for)
         }
-        const rest = tag.flush();
+        if (cap.done) {
+          log("reply capped", { words: cap.words });
+          return;
+        }
+        const rest = cap.push(tag.flush());
         if (rest) yield rest;
         const { usage } = await stream.finalMessage();
         log("usage", { input: usage.input_tokens, cacheRead: usage.cache_read_input_tokens, cacheWrite: usage.cache_creation_input_tokens, output: usage.output_tokens });
@@ -348,6 +359,36 @@ export class CharacterAgent extends voice.Agent {
 
 /** Where a reply's mood is kept on its history item (ChatMessage.extra). */
 const MOOD_KEY = "ftv.mood";
+
+/**
+ * Lets a reply through up to the end of the sentence in which it passes `words` words, then nothing: a long reply
+ * ends on a full sentence rather than mid-word. Fed the reply's text piece by piece.
+ */
+export class SentenceCap {
+  words = 0;
+  done = false;
+  private inWord = false;
+  private readonly max: number;
+  constructor(max: number) {
+    this.max = max;
+  }
+
+  push(s: string): string {
+    if (this.done) return "";
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      const space = /\s/.test(c);
+      if (!space && !this.inWord) this.words++;
+      this.inWord = !space;
+      // a sentence ends at . ! ? or … followed by a space, or at the end of what has come so far
+      if (this.words >= this.max && /[.!?…]/.test(c) && (i + 1 === s.length || /\s/.test(s[i + 1]))) {
+        this.done = true;
+        return s.slice(0, i + 1);
+      }
+    }
+    return s;
+  }
+}
 
 /** Drops "[…]" from a stream of text, even when a bracket pair spans pieces. */
 export class BracketStrip {
