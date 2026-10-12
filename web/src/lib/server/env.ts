@@ -38,7 +38,7 @@ export const env = {
     savesPerDay: num(process.env.DAILY_CAP_SAVES, 10),
     speakCharsPerDay: num(process.env.DAILY_CAP_SPEAK_CHARS, 20_000),
     profilesPerDay: num(process.env.DAILY_CAP_PROFILES, 100), // character profiles Claude writes (~0.7 ¢ each); a saved one is free
-    talksPerDay: num(process.env.DAILY_CAP_TALKS, 5), // live conversations (~250 ElevenLabs credits each at 3 minutes)
+    talksPerDay: num(process.env.DAILY_CAP_TALKS, 20), // live conversations (~250 ElevenLabs credits each at 3 minutes)
   },
   /**
    * Pre-designed fallback voices used when the voice quota is spent: comma-separated "presentation-age:voiceId"

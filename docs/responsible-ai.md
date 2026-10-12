@@ -75,7 +75,7 @@ Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
 - **The browser can't change the character.** The voice id, the instructions and the limits are read from the
   server's own records and signed into the LiveKit token; the browser only names which face and voice. The token lets
   it join one room with a microphone and nothing else (no data, no video), within 20 seconds.
-- **Limits, enforced by the server and the agent:** one conversation at a time; 10 a day per visitor and 5 a day in
+- **Limits, enforced by the server and the agent:** one conversation at a time; 10 a day per visitor and 20 a day in
   total; at most three minutes (the agent says goodbye and ends it, and never runs past five minutes whatever it is
   told); after 15 seconds of silence the character checks in once, and 15 more end it; the microphone is asked for
   before anything is paid for. Talking can also be made invite-only (`TALK_INVITE_CODES`, with `TALK_PUBLIC` unset).
@@ -108,7 +108,7 @@ Every paid route (`/api/voice/design`, `/select`, `/speak`, `/api/character/prof
 2. Vercel BotID;
 3. a per-visitor sliding window in Upstash Redis: 20 designs, 10 new voices, 100 lines, 20 new profiles and 10
    conversations a day;
-4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters, 100 profiles, 5 conversations
+4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters, 100 profiles, 20 conversations
    (configurable);
 5. ElevenLabs' and Anthropic's own per-key quotas and spend limits, set in their dashboards.
 

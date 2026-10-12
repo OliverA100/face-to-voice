@@ -29,7 +29,7 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 | Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 569 KB initial JS gzip |
 | Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 / 61–62 |
 | Accessibility | WCAG 2.2 AA pass: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; Lighthouse 100 / 96 |
-| Tests | 340 vitest tests (web, plus 28 for the agent) and 162 pytest tests (pipeline), run in CI on every push |
+| Tests | 340 vitest tests (web, plus 31 for the agent) and 162 pytest tests (pipeline), run in CI on every push |
 
 Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
 
@@ -196,5 +196,4 @@ Code: MIT ([LICENSE](LICENSE)). Third-party work and the licence of every shippe
 - **Live conversations** on [LiveKit](https://livekit.io) (LiveKit Agents, Apache 2.0, and LiveKit Cloud); speech to
   text by AssemblyAI through LiveKit Inference.
 
-The UI's design language is inspired by elevenlabs.io; no ElevenLabs logo, wordmark or asset is used. This is an
-independent project, not affiliated with or endorsed by ElevenLabs, Google, Anthropic or LiveKit.
+This is an independent project, not affiliated with or endorsed by ElevenLabs, Google, Anthropic or LiveKit.
