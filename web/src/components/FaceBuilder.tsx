@@ -136,10 +136,12 @@ export function FaceBuilder() {
         {/* Phones and tablets: one column (voice card, then sliders) that scrolls with the page. Laptops (lg): the same column
             sits beside the head, the sliders scrolling inside it. Wide screens (xl): `contents`, so the
             voice card floats in the head's cell and the sliders take the second column on their own.
-            -m-px p-px: the cards' 0.5px ring is a box-shadow, which the column's overflow would clip at its edges.
+            -m-px p-px: the cards' 0.5px ring is a box-shadow, which the column's overflow would clip at its edges. Not
+            -mt-px below lg: there the column starts where the sticky stage ends, and the stage (z-20, a page-coloured
+            band at its foot) would paint over the voice card's top ring.
             relative (here and on the panel): absolute bits inside, like sr-only labels, stay in the scroller instead of
             stretching the page. */}
-        <div className="relative -m-px flex flex-col gap-3 p-px lg:col-start-2 lg:min-h-0 lg:row-start-1 lg:overflow-hidden xl:contents">
+        <div className="relative -mx-px -mb-px flex flex-col gap-3 p-px lg:col-start-2 lg:-mt-px lg:min-h-0 lg:row-start-1 lg:overflow-hidden xl:contents">
           <div className="shrink-0 xl:pointer-events-none xl:z-10 xl:col-start-1 xl:row-start-1 xl:m-4 xl:flex xl:max-h-[calc(100%-2rem)] xl:flex-col xl:self-end xl:justify-self-end">
             <VoicePanel />
           </div>

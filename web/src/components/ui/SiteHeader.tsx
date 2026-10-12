@@ -10,7 +10,8 @@ const NAME = "flex items-center gap-2 whitespace-nowrap text-input font-medium t
 /**
  * The top bar: the logo and name, the tagline (from lg), and the links. Shared by the builder and the 404 page.
  * `home`: on the builder the name is the page's h1; anywhere else it links home and the page has its own h1.
- * Below lg it sticks to the top (the builder's page scrolls under it, FaceBuilder.tsx).
+ * Below lg it sticks to the top (the builder's page scrolls under it, FaceBuilder.tsx). From lg it is static and has no
+ * z-index: as a flex item its z-20 would still lift it over the cards below, hiding their 0.5px top ring.
  */
 export function SiteHeader({ home = false }: { home?: boolean }) {
   const name = (
@@ -20,7 +21,7 @@ export function SiteHeader({ home = false }: { home?: boolean }) {
     </>
   );
   return (
-    <header className="sticky top-0 z-20 box-content flex h-14 shrink-0 items-center justify-between bg-page px-3 pt-[env(safe-area-inset-top)] md:h-16 lg:static lg:px-5">
+    <header className="sticky top-0 z-20 box-content flex h-14 shrink-0 items-center justify-between bg-page px-3 pt-[env(safe-area-inset-top)] md:h-16 lg:static lg:z-auto lg:px-5">
       <div className="flex items-center gap-3">
         {home ? (
           <h1 className={NAME}>{name}</h1>
