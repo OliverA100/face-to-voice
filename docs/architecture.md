@@ -177,7 +177,7 @@ PCM + character times ◄──────── NDJSON passed through, then wr
 
 ```
 browser (Meet step)                    Next.js                                   LiveKit (room)              agent/ (Node worker)
-Talk ─► mic permission ─► /api/talk/token: guards, invite, limits, one-at-a-time slot
+Talk ─► mic permission ─► /api/talk/token: guards, invite, limits, a conversation slot
                           voice id (record) + profile (cache) → instructions (characterPrompt.ts)
       ◄─ token (20 s, mic only, roomConfig dispatches "ftv-character" + metadata)
 room.connect ─────────────────────────────────────────────────────────────► talk-<uuid> ◄── job ── AgentSession
@@ -195,8 +195,9 @@ room.connect ──────────────────────�
   for the face.
 - **The voice stays put.** The token route pins the voice (`ftv:talk:pin:<id>`) so the LRU pool never evicts it
   mid-conversation (a save checks the pins again just before it deletes); a slot set in Redis, taken under a lock,
-  allows one conversation at a time, and LiveKit's own room list frees slots of conversations that ended early. The
-  visitor is charged only once a slot is theirs, and "Have another chat" ends only the room it names.
+  allows five conversations at a time (`MAX_CONCURRENT_TALKS`), and LiveKit's own room list frees slots of
+  conversations that ended early. The visitor is charged only once a slot is theirs, and "Have another chat" ends only
+  the room it names.
 - **Limits live in the agent too**: the conversation length (capped at five minutes whatever the metadata says),
   the away timeout, and close-on-disconnect; session recording is off.
 - **Live lip sync.** The agent forwards each reply's word timings ahead of its audio (`ftv.words`): ElevenLabs'

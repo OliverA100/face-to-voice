@@ -4,7 +4,7 @@
  * from the browser: the voice id is read from the voice record, the profile from the cache, and both are signed into
  * the token with the API secret.
  *
- *   POST /api/talk/token ─► invite ─► slot (one conversation at a time) ─► voice + profile ─► AccessToken
+ *   POST /api/talk/token ─► invite ─► slot (MAX_CONCURRENT_TALKS at a time) ─► voice + profile ─► AccessToken
  *                                                                                              room:  talk-<uuid>
  *                                                                                              grant: join, mic only, no data
  *                                                                                              roomConfig.agents: ftv-character + metadata
@@ -38,7 +38,7 @@ const holdSeconds = () => env.talk.maxSeconds + TOKEN_TTL_SECONDS + SLOT_GRACE_S
 
 export const TALK_MESSAGES = {
   invite: "Talking to characters is invite-only for now.",
-  busy: "Someone is talking to a character right now. Try again in a few minutes.",
+  busy: "All the characters are busy talking right now. Try again in a few minutes.",
   noProfile: "Meet the character first.",
   retired: "This voice was retired to make room for newer ones. Find new voices to talk to this character.",
 };
@@ -60,7 +60,7 @@ export function talkConfigured(): boolean {
   return !!(env.livekit.url && env.livekit.apiKey() && env.livekit.apiSecret());
 }
 
-// --- one conversation at a time (MAX_CONCURRENT_TALKS) --------------------------------------------------------------
+// --- conversations at a time (MAX_CONCURRENT_TALKS) -----------------------------------------------------------------
 // A Redis sorted set of "<visitor>|<room>" scored by when the slot expires. A visitor's new conversation replaces their
 // own previous one (its room is closed, so the limit still holds). LiveKit is the truth about which rooms still exist:
 // when the slots are full, rooms LiveKit no longer has (ended early, or never joined) are freed first.

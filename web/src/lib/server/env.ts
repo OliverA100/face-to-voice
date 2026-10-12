@@ -62,7 +62,7 @@ export const env = {
     inviteCodes: (process.env.TALK_INVITE_CODES ?? "").split(",").map((s) => s.trim()).filter(Boolean),
     public: process.env.TALK_PUBLIC === "1",
     /** Conversations at once. Each holds an ElevenLabs dialogue session for its whole length (v4 Turbo). */
-    maxConcurrent: num(process.env.MAX_CONCURRENT_TALKS, 1),
+    maxConcurrent: num(process.env.MAX_CONCURRENT_TALKS, 5), // LiveKit Build's agent sessions; six ran at once on ElevenLabs Starter (2026-10-12)
     /** Hard length of a conversation; the agent enforces it too (and never runs longer than its own cap). */
     maxSeconds: num(process.env.TALK_MAX_SECONDS, 180),
   },

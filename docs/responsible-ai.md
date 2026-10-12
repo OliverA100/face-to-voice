@@ -75,7 +75,7 @@ Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
 - **The browser can't change the character.** The voice id, the instructions and the limits are read from the
   server's own records and signed into the LiveKit token; the browser only names which face and voice. The token lets
   it join one room with a microphone and nothing else (no data, no video), within 20 seconds.
-- **Limits, enforced by the server and the agent:** one conversation at a time; 10 a day per visitor and 20 a day in
+- **Limits, enforced by the server and the agent:** five conversations at a time; 10 a day per visitor and 20 a day in
   total; at most three minutes (the agent says goodbye and ends it, and never runs past five minutes whatever it is
   told); after 15 seconds of silence the character checks in once, and 15 more end it; the microphone is asked for
   before anything is paid for. Talking can also be made invite-only (`TALK_INVITE_CODES`, with `TALK_PUBLIC` unset).

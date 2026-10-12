@@ -128,7 +128,7 @@ character wears.
   is too (see [Credits and licences](#credits-and-licences)).
 - **Phone numbers are emulated.** Frame rates and timings come from a desktop with 4× CPU throttling; an older phone's
   GPU may struggle with long hair at full resolution.
-- **Live conversations are limited:** English only, one at a time, three minutes long and a few a day. The character is
+- **Live conversations are limited:** English only, five at a time, three minutes long and a few a day. The character is
   an AI: it is told to stay in character and within the rules, but it can still say something odd.
 - **The image check is shallow.** The voice route checks that it got a small same-origin JPEG, not that it is a render
   of this app. [Responsible AI](docs/responsible-ai.md)
