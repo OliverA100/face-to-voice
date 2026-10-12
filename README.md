@@ -6,6 +6,8 @@
 
 Shape a realistic 3D head, style it, give it an expression, and hear the voice it suggests. Claude casts the
 character from the face, ElevenLabs designs three matching voices, and the head lip-syncs to every line it speaks.
+Then meet the character and talk to them out loud: they answer live, in their own voice, with the face moving as they
+speak.
 
 ![Face to Voice: a character with a high bun, styled in the builder's Style tab](docs/images/face-to-voice-style.jpg)
 
@@ -49,6 +51,12 @@ Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewpor
                                                  speak    ──► /api/voice/speak
                                                        eleven_v4_turbo stream with character timestamps
                                                        ──► Web Audio + viseme cues ──► mouth morphs
+                                                 meet     ──► /api/character/profile
+                                                       Claude writes who the character is
+                                                 chat     ──► /api/talk/token ──► LiveKit room
+                                                       agent/ (Node): speech-to-text → Claude Haiku 5.5
+                                                       → ElevenLabs v4 Turbo in the character's voice
+                                                       ──► live lip sync, the reply's mood on the face
 ```
 
 **The head.** GNM is linear, so each of its components bakes into an exact glTF morph target. The pipeline exports 30
@@ -73,8 +81,15 @@ the emotion leaves room for. Claude casts the character from a screenshot into a
 into an ElevenLabs Voice Design prompt; the chosen take speaks with `eleven_v4_turbo`, and the lip sync places every
 p/b/m, f/v and th closure on the audio itself. [More](docs/architecture.md#voice-and-lip-sync)
 
+**Meet and talk.** On the Meet step Claude writes the character's profile once per voice: a name and title, a
+backstory, traits, what they want right now and a greeting that drops you into a scene. "Chat" starts a live voice
+conversation: a LiveKit agent (`agent/`) hears the visitor, answers as the character with Claude Haiku 5.5 and speaks
+in their designed voice. The face lip-syncs to the voice as it arrives and takes on each reply's mood.
+[More](docs/architecture.md#live-conversations)
+
 **Export.** "Download character" builds a zip in the browser: a transparent portrait, the casting and voice prompt,
-the chosen take, a rebuild link, and a licence file written from the licence of each piece the character wears.
+the chosen take, the character's profile, a rebuild link, and a licence file written from the licence of each piece the
+character wears.
 [More](docs/architecture.md#export)
 
 ## How ElevenLabs is used
@@ -120,7 +135,7 @@ the chosen take, a rebuild link, and a licence file written from the licence of 
 
 ## Run it
 
-Requirements: Node 22.18+, pnpm, and for the pipeline Python 3.13 with [uv](https://docs.astral.sh/uv/).
+Requirements: Node 22.18+ (24+ for the agent), pnpm, and for the pipeline Python 3.13 with [uv](https://docs.astral.sh/uv/).
 
 ```bash
 cp .env.example web/.env.local     # FTV_MOCK_ELEVENLABS=1 and FTV_MOCK_CLAUDE=1 run everything without keys
@@ -133,10 +148,14 @@ pnpm dev                           # http://localhost:3000
   (generated tones with lip sync) and export. A real casting needs `ANTHROPIC_API_KEY` (about a cent per face); Voice
   Design needs an ElevenLabs paid plan (Starter is enough).
 - **Without the hair files** the app works bald, and the hair panel says how to get them.
+- **Live conversations** need a LiveKit project (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`) and the agent
+  running; [agent/README.md](agent/README.md) says how, including a canned agent that needs no other keys. Chat shows
+  with `TALK_PUBLIC=1` and `NEXT_PUBLIC_TALK_PUBLIC=1`, or for invited visitors (`/?talk=<code>`, `TALK_INVITE_CODES`).
 - Debug views: `?perf=1` (fps, draw calls, load timings) and `?lipsync=1` (viseme timeline).
 
 ```bash
 cd web && pnpm test && pnpm lint && pnpm typecheck
+cd agent && pnpm test && pnpm typecheck
 cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 ```
 
@@ -144,7 +163,8 @@ cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 
 | Folder | What it is |
 |---|---|
-| `web/` | Next.js 16 app: `src/components/scene` (React Three Fiber), `src/components/ui` (panel, voice card), `src/lib/morphs` (morph store, limiter, random faces), `src/lib/lipsync`, `src/lib/server` (Claude, ElevenLabs, caches, limits), `src/lib/export` |
+| `web/` | Next.js 16 app: `src/components/scene` (React Three Fiber), `src/components/ui` (panel, voice card, character card, chat), `src/lib/morphs` (morph store, limiter, random faces), `src/lib/lipsync` (recorded and live), `src/lib/talk` (the conversation in the browser), `src/lib/server` (Claude, ElevenLabs, LiveKit tokens, caches, limits), `src/lib/export` |
+| `agent/` | The LiveKit agent that plays the character in a live conversation (Node, TypeScript). See [agent/README.md](agent/README.md) |
 | `pipeline/` | Python tools: GNM export and verification, semantic sliders, ranges and validation, emotions, hair and add-ons. See [pipeline/README.md](pipeline/README.md) |
 | `docs/` | [architecture](docs/architecture.md), [responsible AI](docs/responsible-ai.md), [design tokens](docs/design.md) |
 | `third_party/` | Licences of bundled third-party work (see `NOTICE`) |
@@ -171,8 +191,10 @@ Code: MIT ([LICENSE](LICENSE)). Third-party work and the licence of every shippe
   by Mika Suominen, MIT.
 - **Controls** inspired by Google's [XR Blocks GNM demo](https://github.com/google/xrblocks/tree/main/samples/avatar_lab/gnm)
   (ideas only, no code).
-- **Voices and speech** by [ElevenLabs](https://elevenlabs.io); casting and slider names by
-  [Claude](https://www.anthropic.com/claude).
+- **Voices and speech** by [ElevenLabs](https://elevenlabs.io); casting, slider names, character profiles and the
+  character in a conversation by [Claude](https://www.anthropic.com/claude).
+- **Live conversations** on [LiveKit](https://livekit.io) (LiveKit Agents, Apache 2.0, and LiveKit Cloud); speech to
+  text by AssemblyAI through LiveKit Inference.
 
 The UI's design language is inspired by elevenlabs.io; no ElevenLabs logo, wordmark or asset is used. This is an
-independent project, not affiliated with or endorsed by ElevenLabs, Google or Anthropic.
+independent project, not affiliated with or endorsed by ElevenLabs, Google, Anthropic or LiveKit.

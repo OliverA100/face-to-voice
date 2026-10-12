@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Face to Voice",
     short_name: "Face to Voice",
-    description: "Shape a 3D head with sliders, get a matching ElevenLabs voice, and hear it speak with lip sync.",
+    description: "Shape a 3D head with sliders, get a matching ElevenLabs voice, hear it speak with lip sync, then talk to the character live.",
     start_url: "/",
     display: "standalone",
     background_color: "#fdfcfc",

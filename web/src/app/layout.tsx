@@ -9,7 +9,7 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["40
 const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400"] });
 
 const TITLE = "Face to Voice — Build a face, hear its voice";
-const DESCRIPTION = "Shape a 3D head with sliders, get a matching ElevenLabs voice, and hear it speak with lip sync.";
+const DESCRIPTION = "Shape a 3D head with sliders, get a matching ElevenLabs voice, hear it speak with lip sync, then talk to the character live.";
 
 export const metadata: Metadata = {
   // The address link previews resolve against; the preview image is app/opengraph-image.jpg (and twitter-image.jpg).

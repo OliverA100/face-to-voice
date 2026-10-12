@@ -1,8 +1,9 @@
 # Architecture
 
 Face to Voice has two halves joined by files: an offline Python **pipeline** that turns the GNM head model into
-morph targets, limiter data and assets, and a **web app** that renders, constrains and voices the head. The server
-side of the web app is the only part that talks to Claude and ElevenLabs.
+morph targets, limiter data and assets, and a **web app** that renders, constrains and voices the head. A third part,
+the **agent** (`agent/`), plays the character in a live conversation on LiveKit. Only the web app's server side and the
+agent talk to Claude and ElevenLabs; the browser never holds a key.
 
 ```
  pipeline/ (uv, numpy)                         web/public, web/src/data              web/ (Next.js)
@@ -15,10 +16,15 @@ side of the web app is the only part that talks to Claude and ElevenLabs.
                stress test  ◄───────────── headless Chrome drives the real app through window.__faceToVoice (dev / ?debug)
  groom.py …    hair, brows, lashes,  ──────►  models/hair, models/addons        ──►  groom.ts      strands on the GPU, roots on the skin
                beards, glasses                                                        glassesFit.ts seat and splay at runtime
-                                                                                      lipsync/       PCM player, cues, evaluator
+                                                                                      lipsync/       PCM player, live voice, cues, evaluator
                                                                                       server/        /api/voice/{design,select,speak}
                                                                                          │  Claude (casting)  ElevenLabs (design, TTS)
+                                                                                         │  /api/character/profile  Claude (profile)
+                                                                                         │  /api/talk/token  LiveKit token + dispatch
                                                                                          └─ Upstash Redis (limits, caches) + Vercel Blob (audio)
+                                                                                      talk/          the conversation in the browser
+                                                                                                         │ LiveKit room
+                                                                                      agent/ (Node)  STT → Claude Haiku 5.5 → ElevenLabs v4 Turbo
 ```
 
 ## Pipeline → morph targets
@@ -228,6 +234,8 @@ difference matte for transparency; `characterCode.ts` serialises the look (also 
 anything restores so a reload shows exactly the linked character); `zip.ts` is a small store-only zip writer with
 CRC-32; `licence.ts` decides the licence of each piece and of the whole face (the most restrictive wins). Voice
 Design is not reproducible from a seed (probed), so the zip carries the chosen take's audio as the exact artefact.
+When the character has been met, the zip also carries their profile (`profile.json`, and a Character section in its
+README).
 
 ## Key decisions
 
@@ -242,3 +250,7 @@ Design is not reproducible from a seed (probed), so the zip carries the chosen t
 | Claude fills a schema; a template writes the prompt | prompts stay consistent, cacheable and testable; browser text never reaches a prompt |
 | Save per take, LRU pool + studio voices | voice slots and monthly add/edit operations are the scarce resource, not credits |
 | Client-side export | no server cost, no storage of visitors' characters |
+| A LiveKit agent for conversations, dispatched by a server-signed token | the browser only joins a room; the voice, the profile and the rules the agent trusts are signed by the server |
+| The agent's own Claude step, not the plugin's | thinking off and prompt caching (the plugin sends neither), and the reply's mood tag taken off for the voice and the face |
+| The live voice played through Web Audio, held back 130 ms | what the mouth measures is what is heard, and it sees each sound before the visitor hears it |
+| Lip sync pinned to the agent's own audio, not to what is heard | breaths and clicks in the heard audio threw phrases off, more with every pause; the agent's loudness is clean and arrives first |

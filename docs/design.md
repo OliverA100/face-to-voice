@@ -49,7 +49,7 @@ test keeps the shared durations equal.
 | Name | Value | Used for |
 |---|---|---|
 | `--dur-1` / `MOTION.quick` | 150 ms, `--ease` | hover, press, colour, focus rings |
-| `--dur-2` / `MOTION.move` | 300 ms, `--ease-out-soft` | movement (tab indicator, tab switch, choice rings) and fades (`.enter`, thumbnails) |
+| `--dur-2` / `MOTION.move` | 300 ms, `--ease-out-soft` | movement (tab indicator, tab switch and the voice card's step changes, which share its `tab-in`, choice rings) and fades (`.enter`, thumbnails) |
 | `--dur-3` / `MOTION.height` | 400 ms, `--ease-in-out-soft` | groups and the voice card changing height |
 | `MOTION.follow` | 0.12 s | a slider dragging the face |
 | `MOTION.blend` | 0.45 s | an emotion cross-fade |
