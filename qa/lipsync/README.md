@@ -63,6 +63,27 @@ uv run bench.py base try [-v]                            # pooled offsets, late 
 perfect clock, and records the lips' and jaw's opening in mm. `--set` overrides `LIPSYNC` constants and `--off`
 switches `LIPSYNC_PARTS` off. Browsers add about 12 ms of drawing delay to what the bench shows.
 
+## Shapes contact sheet
+
+```bash
+node shapes.mjs --url http://localhost:3041/ --faces 3 --tag current [--emotion Happy]
+uv run sheet.py out/shapes/current                        # → out/shapes/current.jpg
+```
+
+Each viseme preset is held still (the debug handle's "viseme" layer, capped for the face) and rendered from the front,
+¾ and profile. Faces after the first are random characters given a light skin tone.
+
+## Re-tuning a shape
+
+```bash
+cd pipeline && uv run solve-visemes measure                # every shape's mouth measures (mm)
+uv run solve-visemes solve                                  # candidates for GOALS → pipeline/out/visemes/cands.json
+cd ../qa/lipsync && node shapes.mjs --presets ../../pipeline/out/visemes/cands.json --keys u_now,u_round --tag cands
+uv run sheet.py out/shapes/cands                            # pick by eye, then:
+cd ../../pipeline && uv run solve-visemes apply u=u_round   # writes visemes.json and its "speed"
+cd ../qa/lipsync && node caps.mjs --url http://localhost:3041/ && node caps.mjs --url https://facetovoice.com/
+```
+
 ## Phone and Bluetooth recipes
 
 - **AirPods:**

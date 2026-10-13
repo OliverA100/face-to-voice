@@ -15,6 +15,8 @@ import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "@/li
 import { LoudnessEnvelope } from "@/lib/lipsync/envelope";
 import { LIPSYNC, LIPSYNC_PARTS, type SpeechSource } from "@/lib/lipsync/evaluator";
 import { Mouth } from "@/lib/lipsync/mouth";
+import { addPhonemes, PHONEMES, spokenWords } from "@/lib/lipsync/phonemes";
+import dictionary from "@/data/phonemes.json";
 
 const args = process.argv.slice(2);
 const opt = (k: string, d: string) => {
@@ -39,7 +41,11 @@ for (const kv of sets.split(",").filter(Boolean)) {
   for (const key of keys.slice(0, -1)) o = o[key] as Record<string, unknown>;
   o[keys.at(-1)!] = Number(v);
 }
-for (const p of off.split(",").filter(Boolean)) (LIPSYNC_PARTS as Record<string, boolean>)[p] = false;
+for (const p of off.split(",").filter(Boolean)) {
+  if (p === "phonemes") PHONEMES.enabled = false; // the letter rules only
+  else (LIPSYNC_PARTS as Record<string, boolean>)[p] = false;
+}
+const DICT = dictionary as Record<string, string>;
 
 class SavedLine implements SpeechSource {
   playing = true;
@@ -60,6 +66,9 @@ class SavedLine implements SpeechSource {
         this.env.push(Float32Array.from(s, (x) => x / 32768));
       }
     }
+    // the line's phonemes, as the speak route sends them (lib/server/pronounce.ts)
+    const text = aligns.flatMap((a) => a.characters).join("");
+    addPhonemes(Object.fromEntries(spokenWords(text).filter((w) => DICT[w]).map((w) => [w, DICT[w]])));
     this.cues = alignmentToCues(mergeAlignments(aligns));
   }
   time() {

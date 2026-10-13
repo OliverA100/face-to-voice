@@ -95,6 +95,12 @@ originate from NRL Report 7948, "Automatic Translation of English Text to Phonet
 by Means of Letter-to-Sound Rules" (Elovitz, Johnson, McHugh, Shore, 1976), a work
 of the United States Government.
 
+web/src/data/phonemes.json: the CMU Pronouncing Dictionary (cmudict.dict, first
+pronunciation of each word, comments removed), Copyright (C) 1993-2015 Carnegie
+Mellon University, BSD 2-Clause style license (text in third_party/cmudict/LICENSE).
+Source: https://github.com/cmusphinx/cmudict (commit
+74790861f652b15e4ac49015a90074ad62a27690), converted by web/scripts/phonemes.ts.
+
 web/src/components/ui/loader/chromeGl.ts:
 - 3D simplex noise with gradient adapted from webgl-noise (noise3Dgrad.glsl,
   https://github.com/stegu/webgl-noise), Copyright (C) 2011 by Ashima Arts

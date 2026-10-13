@@ -9,6 +9,7 @@
 import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cues";
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
+import { addPhonemes } from "./phonemes";
 
 const SAMPLE_RATE = ENVELOPE_RATE;
 const PRIME_SECONDS = 0.25; // audio buffered before playback starts (raised when chunks arrive slowly)
@@ -207,11 +208,17 @@ class SpeechPlayer {
 
   private handleLine(line: string): void {
     const ctx = this.ctx!;
-    let chunk: { audio_base64?: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null };
+    let chunk: { audio_base64?: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null; phonemes?: Record<string, string> };
     try {
       chunk = JSON.parse(line);
     } catch {
       return; // a malformed line is skipped; the rest of the clip still plays
+    }
+    // the line's words as they are said (the speak route's first line): the cues are built from them
+    if (chunk.phonemes && typeof chunk.phonemes === "object") {
+      addPhonemes(chunk.phonemes);
+      if (this.alignments.length) this.cues = alignmentToCues(mergeAlignments(this.alignments));
+      return;
     }
     const align = chunk.normalized_alignment ?? chunk.alignment;
     if (align && align.characters?.length) {

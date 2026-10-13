@@ -5,6 +5,7 @@
  * frame-rate-independent exponential smoothing removes flicker. Tune attack/release first.
  */
 import { VISEME_IDS, type Cue, type VisemeId } from "./cues";
+import { PHONEMES } from "./phonemes";
 
 export const LIPSYNC = {
   /** Seconds the mouth runs ahead (+) or behind (−) the sound: the whole mouth (shapes and loudness) is evaluated this
@@ -71,7 +72,10 @@ export const LIPSYNC = {
   closureBand: 0.3,
   /** Closures move to the nearest loudness dip in [stamp − snapBefore, stamp + snapAfter]; the
    *  stamps run early, so the true closure is usually a little after them. */
-  snapBefore: 0.04,
+  snapBefore: 0.12,
+  /** Score candidate dips in dB (quiet − snapDbPerS × distance from the stamp), so a real silence a little further from
+   *  the stamp beats a soft consonant next to it; 0 = the plain loudness + distance score. */
+  snapDbPerS: 150,
   snapAfter: 0.16,
   /** A p/b/m then spans the closure the audio shows: from where the sound drops into the dip to the burst (the
    *  steepest rise after it), so the lips part when the sound comes back and back-to-back closures keep the vowel
@@ -126,6 +130,10 @@ export const LIPSYNC = {
    *  where the voice comes back, with the rest of its phrase, when it is more than phraseSlack (s) off, by at most
    *  phraseMaxShift (s). Smaller offsets are stamp jitter, left to the closure and vowel snapping. */
   phraseSlack: 0.03,
+  /** jawSplit: the lips' shape (every target but the jaw's) follows its own, softer gate on the local loudness: none in
+   *  silence (below `from`), full once the voice is `full` of the loudest moment nearby, so a quiet word keeps its
+   *  rounding or spread while the jaw (the loudness gate) opens it only a little. */
+  shapeGate: { from: 0.05, full: 0.3 },
   phraseMaxShift: 0.35,
   /** Vowels move onto the loudest moment of their syllable (snapVowels): eleven_v4_turbo spreads the letters evenly over
    *  a word, so a vowel's stamp can sit far from its sound. The cue's centre goes to the nearest loudness peak within
@@ -202,6 +210,8 @@ export const LIPSYNC_PARTS = {
   placePhrases: true, // each phrase after a pause starts where the voice comes back, when its stamps are far off (placePhrases)
   pauseBoundary: true, // a pause counts as the syllable between two closures (syllableBetween)
   silenceSpan: true, // a p/b/m after silence spans up to its burst (closureSpan)
+  jawSplit: true, // the loudness opens the jaw; the lips keep the sound's shape (LIPSYNC.shapeGate, mouth.ts)
+  lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
 };
 
 /**
@@ -209,11 +219,16 @@ export const LIPSYNC_PARTS = {
  * rules, the old clock), to compare by eye on the same page. TEMPORARY: remove once the new timing is settled.
  */
 export function oldTiming(): void {
+  PHONEMES.enabled = false;
   LIPSYNC.lead = 0.08;
   LIPSYNC.hissOnShift = 0;
   LIPSYNC_PARTS.placePhrases = false;
   LIPSYNC_PARTS.pauseBoundary = false;
   LIPSYNC_PARTS.silenceSpan = false;
+  LIPSYNC_PARTS.jawSplit = false;
+  LIPSYNC_PARTS.lateral = false;
+  LIPSYNC.snapBefore = 0.04;
+  LIPSYNC.snapDbPerS = 0;
 }
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
@@ -329,6 +344,20 @@ export function tongueAt(cues: Cue[], t: number): number {
   return v;
 }
 
+/** How much of the tongue's raise at t is an "l" (tongueAt's track, from lateral cues only): the tongue blends from the
+ *  "d" pose (tip behind the upper teeth) to visemes.json "ll" (tip at their edge, showing). */
+export function lateralAt(cues: Cue[], t: number): number {
+  let v = 0;
+  for (const c of cues) {
+    if (c.start - LIPSYNC.tongueAhead > t) break; // sorted by start
+    if (!c.lateral || t > c.end + LIPSYNC.tongueAfter) continue;
+    const x = t < c.start ? 1 - (c.start - t) / LIPSYNC.tongueAhead : t > c.end ? 1 - (t - c.end) / LIPSYNC.tongueAfter : 1;
+    const e = Math.max(0, Math.min(1, x));
+    v = Math.max(v, e * e * (3 - 2 * e));
+  }
+  return v;
+}
+
 /** Factor the open shapes are scaled by once a closure has actually formed (post-smoothing).
  *  1 = untouched, 0 = fully sealed; a smooth ramp so small closure residue does no harm. */
 export function sealWeight(act: Activations): number {
@@ -433,7 +462,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     let bestT = centre, best = Infinity;
     for (let t = lo; t <= hi; t += 0.01) {
       if ((c.viseme === "PP" && taken(t)) || !allowed(t)) continue;
-      const score = env(t) + 0.5 * (Math.abs(t - centre) / LIPSYNC.snapAfter);
+      const score = LIPSYNC.snapDbPerS > 0 ? 20 * Math.log10(Math.max(env(t), 1e-3)) + LIPSYNC.snapDbPerS * Math.abs(t - centre) : env(t) + 0.5 * (Math.abs(t - centre) / LIPSYNC.snapAfter);
       if (score < best) {
         best = score;
         bestT = t;
@@ -861,7 +890,7 @@ export const frameMemory = (): FrameMemory => ({ snapped: new WeakSet<Cue>(), la
  * the loudness so the sound decides how far the mouth opens and when the lips may shut. One frame of LipSync.tsx, also
  * run offline to compare live sources against a whole decoded line.
  */
-export function frameTargets(src: SpeechSource, t: number, lead: number, out: Activations, mem: FrameMemory): void {
+export function frameTargets(src: SpeechSource, t: number, lead: number, out: Activations, mem: FrameMemory, shapes?: Activations): void {
   // once the stream has ended the whole line is decoded: the last word's windows reach past the audio's end
   const decoded = src.streamDone ? Infinity : src.decodedSeconds();
   const loudnessOf = (x: number) => src.loudness(x);
@@ -878,7 +907,14 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   const loud = src.loudness(t + LIPSYNC.gateLookahead);
   const loudSmooth = windowedLoudness(loudnessOf, t + LIPSYNC.gateLookahead, LIPSYNC.gateWindow);
   // measured against the loudest moment nearby, so a line that trails off still opens its last words (gateLocal)
-  const gate = LIPSYNC_PARTS.gates ? loudnessGate(Math.min(1, loudSmooth / localPeak(loudnessOf, t + LIPSYNC.gateLookahead))) * LIPSYNC.openGain : 1;
+  const rel = Math.min(1, loudSmooth / localPeak(loudnessOf, t + LIPSYNC.gateLookahead));
+  const gate = LIPSYNC_PARTS.gates ? loudnessGate(rel) * LIPSYNC.openGain : 1;
+  if (shapes) {
+    // the lips' shapes: the same cues under the softer shape gate (LIPSYNC.shapeGate); the jaw keeps `out`
+    const G = LIPSYNC.shapeGate;
+    const sg = LIPSYNC_PARTS.gates ? Math.min(1, Math.max(0, (rel - G.from) / (G.full - G.from))) : 1;
+    for (const v of OPEN_VISEMES) shapes[v] = Math.min(1, out[v] * sg);
+  }
   const [preE, preI, preO, preU] = [out.E, out.I, out.O, out.U];
   for (const v of OPEN_VISEMES) out[v] = Math.min(1, out[v] * gate);
   if (LIPSYNC_PARTS.gates && LIPSYNC_PARTS.shapeHold) {
@@ -905,5 +941,9 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   }
   if (loudSmooth > LIPSYNC.sustainLoud && openSum < 0.25 && cg > 0.5) {
     out[mem.lastOpen] = Math.max(out[mem.lastOpen], Math.min(1, LIPSYNC.sustainLevel * gate) * (1 - Math.max(out.PP, out.FF)));
+  }
+  if (shapes) {
+    for (const v of CLOSED_VISEMES) shapes[v] = out[v];
+    shapes[mem.lastOpen] = Math.max(shapes[mem.lastOpen], out[mem.lastOpen]); // the held vowel holds its shape too
   }
 }

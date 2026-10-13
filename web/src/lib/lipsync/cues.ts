@@ -8,13 +8,14 @@
  * a little (they happen before the burst you hear), and other cues shorter than MIN_DURATION
  * (80 ms) are stretched so they register at all.
  */
-import { wordToVisemes } from "./lipsync-en";
+import { wordToVisemes, type WordViseme } from "./lipsync-en";
+import { phonemesOf, phonemesToVisemes } from "./phonemes";
 
 export type VisemeId = "PP" | "FF" | "TH" | "DD" | "SS" | "aa" | "E" | "I" | "O" | "U";
 export const VISEME_IDS: VisemeId[] = ["PP", "FF", "TH", "DD", "SS", "aa", "E", "I", "O", "U"];
 
 /** Oculus / rule tokens → our compact set (null = silence). */
-const FOLD: Record<string, VisemeId | null> = {
+export const FOLD: Record<string, VisemeId | null> = {
   sil: null, PP: "PP", FF: "FF", TH: "TH", DD: "DD", kk: "DD", nn: "DD", CH: "SS", SS: "SS", RR: "U",
   aa: "aa", E: "E", I: "I", O: "O", U: "U", ih: "I", oh: "O", ou: "U", OO: "U", EE: "I",
   AX: "aa", // a schwa (lipsync-en.ts): an "aa" made weak (Cue.weak)
@@ -46,6 +47,7 @@ export interface Cue {
   glide?: boolean; // an "r" or "w" (folded to U): rounded like a vowel, but not a syllable: it takes no loudness peak (snapVowels) and rounds no closure (roundingAt)
   nasal?: boolean; // a closure spelled with an "m": it hums on with the lips shut, so it is found in the treble (snapClosures)
   back?: boolean; // a "k", "g" or "ng" (folded to DD): made with the back of the tongue, out of sight, so the tongue tip stays down (tongueAt)
+  lateral?: boolean; // an "l" (folded to DD): the tongue tip at the edge of the upper teeth, where it shows (visemes.json "ll", lateralAt)
   n?: number; // its place in the spoken order (the evaluator's snapping keeps the sounds in that order)
 }
 
@@ -161,10 +163,17 @@ export function alignmentToCues(raw: Alignment): Cue[] {
   return cues;
 }
 
+/** A word's shapes: from its phonemes where the pronouncing dictionary corrects the letter rules (phonemes.ts), else
+ *  from the letter rules. */
+export function wordShapes(word: string): WordViseme[] {
+  const phones = phonemesOf(word);
+  return phones ? phonemesToVisemes(word, phones) : wordToVisemes(word);
+}
+
 /** The cues of one word, its letters timed by charStart/charEnd (seconds of letter k). */
 function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: number) => number, ws: number): Cue[] {
   const out: Cue[] = [];
-  for (const v of wordToVisemes(word)) {
+  for (const v of wordShapes(word)) {
     const folded = FOLD[v.viseme];
     if (!folded) continue;
     const spanStart = charStart(v.charStart);
@@ -182,20 +191,23 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
     }
     const last = out[out.length - 1];
     const weak = v.viseme === "AX";
-    const letters = word.slice(v.charStart, v.charEnd);
-    const glide = v.viseme === "RR" || (v.viseme === "U" && v.from === 0 && /^w/i.test(letters));
-    const nasal = folded === "PP" && /m/i.test(letters);
-    const back = v.viseme === "kk" || /^ng$/i.test(letters); // k, g, and the "ng" of "morning": the back of the tongue
+    const letters = v.phone ?? word.slice(v.charStart, v.charEnd);
+    // from the dictionary the phoneme says it; from the letter rules, the letters do
+    const glide = v.phone ? ["R", "W", "Y"].includes(v.phone) : v.viseme === "RR" || (v.viseme === "U" && v.from === 0 && /^w/i.test(letters));
+    const nasal = folded === "PP" && (v.phone ? v.phone === "M" : /m/i.test(letters));
+    const back = v.phone ? ["K", "G", "NG"].includes(v.phone) : v.viseme === "kk" || /^ng$/i.test(letters); // k, g, and the "ng" of "morning": the back of the tongue
+    const lateral = folded === "DD" && (v.phone ? v.phone === "L" : /^l+$/i.test(letters));
     // Repeats inside a word ("pp" in peppers) merge; across words each closure stays its own cue.
     if (last && last.viseme === folded && start <= last.end + 0.04) {
       last.end = Math.max(last.end, end);
-      last.text += word.slice(v.charStart, v.charEnd);
+      last.text += v.phone ? " " + v.phone : word.slice(v.charStart, v.charEnd);
       if (!weak) delete last.weak;
       if (!glide) delete last.glide;
       if (nasal) last.nasal = true;
       if (!back) delete last.back;
+      if (!lateral) delete last.lateral;
     } else {
-      out.push({ viseme: folded, start, end, text: word.slice(v.charStart, v.charEnd), ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}) });
+      out.push({ viseme: folded, start, end, text: letters, ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}), ...(lateral ? { lateral } : {}) });
     }
   }
   return out;

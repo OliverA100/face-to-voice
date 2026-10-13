@@ -121,6 +121,8 @@ export interface WordViseme {
   /** 0..1 position of this viseme inside the span of the rule that produced it (rules can emit several). */
   from: number;
   to: number;
+  /** From the pronouncing dictionary (phonemes.ts): the ARPAbet phoneme it came from; letter rules leave it out. */
+  phone?: string;
 }
 
 /** Visemes for one word (letters and apostrophes only), each with the letters it came from. */

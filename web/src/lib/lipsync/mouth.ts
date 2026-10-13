@@ -7,7 +7,7 @@
 import { visemePreset, visemes } from "@/lib/data";
 
 import { VISEME_IDS, type VisemeId } from "./cues";
-import { emptyActivations, frameMemory, frameTargets, LIPSYNC, LIPSYNC_PARTS, roundingAt, sealWeight, shapeShare, smoothTowards, speedShare, speedUpShare, tongueAt, type Activations, type FrameMemory, type SpeechSource } from "./evaluator";
+import { emptyActivations, frameMemory, frameTargets, lateralAt, LIPSYNC, LIPSYNC_PARTS, roundingAt, sealWeight, shapeShare, smoothTowards, speedShare, speedUpShare, tongueAt, type Activations, type FrameMemory, type SpeechSource } from "./evaluator";
 
 /** What the mouth reads from and writes to. */
 export interface MouthWorld {
@@ -35,8 +35,12 @@ export class Mouth {
   readonly speed: { gap: number[]; jaw: number[] };
   private readonly presets: Record<VisemeId, Record<string, number>>;
   private readonly roundedClosure: Record<string, number>; // a p/b/m with the lips rounded (LIPSYNC.roundAhead)
+  private readonly lateralTongue: Record<string, number>; // the tongue of an "l" (visemes.json "ll": tongue morphs only)
   private readonly jawTarget = Object.keys(visemes.roles.jawOpen)[0]; // gets a second smoothing stage (jawTau)
   private readonly scratch = emptyActivations();
+  // the lips' shapes (LIPSYNC_PARTS.jawSplit): the cues under the softer shape gate, smoothed like the activations
+  private readonly shapeScratch = emptyActivations();
+  readonly shapes = emptyActivations();
   // What each speech source's frames remember (snapped cues, the held vowel): the player's lines and a conversation's.
   private readonly memories = new WeakMap<SpeechSource, FrameMemory>();
   private jawValue = 0;
@@ -51,8 +55,9 @@ export class Mouth {
   private held = 0;
   // How rounded a p/b/m is made now (0 = the plain PP shape, 1 = "ppr"), eased (LIPSYNC.roundTau).
   private rounding = 0;
-  // how far the tongue tip is up for a d/t/n/l (tongueAt), smoothed
+  // how far the tongue tip is up for a d/t/n/l (tongueAt), smoothed; and how much of that is an "l" (lateralAt)
   private tongue = 0;
+  private lateral = 0;
   /** The viseme layer as last written, per target (targets order): the speed limit moves from here to `next`. */
   readonly written: Float32Array;
   private readonly next: Float32Array;
@@ -63,8 +68,9 @@ export class Mouth {
   ) {
     this.presets = Object.fromEntries(VISEME_IDS.map((v) => [v, visemePreset(v)])) as Record<VisemeId, Record<string, number>>;
     this.roundedClosure = visemePreset("ppr");
+    this.lateralTongue = visemePreset("ll");
     const set = new Set<string>();
-    for (const v of [...VISEME_IDS, "ppr"]) for (const t of Object.keys(visemePreset(v))) set.add(t);
+    for (const v of [...VISEME_IDS, "ppr", "ll"]) for (const t of Object.keys(visemePreset(v))) set.add(t);
     this.targets = [...set];
     this.speed = { gap: this.targets.map((t) => visemes.speed?.gap[t] ?? 0), jaw: this.targets.map((t) => visemes.speed?.jaw[t] ?? 0) };
     this.written = new Float32Array(this.targets.length);
@@ -81,10 +87,13 @@ export class Mouth {
    */
   frame(src: SpeechSource, t: number, dt: number): void {
     const { world, scratch, state, targets, presets, drawnAct, askedAct, written, next, speed } = this;
-    if (t >= 0) frameTargets(src, t, 0, scratch, this.memoryOf(src));
-    else for (const v of VISEME_IDS) scratch[v] = 0;
+    const split = LIPSYNC_PARTS.jawSplit;
+    const { shapeScratch, shapes } = this;
+    if (t >= 0) frameTargets(src, t, 0, scratch, this.memoryOf(src), split ? shapeScratch : undefined);
+    else for (const v of VISEME_IDS) scratch[v] = shapeScratch[v] = 0;
     const act = state.activations;
     smoothTowards(act, scratch, Math.min(dt, 0.1));
+    if (split) smoothTowards(shapes, shapeScratch, Math.min(dt, 0.1));
     let any = false;
     for (const v of VISEME_IDS) if (act[v] > 0) any = true;
     if (!any && !state.active && t < 0) return; // idle: nothing to write
@@ -109,7 +118,10 @@ export class Mouth {
     world.speechActivity(held, 1 - seal);
     const kJaw = LIPSYNC.jawTau > 0 ? 1 - Math.exp(-step / LIPSYNC.jawTau) : 1;
     this.rounding += ((t >= 0 && LIPSYNC_PARTS.rounding ? roundingAt(src.cues, t) : 0) - this.rounding) * (1 - Math.exp(-step / LIPSYNC.roundTau));
-    this.tongue += ((t >= 0 && LIPSYNC_PARTS.tongue ? tongueAt(src.cues, t) : 0) - this.tongue) * (1 - Math.exp(-step / (LIPSYNC.tau.DD ?? LIPSYNC.tau.default)));
+    const kTongue = 1 - Math.exp(-step / (LIPSYNC.tau.DD ?? LIPSYNC.tau.default));
+    this.tongue += ((t >= 0 && LIPSYNC_PARTS.tongue ? tongueAt(src.cues, t) : 0) - this.tongue) * kTongue;
+    this.lateral += ((t >= 0 && LIPSYNC_PARTS.tongue && LIPSYNC_PARTS.lateral ? lateralAt(src.cues, t) : 0) - this.lateral) * kTongue;
+    const lat = this.tongue > 1e-3 ? Math.min(1, this.lateral / this.tongue) : 0; // the share of the raise that is an "l"
     const rounding = this.rounding;
     const ppCap = world.cap("pp") * (1 - rounding) + world.cap("ppr") * rounding;
     for (let ti = 0; ti < targets.length; ti++) {
@@ -117,15 +129,18 @@ export class Mouth {
       let value = 0;
       // a tongue morph takes the "d"'s tongue from its own track (LIPSYNC_PARTS.tongue); the lips and jaw keep act.DD
       const tongueMorph = LIPSYNC_PARTS.tongue && target.startsWith("tongue");
+      // jawSplit: the jaw opens with the loudness (act); every other target takes the lips' shapes
+      const from = split && target !== this.jawTarget ? shapes : act;
       for (const v of VISEME_IDS) {
-        const a = v === "DD" && tongueMorph ? this.tongue : act[v];
+        const a = v === "DD" && tongueMorph ? this.tongue : from[v];
         if (!a) continue;
         if (v === "PP") {
           const w = (presets.PP[target] ?? 0) * (1 - rounding) + (this.roundedClosure[target] ?? 0) * rounding;
           value += act.PP * w * ppCap; // this face's limit (animCaps)
           continue;
         }
-        const w = presets[v][target];
+        // the tongue of a "d" blends to an "l"'s where the raise is one (lateralAt)
+        const w = v === "DD" && tongueMorph && lat ? (presets.DD[target] ?? 0) * (1 - lat) + (this.lateralTongue[target] ?? 0) * lat : presets[v][target];
         if (w) value += a * w * (v === "FF" ? 1 : seal) * world.cap(v); // this face's limit (animCaps)
       }
       // The jaw is the heavy articulator: its second stage turns cue-edge kinks and the seal's
@@ -143,7 +158,7 @@ export class Mouth {
       dJaw += d * speed.jaw[ti];
     }
     // the top speeds (lip gap and jaw, then the mouth's width and rounding), then how fast a movement may start
-    for (const v of VISEME_IDS) askedAct[v] = act[v] * (v === "PP" || v === "FF" ? 1 : seal);
+    for (const v of VISEME_IDS) askedAct[v] = (split ? shapes : act)[v] * (v === "PP" || v === "FF" ? 1 : seal);
     const share = speedUpShare(dGap, dJaw, shapeShare(drawnAct, askedAct, speedShare(dGap, dJaw, step), step), this.gapVel, this.jawVel, step);
     this.gapVel = (dGap * share) / step;
     this.jawVel = (dJaw * share) / step;
@@ -160,9 +175,9 @@ export class Mouth {
       world.clear();
       state.energy = 0;
       this.jawValue = 0;
-      this.tongue = 0;
+      this.tongue = this.lateral = 0;
       this.gapVel = this.jawVel = 0;
-      for (const v of VISEME_IDS) drawnAct[v] = 0;
+      for (const v of VISEME_IDS) drawnAct[v] = shapes[v] = 0;
       written.fill(0);
     }
   }

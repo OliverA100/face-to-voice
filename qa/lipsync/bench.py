@@ -60,7 +60,10 @@ def score(path: Path):
                 continue
             gm = G[w].max()
             top = w[G[w] >= gm - 0.3]
-            rows.append({"kind": "vowel", "c": e["letters"], "word": e["word"], "t": pk, "off": float(T[top].mean() - pk), "maxGap": float(gm)})
+            # squeezed: a closure ends within 120 ms before the vowel's peak and another starts within 120 ms after it
+            before = any(0 < pk - c["release"] < 0.12 for c in closures)
+            after = any(0 < c["on"] - pk < 0.12 for c in closures)
+            rows.append({"kind": "vowel", "c": e["letters"], "word": e["word"], "t": pk, "off": float(T[top].mean() - pk), "maxGap": float(gm), "level": e["level"], "squeezed": before and after})
         elif e["kind"] == "fv":
             w = np.where((T >= e["on"] - 0.12) & (T <= e["off"] + 0.04))[0]
             if len(w) < 2:
@@ -96,9 +99,13 @@ def main(tags, verbose):
         vw = [r["off"] for r in allrows if r["kind"] == "vowel"]
         fv = [r["off"] for r in allrows if r["kind"] == "fv"]
         mo = [r for r in allrows if r["kind"] == "motion"]
+        vg = [r["maxGap"] for r in allrows if r["kind"] == "vowel"]
+        sq = [r["maxGap"] for r in allrows if r["kind"] == "vowel" and r["squeezed"]]
+        shut = sum(1 for v in sq if v < 1.0)
         print(
             f"{tag:24} lines {len(files):2}  sealed {len(s)}/{len(cl)}  release {med(rel)} (p90 {p90(rel)}, >100 late {late})  seal {med([r['seal'] for r in s])}"
             f"  close-start {med([r['close_start'] for r in s])}  vowel {med(vw)} (p90 {p90(vw)})  fv {med(fv)}"
+            f"  | vowel opening med {np.median(vg):.1f} mm, squeezed {np.median(sq) if sq else 0:.1f} mm ({shut}/{len(sq)} under 1 mm)"
             f"  | lip speed p99 {np.mean([m['vmax'] for m in mo]):.0f} mm/s, accel p95 {np.mean([m['acc95'] for m in mo]):.1f} m/s², reversals {np.mean([m['rev_per_s'] for m in mo]):.1f}/s"
         )
 

@@ -1,6 +1,7 @@
 /**
  * POST /api/voice/speak   body: { descKey, take?: 0..2, text, emotion?: "neutral"|"happy"|…, intensity?: 0..1 }
- * -> newline-delimited JSON stream: {audio_base64 (pcm_24000), alignment|null, normalized_alignment|null}
+ * -> newline-delimited JSON stream: first {phonemes: {word: "HH AH0 L OW1"}} (lib/server/pronounce.ts), then
+ *    {audio_base64 (pcm_24000), alignment|null, normalized_alignment|null}
  */
 import { after } from "next/server";
 import { z } from "zod";
@@ -11,6 +12,7 @@ import { UpstreamError } from "@/lib/server/elevenlabs";
 import { guard } from "@/lib/server/guards";
 import { SpeakEmotion, spokenText } from "@/lib/server/emotion";
 import { checkVisitorLimit, consumeDailyCap, refundDailyCap, requireStore } from "@/lib/server/ratelimit";
+import { withPhonemes } from "@/lib/server/pronounce";
 import { cachedSpeech, generateSpeech, speechHeaders } from "@/lib/server/speech";
 import { env } from "@/lib/server/env";
 import { closestStudioVoice, takeVoice, voiceGone, voiceRecord, voiceSpoken } from "@/lib/server/voice";
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
     // development: the line is saved for /dev/lipsync too (lib/server/devClips.ts)
     const meta = (cached: boolean): ClipMeta => ({ text: body.text, spoken: text, voiceId: speaker, descKey: body.descKey, take: body.take ?? null, emotion: body.emotion, intensity: body.intensity, cached });
     const cached = await cachedSpeech(speaker, text);
-    if (cached) return new Response(captureClip(cached, meta(true)), { headers: speechHeaders(true) }); // cache hits are free
+    if (cached) return new Response(captureClip(withPhonemes(cached, text), meta(true)), { headers: speechHeaders(true) }); // cache hits are free
     // A generation is paid: its characters (the tag counts: it is billed) are reserved against the daily cap before
     // ElevenLabs is called, so a visitor over the cap gets nothing generated, and given back if the call fails.
     await consumeDailyCap("speakChars", text.length);
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
       }
       throw e;
     }
-    return new Response(captureClip(stream, meta(false)), { headers: speechHeaders(false) });
+    return new Response(captureClip(withPhonemes(stream, text), meta(false)), { headers: speechHeaders(false) });
   } catch (e) {
     return errorResponse(e);
   }

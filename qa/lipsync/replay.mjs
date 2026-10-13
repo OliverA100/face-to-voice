@@ -14,6 +14,21 @@ import path from "node:path";
 
 import { headReady, launch, open, record, sleep } from "./lib.mjs";
 
+// the line's phonemes as the speak route sends them (web/src/lib/server/pronounce.ts): a first NDJSON line
+const DICT = JSON.parse(fs.readFileSync(new URL("../../web/src/data/phonemes.json", import.meta.url), "utf8"));
+function withPhonemes(nd) {
+  if (nd.startsWith('{"phonemes"')) return nd;
+  let text = "";
+  for (const l of nd.split("\n")) {
+    if (!l.trim()) continue;
+    const a = JSON.parse(l).normalized_alignment ?? JSON.parse(l).alignment;
+    if (a) text += a.characters.join("");
+  }
+  const words = (text.replace(/\[[^\]]*\]/g, " ").match(/[A-Za-z']+/g) ?? []).map((w) => w.toLowerCase());
+  const map = Object.fromEntries(words.filter((w) => DICT[w]).map((w) => [w, DICT[w]]));
+  return JSON.stringify({ phonemes: map }) + "\n" + nd;
+}
+
 const args = process.argv.slice(2);
 const opt = (k, d) => {
   const i = args.indexOf(`--${k}`);
@@ -38,7 +53,7 @@ await page.evaluate(() => window.__faceToVoice.speech.unlock?.());
 await sleep(500);
 
 for (const clip of clips) {
-  const nd = fs.readFileSync(clip, "utf8");
+  const nd = withPhonemes(fs.readFileSync(clip, "utf8"));
   const arrivals = (() => {
     const sj = clip.replace(/\.ndjson$/, ".arrivals.json");
     return fs.existsSync(sj) ? JSON.parse(fs.readFileSync(sj, "utf8")) : null;

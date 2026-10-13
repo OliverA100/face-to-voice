@@ -10,8 +10,9 @@ import { useEffect, useMemo } from "react";
 
 import { setSpeechActivity } from "@/lib/emotion";
 import { CLOCK } from "@/lib/lipsync/clock";
-import { mouthLead, oldTiming } from "@/lib/lipsync/evaluator";
+import { LIPSYNC_PARTS, mouthLead, oldTiming } from "@/lib/lipsync/evaluator";
 import { Mouth } from "@/lib/lipsync/mouth";
+import { PHONEMES } from "@/lib/lipsync/phonemes";
 import { activeSpeech } from "@/lib/lipsync/source";
 import { lipsyncState } from "@/lib/lipsync/state";
 import { visemeCap } from "@/lib/morphs/animCaps";
@@ -30,10 +31,19 @@ const mouth = new Mouth(
   lipsyncState,
 );
 
-// `?lipsync=v1`: the timing before the 2026-10-13 pass, to compare (TEMPORARY, see oldTiming)
-if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lipsync") === "v1") {
-  oldTiming();
-  CLOCK.fixes = false;
+// `?lipsync=v1`: the timing before the 2026-10-13 pass, to compare (TEMPORARY, see oldTiming).
+// `?lipsyncOff=jawSplit,placePhrases,phonemes`: single parts off (LIPSYNC_PARTS, or the pronouncing dictionary), to
+// compare one change on the same page.
+if (typeof window !== "undefined") {
+  const q = new URLSearchParams(window.location.search);
+  if (q.get("lipsync") === "v1") {
+    oldTiming();
+    CLOCK.fixes = false;
+  }
+  for (const part of (q.get("lipsyncOff") ?? "").split(",")) {
+    if (part === "phonemes") PHONEMES.enabled = false;
+    else if (part in LIPSYNC_PARTS) LIPSYNC_PARTS[part as keyof typeof LIPSYNC_PARTS] = false;
+  }
 }
 
 export function LipSync() {

@@ -206,3 +206,107 @@ Script per frame while speaking, Chrome with a phone screen and the CPU slowed 4
 - **The long-seal tail:** about 1 in 10 p/b/m still opens more than 100 ms late in fast speech (the angry take, C's voices: "peppers", "before") and on m-heavy lines ("mostly", "maybe"). Some are quirks of my measure: "mm" is a hum with closed lips, and "stop!" ends in silence. Fast sequences need Step 3's blending of neighbouring sounds and phonemes.
 - **Not re-measured after the change:** Bluetooth and iPhone. Their corrections come from the Step 1 calibrations and are re-checked in Step 5.
 - **Live chats** use the new clock. Their re-measurement is Step 4.
+
+
+---
+
+# Step 3: mouth shapes (part 1)
+
+## What changed
+
+| Change | Where | Why |
+|---|---|---|
+| **Phonemes from the CMU Pronouncing Dictionary** | `web/src/data/phonemes.json` (BSD-2, NOTICE, `third_party/cmudict`), `lib/server/pronounce.ts`, `lib/lipsync/phonemes.ts`, `cues.ts` | The letter rules shape 108,011 of the dictionary's 124,926 words differently, and the differences matter. Endings were missing: "maybe" had no final "ee", and "go", "my", "eight" had no glide. Vowels were wrong: "all", "thought", "water" were wide instead of rounded; "who" had an "ee"; "third" was spread. Names were wrong: Siobhan, Nguyen, Gloucester, Worcestershire. |
+| **Phonemes sent per line, not downloaded** | speak route | The dictionary stays on the server, and each Speak response (fresh or cached) starts with one NDJSON line holding its own words' phonemes. The browser downloads nothing extra. Words not in the dictionary ("Aoife") keep the letter rules. |
+| **Closure dips scored in dB, searched up to 120 ms before the stamp** | `evaluator.ts` `snapDbPerS`, `snapBefore` | A word stamped late ("bat" in "blue bat", 120 ms) had its real silence out of reach, and in linear loudness a soft consonant next to the stamp beat it. |
+| **Jaw split from lip shape** | `evaluator.ts` `shapeGate`, `LIPSYNC_PARTS.jawSplit`, `mouth.ts` | The jaw morph (`roles.jawOpen`) follows the loudness gate as before. Every other morph (the lips' shape) follows a softer gate on the same local loudness: none in silence, full at 30% of the loudest moment nearby. A quiet syllable keeps its rounding or spread while the jaw opens it only a little. The jaw part of each shape: "ah" 78% of its lip gap, "eh" 56%, "oh" 38%, "ee" and "oo" ≈ 0. |
+| **Switches to compare on the same page** | `LipSync.tsx` | `?lipsyncOff=jawSplit`, `placePhrases`, `phonemes`, … (any `LIPSYNC_PARTS`). `?lipsync=v1` now also turns off phonemes, the dB snapping and the split. |
+
+ElevenLabs normalises its levels: a Tired line is only 1–3 dB quieter than a Happy one, and voices differ by about 5 dB. So "quiet words stay subtle" is measured within each line, against the loudest moment nearby, not on absolute loudness.
+
+## Measured
+
+**Offline bench** (41 lines, `bench.py`):
+
+| | Releases >100 ms late | Worst 10% of releases | Seals | Vowel opening (median) | Vowels in a short gap between closures |
+|---|---|---|---|---|---|
+| Letter rules | 24 | 151 ms | 224/259 | 5.0 mm | — |
+| + phonemes | 24 | 151 ms | 231/259 | 4.9 mm | 6.0 mm (3 of 42 shut) |
+| + dB snapping | 19 | 136 ms | 232/259 | — | — |
+| + jaw split | 19 | 135 ms | 232/259 | 5.4 mm | 6.0 mm (4 of 42 shut) |
+
+The jaw split leaves lip speed and acceleration unchanged.
+
+**Same lines in browsers** (local production build):
+
+| Path | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Closing starts | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
+|---|---|---|---|---|---|---|---|---|
+| Production, Chrome | 6 | -45 (p90 \|55\|) | -42 (p90 \|153\|) | -76 (p90 \|149\|) | -147 (p90 \|266\|) | -19 (p90 \|59\|) | -106 (p90 \|117\|) | 72/76 |
+| Step 2, Chrome | 6 | +5 (p90 \|10\|) | +8 (p90 \|140\|) | -49 (p90 \|145\|) | -109 (p90 \|232\|) | -10 (p90 \|44\|) | -49 (p90 \|116\|) | 69/76 |
+| Step 3, Chrome | 6 | +10 (p90 \|35\|) | +3 (p90 \|134\|) | -38 (p90 \|143\|) | -115 (p90 \|210\|) | -19 (p90 \|49\|) | +9 (p90 \|126\|) | 71/76 |
+| Production, Firefox | 6 | -42 (p90 \|52\|) | -37 (p90 \|150\|) | -81 (p90 \|149\|) | -143 (p90 \|245\|) | -15 (p90 \|57\|) | -51 (p90 \|119\|) | 71/76 |
+| Step 2, Firefox | 6 | +5 (p90 \|8\|) | +7 (p90 \|145\|) | -39 (p90 \|145\|) | -110 (p90 \|266\|) | -12 (p90 \|50\|) | -13 (p90 \|112\|) | 69/76 |
+| Step 3, Firefox | 6 | +5 (p90 \|38\|) | +5 (p90 \|135\|) | -40 (p90 \|144\|) | -115 (p90 \|208\|) | -18 (p90 \|48\|) | +20 (p90 \|116\|) | 70/76 |
+
+Timing holds from Step 2 (releases +3 to +5 ms, seals about −40 ms, one or two more lines sealed).
+
+**Watch:** the all-rounded line ("Who knew, Lou? … too soon") reads +60 ms on the whole-line match in Chrome (Step 2: +10). Its per-vowel offsets scatter ±50 ms in every version, production included: "widest opening" is a weak measure for "oo", which is a narrow opening by design. Likely cause: with phonemes, "who" is one long "oo" from the start of the word. To judge by eye, compare the same line with `?lipsyncOff=phonemes`.
+
+## Shapes and emotions (renders)
+
+- **Contact sheet:** `qa/lipsync/out/shapes/current.jpg`. Every shape (rest, p/b/m, rounded p/b/m, f/v, th, t/d/n/l, s/z, ah, eh, ee, oh, oo/w) on the default face and two random light-skinned characters, front, ¾ and profile. Made with `node shapes.mjs` and `uv run sheet.py`.
+- **Emotions:** `qa/lipsync/out/shapes/emotions.jpg` shows Happy and Sad as while speaking (the emotion's mouth part stepped back, as the app does). Every shape stays intact, p/b/m still seal, and the smile or frown only tints the corners. No clash found.
+
+**Candidates for re-tuning, for your call:**
+1. **"oo/w":** a narrow slit with the lower lip turned out, rather than a small round opening. It's forward in profile.
+2. **"f/v":** the lower lip only lightly touches the upper teeth from the front.
+3. **"t d n l":** no tongue visible. A separate "l" with the tongue tip showing behind the upper teeth isn't there yet.
+4. **"ee" and "s/z"** look alike (natural, but could be told apart).
+
+Each shape is re-solved from the GNM mouth model, so I'll only change the ones you name.
+
+
+## Step 3, part 2: shapes re-tuned
+
+Done by eye, as you asked, with a fresh solver (`pipeline/src/ftv_pipeline/viseme_solve.py`, `uv run solve-visemes`). GNM is linear, so every mouth measure in mm is exact, and a shape can be moved toward goals while every other measure holds:
+- lip gap at the middle and 8 and 12 mm out (round vs slit), width, corners, protrusion;
+- teeth showing, the jaw, the lower lip on the upper teeth;
+- the tongue tip against the upper incisors (vertex 14860, which the tongue components move).
+
+The lopsided components (002, 007, 012) are never used.
+
+| Shape | Before → after (mm) | Chosen from |
+|---|---|---|
+| **oo / w** | gap 4.2 → 5.6, 8 mm out 1.8 → 3.6: a small round opening, not a slit; lips forward 5 mm as before | `u_round` (vs `u_rounder`, which read as "oh") |
+| **f / v** | upper teeth showing 1.5 → 2.8; the lower lip tucked under them | `ff_teeth` (vs `ff_tuck`) |
+| **s / z** | width +2.6 → +1.2, teeth 1.7 → 1.0 apart: told apart from "ee" | `ss_close` |
+| **ee** | width +5.8 → +7.5, gap 3.7 → 4.5, corners +1.5 → +1.8 | `i_spread` |
+| **l** (new) | tongue tip at the edge of the upper teeth, where it shows; "t d n" keep theirs on the ridge behind (hidden, as in life) | `ll_low` (vs `ll_edge`) |
+
+**How "l" works:** visemes.json `ll` is a tongue pose only. An "l" (its phoneme L, or the letter rules' "l") is flagged `lateral`, and the tongue blends from the "d" pose to it (`lateralAt`, `mouth.ts`) while the lips and jaw stay the "d"'s. `?lipsyncOff=lateral` turns it off.
+
+**Renders:**
+- `qa/lipsync/out/shapes/cands.jpg`: every candidate next to the current shape.
+- `qa/lipsync/out/shapes/final.jpg`: all 13 shapes on 3 faces, front, ¾ and profile.
+
+**Per-face limits** (`caps.mjs`, 20 random characters each; different random faces per run):
+
+| Shape | Branch | Live site |
+|---|---|---|
+| ah | limited on 2 faces | 6 |
+| oh | 2 | 4 |
+| oo | 1 | 0 |
+| p/b/m | 2 | 1 |
+| everything else, "l" included | 0 | 0 |
+
+The one face that limited "oo" (to 0.16) also limited "oh" to 0.15: an extreme face where any rounding crosses geometry.
+
+**Timing with the new shapes** (Chrome, the same 6 lines):
+
+| | Whole-line lag | Lips part vs burst | Seal | Vowel peaks | f/v | Sealed |
+|---|---|---|---|---|---|---|
+| Production | −45 | −42 | −76 | −19 | −106 | 72/76 |
+| Step 2 | +5 | +8 | −49 | −10 | −49 | 69/76 |
+| **Step 3 + shapes** | **+10** | **+2** | **−40** | **−20** | **+2** | **71/76** |
+
+On the bench, lip speed and acceleration are unchanged (p99 137 mm/s, p95 3.8 m/s²). The rounded line's whole-line lag is back down to 22 ms (it was 60 before the shape and gate changes).
