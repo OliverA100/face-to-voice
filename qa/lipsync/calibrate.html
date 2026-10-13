@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lip-sync calibration</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; color: #888; font: 14px system-ui, sans-serif; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #ui { position: fixed; left: 12px; bottom: 12px; z-index: 2; }
+  button { font: inherit; padding: 10px 16px; }
+</style>
+</head>
+<body>
+<!--
+  Flash + beep on ONE AudioContext timestamp, 1 per second, 60 ms long, every 4th one longer (sync marker).
+  ?mode=heard (default): the flash is drawn when the beep should be HEARD (ctx.currentTime − outputLatency), the same
+                         rule the app's mouth uses. Filmed from outside, flash vs sound = what the app gets wrong.
+  ?mode=raw:             the flash is drawn at the beep's context time (no latency correction): checks the recorder.
+  Uses WebGL like the app, so frame grabs behave the same.
+-->
+<canvas id="c"></canvas>
+<div id="ui"><button id="go">Start</button> <span id="info"></span></div>
+<script>
+  const mode = new URLSearchParams(location.search).get("mode") || "heard";
+  const canvas = document.getElementById("c");
+  const gl = canvas.getContext("webgl2") || canvas.getContext("webgl");
+  const info = document.getElementById("info");
+  let ctx, t0, beeps = [];
+  const PERIOD = 1, LEN = 0.06;
+  function latency() {
+    if (ctx.outputLatency > 0) return ctx.outputLatency;
+    try { const ts = ctx.getOutputTimestamp(); const playing = ts.contextTime + (performance.now() - ts.performanceTime) / 1000; return Math.max(0, ctx.currentTime - playing); } catch { return 0; }
+  }
+  function schedule() {
+    // keep 3 s of beeps queued
+    const until = ctx.currentTime + 3;
+    let k = beeps.length;
+    while (t0 + k * PERIOD < until) {
+      const at = t0 + k * PERIOD, len = k % 4 === 0 ? LEN * 3 : LEN;
+      const o = ctx.createOscillator(); o.frequency.value = 1000;
+      const g = ctx.createGain(); g.gain.value = 0.5;
+      o.connect(g); g.connect(ctx.destination);
+      o.start(at); o.stop(at + len);
+      beeps.push([at, len]); k++;
+    }
+  }
+  function frame() {
+    requestAnimationFrame(frame);
+    if (!ctx) return;
+    schedule();
+    const t = ctx.currentTime - (mode === "heard" ? latency() : 0);
+    const on = beeps.some(([at, len]) => t >= at && t < at + len);
+    canvas.width = canvas.clientWidth; canvas.height = canvas.clientHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(on ? 1 : 0, on ? 1 : 0, on ? 1 : 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    info.textContent = `${mode} · out ${(latency() * 1000).toFixed(1)} ms · base ${((ctx.baseLatency || 0) * 1000).toFixed(1)} ms`;
+  }
+  document.getElementById("go").onclick = window.calStart = () => {
+    ctx = ctx || new AudioContext();
+    ctx.resume();
+    t0 = Math.ceil(ctx.currentTime + 0.5);
+    beeps = [];
+  };
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "_": "Test lines for lip-sync measurement. Visitor text can't carry audio tags (the server strips brackets), so speed and loudness come from the emotion and the voice itself.",
+  "lines": [
+    { "id": "plosive", "text": "Peter Piper picked a peck of pickled peppers, but Bob bought a big blue bat before breakfast." },
+    { "id": "fv", "text": "Five very fine vans moved over the valley, and Vivian fixed every fiver." },
+    { "id": "round", "text": "Who knew, Lou? You flew through the blue room too soon." },
+    { "id": "wide", "text": "See me eat cheese, Steve. These green leaves need cleaning." },
+    { "id": "long", "text": "I spent most of last summer fixing up an old boat with my brother, and honestly, the best part wasn't sailing it, it was the long evenings arguing about which knot was which." },
+    { "id": "numbers", "text": "My flight leaves at 7:45 on March 3rd, 2027, from gate 12, and the ticket was $349.50." },
+    { "id": "names", "text": "Siobhan, Nguyen and Llewellyn met Xavier and Aoife at the Worcestershire pub on Gloucester Road." },
+    { "id": "pauses", "text": "Wait... no. Stop! Listen, do you hear that? Nothing. Absolutely nothing." },
+    { "id": "mumble", "text": "Mm, maybe. My mum made muffins, and I'm managing my mood, mostly." },
+    { "id": "preset", "text": "Hello there. I'm the face you just made, and this is what I sound like." }
+  ],
+  "emotions": { "fast": "Angry", "quiet": "Tired", "smile": "Happy", "frown": "Sad" }
+}

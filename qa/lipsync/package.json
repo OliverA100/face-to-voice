@@ -1,0 +1,9 @@
+{
+  "name": "ftv-lipsync-qa",
+  "private": true,
+  "type": "module",
+  "description": "Lip-sync measurement tools: record the live site's audio and mouth together, then analyse (see README.md)",
+  "dependencies": {
+    "puppeteer-core": "24.43.1"
+  }
+}
