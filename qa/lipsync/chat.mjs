@@ -22,6 +22,7 @@ const char = opt("char", "A");
 const browser = opt("browser", "chrome");
 const turns = Number(opt("turns", 3));
 const restore = opt("restore", null);
+const tag = opt("tag", "");
 const visitor = fs
   .readdirSync(path.join(OUT, "visitor"))
   .filter((f) => f.endsWith(".wav"))
@@ -94,9 +95,10 @@ const wordsNow = () =>
 const playing = () => page.evaluate(() => !!window.__faceToVoice.liveSpeech?.playing);
 
 for (let k = 0; k <= turns; k++) {
-  const name = `${char}-chat${k}-${browser}`;
+  const name = `${tag ? tag + "-" : ""}${char}-chat${k}-${browser}`;
   console.log(k === 0 ? "greeting…" : `visitor says line ${k - 1}…`);
   let text = "";
+  let live = null;
   await record(
     page,
     name,
@@ -113,14 +115,26 @@ for (let k = 0; k <= turns; k++) {
         const w = await wordsNow().catch(() => "");
         if (w.length > text.length) text = w;
       }, 200);
+      // the reply as the page placed it (LiveSpeech internals): words with their times, the agent's loudness, anchors
+      const snap = setInterval(async () => {
+        live = (await page
+          .evaluate(() => {
+            const L = window.__faceToVoice.liveSpeech;
+            if (!L || !L.words?.length) return null;
+            return { words: L.words, sent: L.sent, onsetAt: L.onsetAt, lineAt: L.lineAt, follow: L.follow, anchors: L.anchors, wordsOnset: L.wordsOnset, cues: L.cues.map((c) => ({ v: c.viseme, s: c.start, e: c.end, x: c.text })) };
+          })
+          .catch(() => null)) ?? live;
+      }, 300);
       await page.waitForFunction(() => !window.__faceToVoice.liveSpeech?.playing, { timeout: 60_000, polling: 100 });
       clearInterval(poll);
+      clearInterval(snap);
     },
     { tail: 300, maxMs: 5000, meta: { kind: "chat", char, browser, turn: k } },
   );
   const mp = path.join(OUT, "runs", name, "meta.json");
   const m = JSON.parse(fs.readFileSync(mp, "utf8"));
   m.text = text;
+  m.live = live;
   fs.writeFileSync(mp, JSON.stringify(m, null, 1));
   console.log(`  said: ${text.slice(0, 120)}`);
   if (!(await playing())) await sleep(800);

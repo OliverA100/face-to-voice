@@ -137,19 +137,49 @@ export function spokenWords(text: string): string[] {
 
 /** Words already asked for (found or not): each is fetched once per page. */
 const asked = new Set<string>();
+/** Words waiting for the next request, and who to tell when their phonemes have come. */
+const queued: string[] = [];
+let waiting: (() => void)[] = [];
+let timer: ReturnType<typeof setTimeout> | null = null;
+/** How long words gather before one request (s): the agent sends a reply's words one message at a time, and one request
+ *  per word tripped the site's /api rate limit (a 429 that would hit the visitor's other requests too). */
+export const PHONEME_BATCH = { wait: 0.15, max: 60 };
 
 /**
- * A live conversation's words, looked up as they arrive (GET /api/phonemes): the agent sends words, not phonemes.
- * Resolves true when new phonemes came in (the cues are then built again). Failures leave the letter rules in place.
+ * A live conversation's words, looked up as they arrive (GET /api/phonemes, batched): the agent sends words, not
+ * phonemes. `onAdded` runs once new phonemes are in (the cues are then built again). Failures leave the letter rules.
  */
-export async function requestPhonemes(words: string[]): Promise<boolean> {
-  if (!PHONEMES.enabled) return false;
+export function queuePhonemes(words: string[], onAdded: () => void): void {
+  if (!PHONEMES.enabled) return;
   const want = [...new Set(words)].filter((w) => /^[a-z']{1,40}$/.test(w) && !asked.has(w));
-  if (!want.length) return false;
+  if (!want.length) return;
+  for (const w of want) asked.add(w);
+  queued.push(...want);
+  waiting.push(onAdded);
+  if (queued.length >= PHONEME_BATCH.max) flush();
+  else if (!timer) timer = setTimeout(flush, PHONEME_BATCH.wait * 1000);
+}
+
+function flush(): void {
+  if (timer) clearTimeout(timer);
+  timer = null;
+  const words = queued.splice(0, PHONEME_BATCH.max);
+  const callbacks = waiting;
+  waiting = [];
+  if (queued.length) timer = setTimeout(flush, 0);
+  void requestPhonemes(words).then((added) => {
+    if (added) for (const fn of callbacks) fn();
+  });
+}
+
+/** One request for these words (already filtered). Resolves true when new phonemes came in. */
+export async function requestPhonemes(words: string[]): Promise<boolean> {
+  const want = words.filter((w) => /^[a-z']{1,40}$/.test(w));
+  if (!want.length || !PHONEMES.enabled) return false;
   for (const w of want) asked.add(w);
   try {
-    const res = await fetch(`/api/phonemes?w=${encodeURIComponent(want.sort().join(","))}`);
-    if (!res.ok) return false;
+    const res = await fetch(`/api/phonemes?w=${encodeURIComponent([...want].sort().join(","))}`);
+    if (!res.ok) throw new Error(String(res.status));
     const { phonemes } = (await res.json()) as { phonemes?: Record<string, string> };
     if (!phonemes || !Object.keys(phonemes).length) return false;
     addPhonemes(phonemes);

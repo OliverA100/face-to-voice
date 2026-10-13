@@ -23,8 +23,8 @@ SEAL_MM = 0.5  # lip gap (mm from rest) at or under which the lips count as clos
 
 def score(path: Path):
     b = json.loads(path.read_text())
-    clip = Path(b["clip"])
-    truth = json.loads(clip.with_suffix("").with_suffix(".truth.json").read_text()) if False else json.loads(Path(str(clip)[: -len(".ndjson")] + ".truth.json").read_text())
+    clip = Path(b.get("clip", ""))
+    truth = json.loads(Path(b["truth"]).read_text()) if "truth" in b else json.loads(Path(str(clip)[: -len(".ndjson")] + ".truth.json").read_text())
     T = np.array([f["t"] for f in b["frames"]])
     G = np.array([f["gap"] for f in b["frames"]])
     J = np.array([f["jaw"] for f in b["frames"]])

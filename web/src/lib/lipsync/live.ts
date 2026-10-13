@@ -29,7 +29,7 @@
  */
 import { HeardClock } from "./clock";
 import { alignmentToCues, type Alignment, type Cue } from "./cues";
-import { requestPhonemes, spokenWords } from "./phonemes";
+import { queuePhonemes, spokenWords } from "./phonemes";
 import type { SpeechSource } from "./evaluator";
 import { speechPlayer } from "./player";
 
@@ -362,8 +362,8 @@ export class LiveSpeech implements SpeechSource {
     this.place();
     // the words' phonemes (the agent sends only words): the cues are built again once they arrive, usually before the
     // words are heard (they come ahead of the audio)
-    void requestPhonemes(spokenWords(words.map((w) => w.w).join(" "))).then((added) => {
-      if (added && !this.detached) this.place();
+    queuePhonemes(spokenWords(words.map((w) => w.w).join(" ")), () => {
+      if (!this.detached) this.place();
     });
   }
 

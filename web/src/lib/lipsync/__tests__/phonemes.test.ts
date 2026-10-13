@@ -7,7 +7,7 @@ import { phonemesFor } from "@/lib/server/pronounce";
 import { alignmentToCues, FOLD, wordShapes } from "../cues";
 import { GET } from "@/app/api/phonemes/route";
 
-import { addPhonemes, PHONEMES, phonemesOf, phonemesToVisemes, requestPhonemes, spokenWords } from "../phonemes";
+import { addPhonemes, PHONEMES, phonemesOf, phonemesToVisemes, queuePhonemes, requestPhonemes, spokenWords } from "../phonemes";
 
 const shapes = (word: string) => wordShapes(word).map((v) => FOLD[v.viseme] + (v.viseme === "AX" ? "~" : ""));
 const timed = (text: string) => {
@@ -76,8 +76,28 @@ describe("live words' phonemes", () => {
     });
     expect(await requestPhonemes(["quixotic", "zephyr", "notaword"])).toBe(true);
     expect(phonemesOf("quixotic")).toEqual(["K W IH0 K S AA1 T IH0 K"].join(" ").split(" "));
-    expect(await requestPhonemes(["quixotic", "notaword"])).toBe(false); // asked already: no second request
     expect(calls).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it("are batched: a reply's words, sent one message at a time, make one request", async () => {
+    vi.useFakeTimers();
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      calls.push(url);
+      return GET(new Request("https://face.example" + url));
+    });
+    let rebuilt = 0;
+    for (const w of ["take", "your", "time", "take"]) queuePhonemes([w], () => rebuilt++);
+    expect(calls).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("take%2Ctime%2Cyour");
+    expect(rebuilt).toBeGreaterThan(0);
+    queuePhonemes(["take"], () => rebuilt++); // known already: nothing asked
+    await vi.advanceTimersByTimeAsync(200);
+    expect(calls).toHaveLength(1);
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
