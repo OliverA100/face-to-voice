@@ -92,6 +92,7 @@ export const LIPSYNC = {
   closureMaxDur: 0.2,
   closureBurstDb: 6, // a rise of this much (dB per 10 ms) after the dip counts as the burst
   closureApart: 0.04, // s: gap kept between two p/b/m closures (no two letters share one quiet stretch)
+  joinWithin: 0.25, // s: two p/b/m with no vowel between, their dips this close, are one closure (joinClosure)
   /** A closure the letters put after a vowel ("pro-b", "Bo-b") goes on a dip with that vowel's syllable before it: the
    *  loudest moment since the previous closure must come within this many dB of the loudest one just after the dip.
    *  eleven_v4_turbo spaces a word's letters evenly, so a stamp can sit on an earlier, shallower dip (the "r" of
@@ -212,6 +213,7 @@ export const LIPSYNC_PARTS = {
   silenceSpan: true, // a p/b/m after silence spans up to its burst (closureSpan)
   jawSplit: true, // the loudness opens the jaw; the lips keep the sound's shape (LIPSYNC.shapeGate, mouth.ts)
   lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
+  joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
 };
 
 /**
@@ -227,6 +229,7 @@ export function oldTiming(): void {
   LIPSYNC_PARTS.silenceSpan = false;
   LIPSYNC_PARTS.jawSplit = false;
   LIPSYNC_PARTS.lateral = false;
+  LIPSYNC_PARTS.joinClosures = false;
   LIPSYNC.snapBefore = 0.04;
   LIPSYNC.snapDbPerS = 0;
 }
@@ -427,6 +430,42 @@ const claimOf = new WeakMap<Cue, [number, number]>(); // the stretch of audio a 
 /** Closure cues whose span came from the audio (closureSpan): audioClosureAt lets them past the closure gate. */
 const fromAudio = new WeakSet<Cue>();
 
+const vowelBefore = new Map<Cue, Cue | null>(); // snapClosures: each p/b/m's vowel before it, in spoken order (reused)
+const midOf = (v: Cue | null | undefined) => (v ? (v.start + v.end) / 2 : NaN);
+
+/**
+ * Two p/b/m with no vowel between, each snapped to a quiet stretch of its own: they are one closure. Two halves of
+ * one stretch become the whole (both cues). Otherwise the second takes the first's, if that lies between the vowel
+ * before the first and the vowel after the second (a pause before the word, or a "d" after its vowel, is quieter than
+ * an "m" but in the wrong place) and the second's own is out of place, shallower, or not a closure at all. Only the
+ * second moves there: moving the first, with the words after it already placed on it, did more harm than good.
+ */
+function joinClosure(first: Cue, second: Cue, order: Cue[], env: (t: number) => number): boolean {
+  const a = dipOf.get(first)!, b = dipOf.get(second)!;
+  if (Math.abs(a - b) >= LIPSYNC.joinWithin) return false;
+  const own = fromAudio.has(second); // it found a closure of its own (else it sits on its stamp)
+  if (own && second.start <= first.end + LIPSYNC.closureApart) {
+    first.start = second.start = Math.min(first.start, second.start);
+    first.end = second.end = Math.max(first.end, second.end);
+    return true;
+  }
+  const lo = midOf(vowelBefore.get(first));
+  let hi = NaN;
+  for (let k = order.indexOf(second) + 1; k < order.length; k++) {
+    if (VOWELS.has(order[k].viseme)) {
+      hi = midOf(order[k]);
+      break;
+    }
+  }
+  const fits = (t: number) => !(t <= lo) && !(t >= hi);
+  if (!fits(a) || (own && fits(b) && env(b) < env(a))) return false;
+  second.start = first.start;
+  second.end = first.end;
+  dipOf.set(second, a);
+  fromAudio.add(second);
+  return true;
+}
+
 /**
  * Character timestamps are only approximate (eleven_v4_turbo spreads the letters evenly over each word); the audio
  * knows when the lips were shut (a dip in loudness). Each closure cue moves to the quietest moment near its stamp,
@@ -442,12 +481,26 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
   const taken = (t: number) => claimed.some(([a, b]) => t > a - LIPSYNC.closureApart / 2 && t < b + LIPSYNC.closureApart / 2);
   let prev: Cue | null = null; // the closure before this one, in spoken order
   let vowelSince = false; // a vowel came between it and this one
-  for (const c of spoken(cues)) {
-    if (VOWELS.has(c.viseme) && !c.glide) vowelSince = true;
+  let prevPP: Cue | null = null; // the p/b/m before this one, and whether a vowel came since
+  let vowelSincePP = false;
+  let lastVowel: Cue | null = null;
+  vowelBefore.clear();
+  const order = spoken(cues);
+  for (const c of order) {
+    if (VOWELS.has(c.viseme)) lastVowel = c;
+    if (VOWELS.has(c.viseme) && !c.glide) vowelSince = vowelSincePP = true;
     if (!CLOSED_VISEMES.includes(c.viseme)) continue;
     const before = prev, needSyllable = vowelSince && prev !== null && snapped.has(prev);
     prev = c;
     vowelSince = false;
+    // a p/b/m right after another with no vowel between is the same closure ("Bob bought", "I'm managing": the lips
+    // close once), but each finds a quiet stretch of its own (the first one's is taken): one of the two is wrong
+    const joinTo = c.viseme === "PP" && LIPSYNC_PARTS.joinClosures && !vowelSincePP && prevPP && fromAudio.has(prevPP) ? prevPP : null;
+    if (c.viseme === "PP") {
+      prevPP = c;
+      vowelSincePP = false;
+      vowelBefore.set(c, lastVowel);
+    }
     if (snapped.has(c) || !isPlaced(c)) continue;
     const centre = (c.start + c.end) / 2;
     const lo = Math.max(0, centre - LIPSYNC.snapBefore);
@@ -503,6 +556,13 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     }
     snapped.add(c);
     moved = true;
+    // ...so they become one (joinClosure). Done here, so the stretch this one had taken is free for the closures after
+    // it ("mum made muffins": "made" took the "d", where "muffins" closes).
+    if (joinTo && joinClosure(joinTo, c, order, c.nasal ? treble : loudness)) {
+      const own = claimed.lastIndexOf(claimOf.get(c)!);
+      if (own >= 0) claimed.splice(own, 1);
+      claimOf.set(c, claimOf.get(joinTo)!);
+    }
   }
   if (moved) cues.sort((p, q) => p.start - q.start);
   return moved;

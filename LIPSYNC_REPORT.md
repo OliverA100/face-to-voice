@@ -366,3 +366,33 @@ Script time 21–35 µs per frame.
   height); `events.py` leaves those out. The new live runs in Step 5 can
   then be measured by pixels.
 
+## Step 4 follow-up: back-to-back p/b/m, tools for Step 5
+
+**"Bob bought" closed twice.** Two p/b/m with no vowel between them ("Bob bought", "I'm managing", "mum made") are one
+closure in the audio: the lips close once for both. The snapping gave every p/b/m a quiet stretch of its own, so the
+second found nothing near and stayed on its stamp, often in the next vowel: the lips closed again on "ought" and the
+word was never mouthed. Now the second takes the first's closure (`LIPSYNC_PARTS.joinClosures`, `?lipsyncOff=joinClosures`
+to compare). Where the first had itself landed in the wrong place (a pause before "I'm", the "d" of "made"), only a
+closure between the vowel before the first and the vowel after the second counts, and two halves of one quiet stretch
+are joined into the whole.
+
+| | Late releases (>100 ms) | Worst 10% of releases | Sealed | Vowels |
+|---|---|---|---|---|
+| Bench, 41 lines, before | 17 | 135 ms | 224/237 | −19 |
+| Bench, 41 lines, after | 16 | 131 ms | 223/237 | −19 |
+| Chrome, 5 lines with back-to-back p/b/m, before | — | 132 ms | 69/77 | −22 |
+| Chrome, same lines, after | — | 115 ms | 69/77 | −17 |
+
+"bought" now parts on its burst: +158 → +8 ms and +154 → +5 ms in Chrome (A's and B's voices). The bench now counts
+closures that overlap in the audio as one (the aligner gives each word its own), so its totals differ from Step 3's.
+Before/after clip: `qa/lipsync/out/compare/bob-bought-join-slow.mp4` (left: before, the lips stay shut through
+"ought"; right: after).
+
+**Tried and dropped:** on a slow network (audio arriving at 0.85× real time), p/b/m part 30–80 ms late (median per line) and
+some 150 ms, because each closure plays before the audio after it has arrived, on its stamps. Waiting for 0.45 s of
+audio after each stall before going on didn't change it (+61/+43 vs +55/+30 ms, the same words late): at 0.85× the
+buffer drains again within a few seconds. Left open: it only happens when the sound itself is stalling.
+
+**Step 5 tools:** `rerun.sh` re-records every production replay on a new deploy, `summary.py --compare rp <tag>`
+prints the before/after table, `sidebyside.py` makes the slow-motion clips (see the README).
+

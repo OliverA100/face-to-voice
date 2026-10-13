@@ -21,6 +21,21 @@ BENCH = HERE / "out" / "bench"
 SEAL_MM = 0.5  # lip gap (mm from rest) at or under which the lips count as closed
 
 
+def joined(events: list[dict]) -> list[dict]:
+    """Closures that overlap in the audio are one ("Bob bought", "I'm managing": the lips close once for both words);
+    the aligner gives each word its own, so a single seal would count as one sealed and one unsealed."""
+    out, last = [], None
+    for e in sorted(events, key=lambda e: e.get("on", e.get("peak", e.get("s", 0)))):
+        if e["kind"] == "closure" and not e.get("weak") and last is not None and e["on"] < last["release"]:
+            last.update(release=max(last["release"], e["release"]), word=f"{last['word']}+{e['word']}")
+            continue
+        e = dict(e)
+        out.append(e)
+        if e["kind"] == "closure" and not e.get("weak"):
+            last = e
+    return out
+
+
 def score(path: Path):
     b = json.loads(path.read_text())
     clip = Path(b.get("clip", ""))
@@ -28,6 +43,7 @@ def score(path: Path):
     T = np.array([f["t"] for f in b["frames"]])
     G = np.array([f["gap"] for f in b["frames"]])
     J = np.array([f["jaw"] for f in b["frames"]])
+    truth["events"] = joined(truth["events"])
     closures = [e for e in truth["events"] if e["kind"] == "closure" and not e.get("weak")]
     mids = [(e["on"] + e["release"]) / 2 for e in closures]
     rows = []

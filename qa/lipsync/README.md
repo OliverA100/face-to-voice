@@ -54,6 +54,17 @@ uv run room.py <room run>    # flash vs beep (cal runs) or mouth vs mic (line ru
 uv run phone.py film.mov <mouth x> <mouth y> <camera delay ms> <line starts…>
 ```
 
+**Before and after a deploy** (Step 5; free, same audio):
+
+```bash
+./rerun.sh "https://facetovoice.com/?debug=1" after [rp] [chrome firefox safari]   # re-records every rp-* replay
+uv run summary.py --md --compare rp after       # per browser × pace: before row, after row (lines in both only)
+uv run sidebyside.py rp-A-plosive-chrome-stream after-A-plosive-chrome-stream [--slow 0.25] [--view full]
+```
+
+`sidebyside.py` writes `out/compare/<name>.mp4` and `<name>-slow.mp4`: the two runs' mouth grabs side by side, lined
+up on the voice onset, with the line's audio (slowed with its pitch kept).
+
 Negative offsets = the mouth is early. "Heard time" means the moment the browser says a sample reaches the
 speakers; the room and phone tools check that against reality.
 
@@ -65,7 +76,8 @@ uv run truth.py out/clips/*.ndjson                       # once per saved line: 
 uv run bench.py base try [-v]                            # pooled offsets, late releases, lip speed/acceleration
 ```
 
-`bench.sh` runs the app's own `web/src/lib/lipsync` code (`mouth.ts`, the evaluator) on saved lines at 120 fps, on a
+`bench.py` counts closures that overlap in the audio as one ("Bob bought": the aligner gives each word its own, but
+the lips close once). `bench.sh` runs the app's own `web/src/lib/lipsync` code (`mouth.ts`, the evaluator) on saved lines at 120 fps, on a
 perfect clock, and records the lips' and jaw's opening in mm. `--set` overrides `LIPSYNC` constants and `--off`
 switches `LIPSYNC_PARTS` off. Browsers add about 12 ms of drawing delay to what the bench shows.
 

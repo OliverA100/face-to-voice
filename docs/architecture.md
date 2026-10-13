@@ -164,7 +164,8 @@ PCM + character times ◄──────── NDJSON passed through, then wr
   request to `/api/phonemes`), else from TalkingHead's letter rules (numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
   unstressed "a/the/of/-ably" are weak); `evaluator.ts` places the line on the voice onset and each phrase after a pause where its stamps are far off,
   snaps closures (p/b/m, f/v,
-  th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble) and vowels to loudness peaks, keeping
+  th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble; two p/b/m with no vowel between, "Bob
+  bought", share one closure) and vowels to loudness peaks, keeping
   the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly), then blends with anticipation, closure
   dominance and smoothing; `mouth.ts` (run by `LipSync.tsx`) writes the result into the viseme morph layer, capped per face by the limiter
   and held to a top speed for the lips and the jaw (`visemes.json` "speed"). How far the jaw opens follows

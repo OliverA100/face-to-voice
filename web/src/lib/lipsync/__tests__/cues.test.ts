@@ -172,10 +172,15 @@ describe("closures from the audio", () => {
     expect(cues[0].start).toBeLessThanOrEqual(0.3);
     expect(cues[0].end).toBeCloseTo(0.47 - LIPSYNC.closureOffShift, 2);
   });
-  it("never put two closures on the same dip", () => {
-    const cues = [{ viseme: "PP" as const, start: 0.46, end: 0.54, text: "b" }, { viseme: "PP" as const, start: 0.48, end: 0.56, text: "b" }];
+  it("never put two closures with a vowel between on the same dip; with none between they are one", () => {
+    const cues = [{ viseme: "PP" as const, start: 0.46, end: 0.54, text: "b" }, { viseme: "aa" as const, start: 0.47, end: 0.5, text: "o" }, { viseme: "PP" as const, start: 0.48, end: 0.56, text: "b" }];
     snapClosures(cues, loud, 2, new WeakSet());
-    expect(Math.abs(cues[0].start - cues[1].start)).toBeGreaterThan(0.03);
+    const [p, q] = cues.filter((c) => c.viseme === "PP");
+    expect(Math.abs(p.start - q.start)).toBeGreaterThan(0.03);
+    const pair = [{ viseme: "PP" as const, start: 0.46, end: 0.54, text: "b" }, { viseme: "PP" as const, start: 0.48, end: 0.56, text: "b" }];
+    snapClosures(pair, loud, 2, new WeakSet());
+    expect(pair[1].start).toBeCloseTo(pair[0].start, 6);
+    expect(pair[1].end).toBeCloseTo(0.56 - LIPSYNC.closureOffShift, 2);
   });
 });
 

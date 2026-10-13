@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BLUETOOTH, HeardClock, IOS_EXTRA } from "../clock";
 import type { Cue } from "../cues";
-import { LIPSYNC, placeLine, placePhrases, snapClosures } from "../evaluator";
+import { LIPSYNC, LIPSYNC_PARTS, placeLine, placePhrases, snapClosures } from "../evaluator";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -84,3 +84,31 @@ describe("a closure after a pause", () => {
     expect(b.end).toBeLessThan(0.86); // not over its vowel
   });
 });
+
+describe("two p/b/m with no vowel between", () => {
+  it("share one closure: \"Bob bought\" closes once and parts on the burst, not again on the late stamp", () => {
+    // "Bo-b b-ought": the vowel, one closure (0.35–0.45), the next vowel; "bought"'s b is stamped 110 ms into its vowel
+    const loud = loudnessOf([
+      [0.1, 0.35, 1.0],
+      [0.45, 0.75, 1.0],
+    ]);
+    const make = () => [cue("PP", 0.05, 0.1, 0.05), cue("aa", 0.1, 0.3, 0.05), cue("PP", 0.33, 0.4, 0.05), cue("PP", 0.56, 0.62, 0.56), cue("aa", 0.6, 0.75, 0.56)];
+    const snap = (cues: Cue[]) => {
+      placeLine(cues, loud, Infinity);
+      placePhrases(cues, loud, Infinity, false);
+      snapClosures(cues, loud, Infinity, new WeakSet<Cue>());
+    };
+    const cues = make();
+    snap(cues);
+    const [bob, bought] = cues.filter((c) => c.viseme === "PP").sort((p, q) => p.n! - q.n!).slice(1);
+    expect(Math.abs(bob.end - (0.45 - LIPSYNC.closureOffShift))).toBeLessThan(0.011); // parts on the burst
+    expect(bought.start).toBeCloseTo(bob.start, 6);
+    expect(bought.end).toBeCloseTo(bob.end, 6); // no second closing on "ought"
+    LIPSYNC_PARTS.joinClosures = false;
+    const old = make();
+    snap(old);
+    expect(old.filter((c) => c.viseme === "PP").sort((p, q) => p.n! - q.n!)[2].end).toBeGreaterThan(0.55); // as before
+    LIPSYNC_PARTS.joinClosures = true;
+  });
+});
+

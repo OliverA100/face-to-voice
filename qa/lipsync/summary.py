@@ -9,7 +9,9 @@ Runs on a dark-skinned face use the app's own values (events-app.json), every ot
 unless the head moved out of the mouth crop for over half of the run's events (mouth.py "clipped"): those use the
 app's values too.
 
-  uv run summary.py [--md]     (--md prints a Markdown table)
+  uv run summary.py [--md]                      (--md prints a Markdown table)
+  uv run summary.py --md --compare rp s5        before/after: runs "rp-<line>-<browser>-<pace>" against "s5-<same>",
+                                                only lines recorded in both, per browser × pace
 """
 
 from __future__ import annotations
@@ -91,4 +93,17 @@ def main(md: bool, groups=None):
 if __name__ == "__main__":
     # --group "Title=regex" (repeatable) replaces the default groups
     custom = [a.split("=", 1) for i, a in enumerate(sys.argv) if i > 0 and sys.argv[i - 1] == "--group"]
+    if "--compare" in sys.argv:
+        k = sys.argv.index("--compare")
+        before, after = sys.argv[k + 1], sys.argv[k + 2]
+        names = {d.name for d in RUNS.iterdir()}
+        pairs: dict[str, list[str]] = {}
+        for n in sorted(names):
+            if n.startswith(before + "-") and f"{after}-{n[len(before) + 1:]}" in names:
+                rest = n[len(before) + 1 :]
+                browser, pace = rest.split("-")[-2:]
+                pairs.setdefault(f"{browser.capitalize()}, {pace}", []).append(rest)
+        for key, rests in pairs.items():
+            alt = "|".join(re.escape(r) for r in rests)
+            custom += [(f"{key}: before", f"^{re.escape(before)}-({alt})$"), (f"{key}: after", f"^{re.escape(after)}-({alt})$")]
     main("--md" in sys.argv, [(t, r) for t, r in custom] or None)
