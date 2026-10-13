@@ -112,6 +112,9 @@ def line(name: str):
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", "1.0", "-i", str(mov), "-frames:v", "1", str(still)], check=True)
     W = Image.open(still).size[0]
     k = json.loads(subprocess.run([sys.executable, str(HERE / "findcrop.py"), str(still), str(W), "0.6"], capture_output=True, text=True).stdout)
+    if not k:
+        print(json.dumps({"run": name, "error": "no lips found in the capture (window covered?)"}))
+        return
     x0, y0, w, h = k["x"], k["y"], k["w"], k["h"]
     fr = frames(mov, x0, y0, w, h, w // 2, h // 2, False)
     n = min(len(fr), len(pts))

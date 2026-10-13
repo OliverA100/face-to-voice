@@ -81,6 +81,9 @@ def main(name: str, sheet: bool):
         out[i] = f[0]
         if sheet and i % 15 == 0 and len(picks) < 24:
             picks.append((i, im, f[1]))
+    if not out:
+        print(f"{name}: no frame grabs (skipped)")
+        return
     (run.dir / "mouth.json").write_text(json.dumps(out))
     opens = np.array([v["open"] for v in out.values()])
     print(f"{name}: {len(out)} frames, open % p5/p50/p95 = {np.percentile(opens, [5, 50, 95]).round(2)}")

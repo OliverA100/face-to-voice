@@ -49,10 +49,10 @@ def stats(v):
     return f"{np.median(v):+.0f} (p90 |{np.percentile(np.abs(v), 90):.0f}|)"
 
 
-def main(md: bool):
+def main(md: bool, groups=None):
     names = sorted(p.name for p in RUNS.iterdir() if p.is_dir())
     rows = []
-    for title, rx in GROUPS:
+    for title, rx in groups or GROUPS:
         runs = [n for n in names if re.match(rx, n)]
         ev = [e for e in (load(n) for n in runs) if e]
         if not ev:
@@ -84,4 +84,6 @@ def main(md: bool):
 
 
 if __name__ == "__main__":
-    main("--md" in sys.argv)
+    # --group "Title=regex" (repeatable) replaces the default groups
+    custom = [a.split("=", 1) for i, a in enumerate(sys.argv) if i > 0 and sys.argv[i - 1] == "--group"]
+    main("--md" in sys.argv, [(t, r) for t, r in custom] or None)

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LiveSpeech, type LiveWord } from "../live";
 
@@ -18,6 +18,12 @@ const WORDS: LiveWord[] = [
 ];
 
 describe("live speech (a reply as the evaluator's line)", () => {
+  // the heard clock carries time on performance.now() between the context's steps: hold it still, the fake context's
+  // currentTime is the only clock here
+  beforeEach(() => {
+    vi.spyOn(performance, "now").mockReturnValue(1000);
+  });
+
   it("puts the reply's time 0 where its first word meets the voice's onset, and builds cues from the words", () => {
     const live = new LiveSpeech(ctx);
     feed(live, 0, 1, () => 0.001); // silence before the reply

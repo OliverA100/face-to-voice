@@ -7,19 +7,13 @@
  * call `unlock()` synchronously in the click handler before any await.
  */
 import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cues";
+import { HeardClock } from "./clock";
+import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
 
-const SAMPLE_RATE = 24000;
+const SAMPLE_RATE = ENVELOPE_RATE;
 const PRIME_SECONDS = 0.25; // audio buffered before playback starts (raised when chunks arrive slowly)
 const LEAD = 0.03; // s between "now" and the first scheduled sample
 const SYNC_KEY = "ftv-sync-ms"; // localStorage: extra ms the listener's audio path delays the sound
-/** The treble envelope's high-pass (Hz): an "m" hums on through the nose with the lips shut, so the line's loudness
- *  hardly dips, but nothing above ~2 kHz gets out (lipsync/evaluator.ts snapClosures). */
-const TREBLE_HZ = 2000;
-const TREBLE = (() => {
-  // RBJ biquad high-pass, Q = 1/√2, at SAMPLE_RATE
-  const w = (2 * Math.PI * TREBLE_HZ) / SAMPLE_RATE, cos = Math.cos(w), alpha = Math.sin(w) / Math.SQRT2, a0 = 1 + alpha;
-  return { b0: (1 + cos) / 2 / a0, b1: -(1 + cos) / a0, b2: (1 + cos) / 2 / a0, a1: (-2 * cos) / a0, a2: (1 - alpha) / a0 };
-})();
 const syncSeconds = (ms: number) => Math.max(-300, Math.min(500, ms)) / 1000;
 
 /** Safari 16.4+: the page's audio session (not in TypeScript's DOM types yet). */
@@ -54,16 +48,8 @@ class SpeechPlayer {
   private lastSource: AudioBufferSourceNode | null = null; // the line's last scheduled audio
   private onLastEnded: (() => void) | null = null; // watchEnd's: runs when lastSource has played
   cues: Cue[] = [];
-  /** RMS loudness per 10 ms of clip time, filled as chunks arrive; normalised by a running peak. */
-  private envelope: number[] = [];
-  private envelopePeak = 0.05;
-  private blockEnergy = 0; // partial block carried across chunk boundaries
-  private blockCount = 0;
-  /** The same, above TREBLE_HZ (normalised by its own running peak): where the lips shut on an "m". */
-  private treble: number[] = [];
-  private treblePeak = 0.01;
-  private trebleEnergy = 0;
-  private hp = [0, 0, 0, 0]; // the high-pass's x[n−1], x[n−2], y[n−1], y[n−2], carried across chunks
+  /** The line's loudness per 10 ms (and above 2 kHz), filled as chunks arrive (envelope.ts). */
+  private envelope = new LoudnessEnvelope();
   state: PlayerState = "idle";
   metrics: SpeechMetrics = { tapAt: 0, firstByteMs: null, firstScheduledMs: null, firstAudibleMs: null, underruns: 0, sampleRate: 0, outputLatencyMs: 0 };
   listeners = new Set<() => void>();
@@ -72,7 +58,8 @@ class SpeechPlayer {
    *  localStorage; `?syncMs=` overrides it for this page view only (a link must not change it for
    *  good). Positive = the mouth waits longer for the sound. */
   private syncDelay: number | null = null;
-  private latencyEst: number | null = null; // eased Safari output-latency estimate (outputLatency)
+  /** When the listener hears what (clock.ts): the output delay with device corrections, carried smoothly. */
+  private clock = new HeardClock(() => this.ctx);
 
   get syncDelayMs(): number {
     if (this.syncDelay === null) {
@@ -99,25 +86,9 @@ class SpeechPlayer {
     }
   }
 
-  /** Seconds between ctx.currentTime and the sound leaving the audio device, as the browser reports it. */
+  /** Seconds between ctx.currentTime and the sound reaching the listener (clock.ts). */
   private outputLatency(): number {
-    const ctx = this.ctx;
-    if (!ctx) return 0;
-    if (ctx.outputLatency > 0) return ctx.outputLatency;
-    // Safari has no outputLatency; getOutputTimestamp says which context time was playing at `performanceTime`. The
-    // timestamp can be old (Safari refreshes it rarely, e.g. after the window comes back from the background), so it is
-    // carried forward to now; otherwise its age would count as output delay and the mouth would run late by it.
-    if (typeof ctx.getOutputTimestamp === "function") {
-      const ts = ctx.getOutputTimestamp();
-      if (typeof ts.contextTime === "number" && ts.contextTime > 0 && typeof ts.performanceTime === "number" && ts.performanceTime > 0) {
-        const playing = ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
-        const est = Math.max(0, Math.min(0.5, ctx.currentTime - playing));
-        // read every frame and slightly jittery: ease it
-        this.latencyEst = this.latencyEst === null ? est : this.latencyEst + (est - this.latencyEst) * 0.1;
-        return this.latencyEst;
-      }
-    }
-    return 0;
+    return this.clock.latency();
   }
 
   /** Call synchronously in the user's tap. */
@@ -130,7 +101,7 @@ class SpeechPlayer {
   /** Clip time in seconds as the listener hears it (negative before playback starts). */
   time(): number {
     if (!this.ctx || !this.started) return -1;
-    const t = this.ctx.currentTime - this.clipStart - this.outputLatency() - this.syncDelayMs / 1000;
+    const t = this.clock.heard() - this.clipStart - this.syncDelayMs / 1000;
     if (t >= 0 && this.metrics.firstAudibleMs === null) {
       // Measured, not estimated: the browser only reports its output latency once audio flows.
       this.metrics.firstAudibleMs = Math.round(performance.now() - this.metrics.tapAt);
@@ -163,21 +134,14 @@ class SpeechPlayer {
     this.streamEnded = false;
     this.cues = [];
     this.alignments = [];
-    this.envelope = [];
-    this.envelopePeak = 0.05;
-    this.blockEnergy = 0;
-    this.blockCount = 0;
-    this.treble = [];
-    this.treblePeak = 0.01;
-    this.trebleEnergy = 0;
-    this.hp = [0, 0, 0, 0];
+    this.envelope.reset();
     this.gotAudio = false;
     if (this.state === "playing" || this.state === "loading") this.setState("idle");
   }
 
   /** Seconds of audio decoded so far (the envelope is valid up to here). */
   decodedSeconds(): number {
-    return this.envelope.length / 100;
+    return this.envelope.seconds();
   }
 
   /** The whole line has arrived and is decoded: nothing more will be added to the envelope. */
@@ -187,17 +151,12 @@ class SpeechPlayer {
 
   /** 0..1 loudness of the audio at clip time t (0 outside the clip or before it is decoded). */
   loudness(t: number): number {
-    const i = Math.round(t * 100);
-    const v = this.envelope[i];
-    if (v === undefined) return 0;
-    return Math.min(1, v / this.envelopePeak);
+    return this.envelope.loudness(t);
   }
 
-  /** 0..1 loudness above TREBLE_HZ at clip time t (0 outside the clip or before it is decoded). */
+  /** 0..1 loudness above 2 kHz at clip time t (0 outside the clip or before it is decoded). */
   trebleLoudness(t: number): number {
-    const v = this.treble[Math.round(t * 100)];
-    if (v === undefined) return 0;
-    return Math.min(1, v / this.treblePeak);
+    return this.envelope.trebleLoudness(t);
   }
 
   async speak(fetchResponse: () => Promise<Response>): Promise<void> {
@@ -273,33 +232,8 @@ class SpeechPlayer {
     const buffer = ctx.createBuffer(1, samples.length, SAMPLE_RATE);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < samples.length; i++) data[i] = samples[i] / 32768;
-    // Loudness envelopes in contiguous 10 ms blocks (partial blocks carry over to the next chunk): the whole sound, and
-    // above TREBLE_HZ.
-    const block = SAMPLE_RATE / 100;
-    const { b0, b1, b2, a1, a2 } = TREBLE;
-    let [x1, x2, y1, y2] = this.hp;
-    for (let i = 0; i < data.length; i++) {
-      const x = data[i];
-      const y = b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-      x2 = x1;
-      x1 = x;
-      y2 = y1;
-      y1 = y;
-      this.blockEnergy += x * x;
-      this.trebleEnergy += y * y;
-      if (++this.blockCount === block) {
-        const rms = Math.sqrt(this.blockEnergy / block);
-        this.envelope.push(rms);
-        if (rms > this.envelopePeak) this.envelopePeak = rms;
-        const high = Math.sqrt(this.trebleEnergy / block);
-        this.treble.push(high);
-        if (high > this.treblePeak) this.treblePeak = high;
-        this.blockEnergy = 0;
-        this.trebleEnergy = 0;
-        this.blockCount = 0;
-      }
-    }
-    this.hp = [x1, x2, y1, y2];
+    // loudness envelopes in contiguous 10 ms blocks: the whole sound, and above 2 kHz (envelope.ts)
+    this.envelope.push(data);
     if (!this.started) {
       this.pending.push(buffer);
       this.pendingSeconds += buffer.duration;

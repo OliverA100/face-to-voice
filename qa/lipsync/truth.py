@@ -159,10 +159,34 @@ def hiss(ratio, hop, s, e, before=0.06, after=0.08):
     return {"on": (a + i) * hop, "peak": (a + k) * hop, "off": (a + j) * hop, "rise": float(seg[k] - lo)}
 
 
+class ClipRun:
+    """A saved line (out/clips/*.ndjson) on its own clock: clip time 0 = its first sample (24 kHz PCM)."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self.nd = path.read_text()
+        self.meta = {"clip": str(path)}
+        self.speak = []
+
+    def audio(self):
+        import base64
+
+        pcm = b"".join(base64.b64decode(json.loads(l).get("audio_base64") or "") for l in self.nd.splitlines() if l.strip())
+        pcm = pcm[: len(pcm) // 2 * 2]
+        return np.frombuffer(pcm, dtype="<i2").astype(np.float32) / 32768, 24000, 0.0
+
+
 def main(name: str):
-    run = Run(name)
-    ctx = run.ctx_of_speech()
-    x, sr, t0 = run.audio(ctx)
+    if name.endswith(".ndjson"):  # a saved line on its own clock → <clip>.truth.json (for bench.py)
+        run = ClipRun(Path(name))
+        ctx = None
+        x, sr, t0 = run.audio()
+        out_file = Path(name[: -len(".ndjson")] + ".truth.json")
+    else:
+        run = Run(name)
+        ctx = run.ctx_of_speech()
+        x, sr, t0 = run.audio(ctx)
+        out_file = run.dir / "truth.json"
     text = spoken_text(run)
     if not text:
         print(f"{name}: no text found, skipped")
@@ -177,7 +201,7 @@ def main(name: str):
     v0 = max(0, voiced[0] * 0.01 - 0.2)
     v1 = min(len(x) / sr, voiced[-1] * 0.01 + 0.3)
     seg = x[int(v0 * sr) : int(v1 * sr)]
-    x16 = resample_poly(seg, 1, 3).astype(np.float32) if sr == 48000 else resample_poly(seg, 16000, sr).astype(np.float32)
+    x16 = resample_poly(seg, 1, 3).astype(np.float32) if sr == 48000 else resample_poly(seg, 2, 3).astype(np.float32) if sr == 24000 else resample_poly(seg, 16000, sr).astype(np.float32)
     letters = align(x16, words)
     for L in letters:
         L["s"] += v0
@@ -238,11 +262,11 @@ def main(name: str):
         "letters": [{**L, "s": L["s"] + t0, "e": L["e"] + t0} for L in letters],
         "events": events,
     }
-    (run.dir / "truth.json").write_text(json.dumps(out, indent=1))
+    out_file.write_text(json.dumps(out, indent=1))
     kinds = {}
     for e in events:
         kinds[e["kind"]] = kinds.get(e["kind"], 0) + 1
-    print(f"{name}: {len(words)} words, {len(letters)} aligned tokens, events {kinds}")
+    print(f"{Path(name).name}: {len(words)} words, {len(letters)} aligned tokens, events {kinds}")
 
 
 if __name__ == "__main__":

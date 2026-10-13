@@ -12,8 +12,12 @@ export const LIPSYNC = {
    *  2026-10-09), but as drawn it trailed by 20–30 ms (smoothing, speed limit, the frame reaching the screen), and a
    *  real mouth moves before its sound: 30 ms looked right by eye (live chats, 2026-10-11: 60 "a slight
    *  delay", 90 "ahead"), then 80 once the shapes followed the voice more closely (2026-10-11: "−50 ms makes it good"
-   *  on the Sync slider, Speak and chats). */
-  lead: 0.08,
+   *  on the Sync slider, Speak and chats). Measured on real devices (2026-10-13, qa/lipsync, LIPSYNC_REPORT.md) 80 put
+   *  the whole mouth 50–75 ms ahead and parted the lips before each p/b burst; with the closures placed on the audio
+   *  (placePhrases, the pause rule in syllableBetween) 30 lands the releases on the bursts as drawn in Chrome, Firefox
+   *  and Safari (20 was +6 ms on the bench's perfect clock, +17–23 ms in the browsers). The moving ahead a real mouth
+   *  does is per sound: closures start forming attack + closureOnShift before their silence. */
+  lead: 0.03,
   attack: 0.06, // s before a cue starts that its shape begins to form
   release: 0.09, // s after a cue ends that its shape has faded
   /** Closures snap shut and let go fast, so the vowels around a "p" stay open. */
@@ -73,6 +77,9 @@ export const LIPSYNC = {
    *  steepest rise after it), so the lips part when the sound comes back and back-to-back closures keep the vowel
    *  between them. The edges are moved earlier by these (s): the mouth's smoothing and LIPSYNC.lead take the rest. */
   closureOnShift: 0.03,
+  /** … an f/v or th starts this much earlier still (s): the lower lip is on the teeth (the tongue between them) as the
+   *  hiss begins, not 25 ms into it */
+  hissOnShift: 0.025,
   closureOffShift: 0.02,
   closureMinDur: 0.05, // s: shorter closures start earlier (the lips need this long to meet), still parting at the burst
   closureSearch: 0.12, // s searched before the dip (for the drop) and after it (for the burst)
@@ -115,6 +122,11 @@ export const LIPSYNC = {
   lineOnsetDb: -30,
   lineMaxShift: 0.3,
   lineFade: 1.5,
+  /** placePhrases: after a pause (pauseLevel for pauseMin), the first word stamped after the voice stopped moves onto
+   *  where the voice comes back, with the rest of its phrase, when it is more than phraseSlack (s) off, by at most
+   *  phraseMaxShift (s). Smaller offsets are stamp jitter, left to the closure and vowel snapping. */
+  phraseSlack: 0.03,
+  phraseMaxShift: 0.35,
   /** Vowels move onto the loudest moment of their syllable (snapVowels): eleven_v4_turbo spreads the letters evenly over
    *  a word, so a vowel's stamp can sit far from its sound. The cue's centre goes to the nearest loudness peak within
    *  vowelSearch (s) that stands vowelProm dB above the dips on both sides, plus vowelShift (s; − = earlier, to
@@ -187,7 +199,22 @@ export const LIPSYNC_PARTS = {
   fitPhrases: true, // each phrase's last vowel held until the voice stops, the next started where it comes back (fitPhrases)
   followRelease: true, // the sounds after a p/b/m or f/v in its word start where it lets go (followRelease)
   shapeHold: true, // the lips hold a vowel's rounding or spread while the loudness takes the opening away (LIPSYNC.shapeHold)
+  placePhrases: true, // each phrase after a pause starts where the voice comes back, when its stamps are far off (placePhrases)
+  pauseBoundary: true, // a pause counts as the syllable between two closures (syllableBetween)
+  silenceSpan: true, // a p/b/m after silence spans up to its burst (closureSpan)
 };
+
+/**
+ * `?lipsync=v1`: the timing as it was before the 2026-10-13 pass (80 ms lead, no phrase placement, the old closure
+ * rules, the old clock), to compare by eye on the same page. TEMPORARY: remove once the new timing is settled.
+ */
+export function oldTiming(): void {
+  LIPSYNC.lead = 0.08;
+  LIPSYNC.hissOnShift = 0;
+  LIPSYNC_PARTS.placePhrases = false;
+  LIPSYNC_PARTS.pauseBoundary = false;
+  LIPSYNC_PARTS.silenceSpan = false;
+}
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
 export function mouthLead(param: string | null): number {
@@ -363,7 +390,9 @@ export function smoothTowards(current: Activations, target: Activations, dt: num
 // What the audio snapping below has done to each cue, held weakly so a line's cues are forgotten with it.
 /** Cues already moved by placeLine (built from the alignment, cues carry `ws`; hand-made ones without it count as placed). */
 const lined = new WeakSet<Cue>();
-const isPlaced = (c: Cue) => c.ws === undefined || lined.has(c);
+/** Cues whose phrase has been placed (placePhrases): the audio after their stamp has been looked at for pauses. */
+const phrased = new WeakSet<Cue>();
+const isPlaced = (c: Cue) => c.ws === undefined || (lined.has(c) && phrased.has(c));
 const dipOf = new WeakMap<Cue, number>(); // the loudness dip a closure cue was moved to (snapClosures)
 const claimOf = new WeakMap<Cue, [number, number]>(); // the stretch of audio a p/b/m cue took (snapClosures)
 /** Closure cues whose span came from the audio (closureSpan): audioClosureAt lets them past the closure gate. */
@@ -434,7 +463,8 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     }
     if (span) {
       c.end = span[1] - LIPSYNC.closureOffShift;
-      c.start = Math.max(0, Math.min(span[0] - LIPSYNC.closureOnShift, c.end - LIPSYNC.closureMinDur));
+      const onShift = LIPSYNC.closureOnShift + (c.viseme === "PP" ? 0 : LIPSYNC.hissOnShift);
+      c.start = Math.max(0, Math.min(span[0] - onShift, c.end - LIPSYNC.closureMinDur));
       if (needSyllable && before) c.start = Math.max(c.start, Math.min(before.end + LIPSYNC.closureGapMin, c.end - LIPSYNC.closureKeep));
       fromAudio.add(c);
     } else {
@@ -541,10 +571,17 @@ export function followRelease(cues: Cue[], loudness: (t: number) => number, snap
 }
 
 /** Whether the sound since `from` (a closure's release) has had a syllable before the dip at t: its loudest moment comes
- *  within LIPSYNC.closureSyllableDb of the loudest one in the closureSearch after t (the vowel the dip leads into). */
+ *  within LIPSYNC.closureSyllableDb of the loudest one in the closureSearch after t (the vowel the dip leads into).
+ *  A pause on the way counts too (a new phrase starts: "peppers, but"): the phrase before often trails off more than
+ *  closureSyllableDb below the next one's first vowel, and the closure was then pushed past its own vowel. */
 function syllableBetween(loudness: (t: number) => number, from: number, t: number): boolean {
-  let before = 0, after = 0;
-  for (let x = from; x < t; x += 0.01) before = Math.max(before, loudness(x));
+  let before = 0, after = 0, quiet = 0;
+  for (let x = from; x < t; x += 0.01) {
+    const l = loudness(x);
+    before = Math.max(before, l);
+    quiet = l < LIPSYNC.pauseLevel ? quiet + 0.01 : 0;
+    if (LIPSYNC_PARTS.pauseBoundary && quiet >= LIPSYNC.pauseMin && before > LIPSYNC.pauseLevel) return true;
+  }
   for (let x = t; x <= t + LIPSYNC.closureSearch; x += 0.01) after = Math.max(after, loudness(x));
   return 20 * Math.log10(Math.max(before, 1e-3) / Math.max(after, 1e-3)) >= -LIPSYNC.closureSyllableDb;
 }
@@ -554,7 +591,7 @@ function syllableBetween(loudness: (t: number) => number, from: number, t: numbe
 export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number): boolean {
   let first = Infinity;
   for (const c of cues) if (c.ws !== undefined && c.ws < first) first = c.ws;
-  if (first === Infinity || !cues.some((c) => !isPlaced(c))) return false;
+  if (first === Infinity || !cues.some((c) => c.ws !== undefined && !lined.has(c))) return false;
   const until = first + LIPSYNC.lineMaxShift;
   if (until > decodedSeconds) return false;
   const level = Math.pow(10, LIPSYNC.lineOnsetDb / 20);
@@ -567,7 +604,7 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
   }
   const d0 = onset === null || !LIPSYNC_PARTS.placeLine ? 0 : Math.max(-LIPSYNC.lineMaxShift, Math.min(0, onset - first)); // late stamps only
   for (const c of cues) {
-    if (isPlaced(c)) continue;
+    if (c.ws === undefined || lined.has(c)) continue;
     const d = d0 * Math.max(0, 1 - (c.ws! - first) / LIPSYNC.lineFade);
     c.start = Math.max(0, c.start + d);
     c.end += d;
@@ -575,6 +612,59 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
   }
   cues.sort((p, q) => p.start - q.start);
   return true;
+}
+
+/** How far placePhrases has read a line's loudness, and what it was reading (per cue list). */
+const phraseScan = new WeakMap<Cue[], { t: number; quiet: number; voiced: boolean }>();
+/**
+ * After a pause, the next phrase's stamps can be far off: eleven_v4_turbo times its words from the text, and "mood,
+ * mostly" came 300 ms late, out of the closure snapping's reach, so "mostly" was never mouthed. Where the voice comes
+ * back after a pause (pauseLevel for pauseMin), the first word stamped after the voice stopped moves onto it with the
+ * rest of its phrase, but only when it is more than phraseSlack off: smaller offsets are stamp jitter that the snapping
+ * handles (moving every phrase start onto the voice was tried before and made lines worse). Reads the loudness as it is
+ * decoded; cues count as placed (isPlaced) once the scan has passed their stamp by phraseMaxShift. Run after
+ * placeLine, before the snapping. Returns true if anything moved.
+ */
+export function placePhrases(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number, enabled = LIPSYNC_PARTS.placePhrases): boolean {
+  let last = 0;
+  for (const c of cues) if (c.ws !== undefined && c.ws > last) last = c.ws;
+  const end = decodedSeconds === Infinity ? last + LIPSYNC.phraseMaxShift + LIPSYNC.pauseMin + 0.5 : decodedSeconds - 0.05;
+  const scan = phraseScan.get(cues) ?? phraseScan.set(cues, { t: 0, quiet: 0, voiced: false }).get(cues)!;
+  let moved = false;
+  for (; scan.t < end; scan.t += 0.01) {
+    if (!enabled) {
+      scan.t = end;
+      break;
+    }
+    const l = loudness(scan.t);
+    if (l < LIPSYNC.pauseLevel) {
+      scan.quiet += 0.01;
+      continue;
+    }
+    if (scan.voiced && scan.quiet >= LIPSYNC.pauseMin) {
+      const onset = scan.t, stopped = scan.t - scan.quiet;
+      // the first word stamped after the voice stopped, and where it is now (an earlier phrase may have moved it)
+      let first = Infinity;
+      for (const c of cues) if (c.ws !== undefined && c.ws >= stopped - 0.1 && c.ws < first) first = c.ws;
+      let at = Infinity;
+      for (const c of cues) if (c.ws === first && c.start < at) at = c.start;
+      const off = onset - at;
+      if (at !== Infinity && Math.abs(off) > LIPSYNC.phraseSlack && Math.abs(off) <= LIPSYNC.phraseMaxShift) {
+        for (const c of cues) {
+          if (c.ws === undefined || c.ws < first) continue;
+          c.start = Math.max(0, c.start + off);
+          c.end += off;
+        }
+        moved = true;
+      }
+    }
+    scan.voiced = true;
+    scan.quiet = 0;
+  }
+  const settled = Math.min(scan.t, end) - LIPSYNC.phraseMaxShift - LIPSYNC.pauseMin;
+  for (const c of cues) if (!phrased.has(c) && (!enabled || c.ws === undefined || c.ws < settled || (scan.t >= end && decodedSeconds === Infinity))) phrased.add(c);
+  if (moved) cues.sort((p, q) => p.start - q.start);
+  return moved;
 }
 
 const VOWELS = new Set<VisemeId>(["aa", "E", "I", "O", "U"]);
@@ -687,7 +777,8 @@ export function audioClosureAt(cues: Cue[], t: number, loudness: (t: number) => 
 /**
  * The closure around a loudness dip at `dip` (s), from the 10 ms loudness: [where the sound fell halfway (in dB) from
  * the loudest moment before it into the dip, the steepest rise after the dip (the burst, or the vowel after an "m")].
- * Null when the dip is too shallow to trust (LIPSYNC.closureMinDb).
+ * After silence the closure runs up to the burst (no drop to measure). Null when nothing rises out of the dip
+ * (LIPSYNC.closureMinDb).
  */
 export function closureSpan(loudness: (t: number) => number, dip: number, back = LIPSYNC.closureSearch, nasal = false): [number, number] | null {
   const db = (t: number) => 20 * Math.log10(Math.max(loudness(t), 1e-3));
@@ -707,12 +798,7 @@ export function closureSpan(loudness: (t: number) => number, dip: number, back =
     const on = Math.max(0, dip - 0.03);
     return [on, Math.max(end, on + 0.03)];
   }
-  if (Math.min(db(peak), after) - floor < LIPSYNC.closureMinDb) return null;
-  // where the sound fell halfway (in dB) into the dip; an "m" fades in gradually, so its lips are shut once the treble is
-  // closureVowelDb below the vowel, if that comes first
-  const half = nasal ? Math.max((db(peak) + floor) / 2, db(peak) - LIPSYNC.closureVowelDb) : (db(peak) + floor) / 2;
-  let on = dip;
-  while (on - 0.01 > peak && db(on - 0.01) < half) on -= 0.01;
+  if (after - floor < LIPSYNC.closureMinDb) return null;
   // the burst: the first strong rise after the dip (the steepest one can be a later vowel: "pr-o", "be-f-o")
   let steepest = 0;
   for (let t = dip; t < dip + W; t += 0.01) steepest = Math.max(steepest, db(t + 0.01) - db(t));
@@ -723,6 +809,14 @@ export function closureSpan(loudness: (t: number) => number, dip: number, back =
       break;
     }
   }
+  // after silence (a pause, the line's start: "peppers, but"): no drop into the dip to measure, the lips are shut
+  // through it, and part at the burst
+  if (db(peak) - floor < LIPSYNC.closureMinDb) return LIPSYNC_PARTS.silenceSpan ? [Math.max(0, burst - LIPSYNC.closureMinDur), burst] : null;
+  // where the sound fell halfway (in dB) into the dip; an "m" fades in gradually, so its lips are shut once the treble is
+  // closureVowelDb below the vowel, if that comes first
+  const half = nasal ? Math.max((db(peak) + floor) / 2, db(peak) - LIPSYNC.closureVowelDb) : (db(peak) + floor) / 2;
+  let on = dip;
+  while (on - 0.01 > peak && db(on - 0.01) < half) on -= 0.01;
   // … or where the sound is back near the vowel before it, if that comes first: a later, louder burst ("-bab-") can make
   // the rise into the vowel between look too small to count
   const recovered = Math.max(floor + LIPSYNC.closureBurstDb, db(peak) - LIPSYNC.closureVowelDb);
@@ -751,6 +845,8 @@ export interface SpeechSource {
   readonly streamDone: boolean;
   loudness(t: number): number;
   trebleLoudness(t: number): number;
+  /** The source places each phrase on its sound itself (live.ts anchors): the evaluator's placePhrases stays out. */
+  readonly phrasesPlaced?: boolean;
 }
 
 /** What one source's frames keep between frames (LipSync.tsx keeps one per source). */
@@ -770,6 +866,7 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   const decoded = src.streamDone ? Infinity : src.decodedSeconds();
   const loudnessOf = (x: number) => src.loudness(x);
   placeLine(src.cues, loudnessOf, decoded); // the stamps' offset at the start
+  placePhrases(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placePhrases && !src.phrasesPlaced); // … and after each pause, where they are far off
   // an "m" closure is found in the treble (its hum keeps the loudness up): LIPSYNC_PARTS.trebleM
   const treble = LIPSYNC_PARTS.trebleM ? (x: number) => src.trebleLoudness(x) : loudnessOf;
   if (LIPSYNC_PARTS.snapClosures) snapClosures(src.cues, loudnessOf, decoded, mem.snapped, treble);

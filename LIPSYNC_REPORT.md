@@ -53,19 +53,22 @@ Fresh tools in `qa/lipsync/` (see its README). None of them reuse the old rig or
 
 From `uv run summary.py --md`. Format: median (p90 |…|, the worst 10% are at least this far off).
 
+*Corrected in Step 2:* frames are now placed with `currentTime − outputLatency`, the rule the room recordings back up.
+The first version used `getOutputTimestamp`, which in Firefox and Safari leaves the output delay out. That made those two browsers look 15–20 ms less early than they were (Firefox −25 → −45, Safari −35 → −50). The device tables below were never affected.
+
 | Path | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Closing starts | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
 |---|---|---|---|---|---|---|---|---|
-| Speak, first-time (streamed), Chrome | 41 | -60 (p90 \|75\|) | -18 (p90 \|154\|) | -98 (p90 \|147\|) | -150 (p90 \|293\|) | -6 (p90 \|58\|) | -61 (p90 \|118\|) | 233/259 |
-| Speak, cached, Chrome | 10 | -55 (p90 \|60\|) | -32 (p90 \|154\|) | -95 (p90 \|147\|) | -155 (p90 \|255\|) | -4 (p90 \|59\|) | -31 (p90 \|118\|) | 52/55 |
-| Speak, cached, Firefox | 5 | -25 (p90 \|33\|) | -13 (p90 \|153\|) | -71 (p90 \|149\|) | -134 (p90 \|228\|) | -17 (p90 \|53\|) | -14 (p90 \|113\|) | 40/43 |
-| Speak, cached, Safari | 5 | -35 (p90 \|43\|) | -20 (p90 \|157\|) | -81 (p90 \|146\|) | -144 (p90 \|333\|) | -12 (p90 \|52\|) | -22 (p90 \|113\|) | 39/43 |
-| Real lines replayed, streamed pace, Chrome | 6 | -50 (p90 \|60\|) | -47 (p90 \|153\|) | -80 (p90 \|148\|) | -150 (p90 \|271\|) | -14 (p90 \|60\|) | -47 (p90 \|118\|) | 72/76 |
-| Real lines replayed, Firefox | 12 | -25 (p90 \|34\|) | -18 (p90 \|152\|) | -67 (p90 \|147\|) | -130 (p90 \|258\|) | -19 (p90 \|57\|) | -64 (p90 \|119\|) | 133/145 |
-| Real lines replayed, Safari | 5 | -35 (p90 \|48\|) | -22 (p90 \|152\|) | -64 (p90 \|146\|) | -143 (p90 \|302\|) | -11 (p90 \|55\|) | -47 (p90 \|117\|) | 62/66 |
-| Slow network (underruns), Chrome | 2 | -48 (p90 \|50\|) | -22 (p90 \|154\|) | -143 (p90 \|148\|) | -187 (p90 \|300\|) | +3 (p90 \|53\|) | +6 (p90 \|119\|) | 26/27 |
-| Live chat, Chrome | 4 | -52 (p90 \|72\|) | -9 (p90 \|153\|) | -94 (p90 \|149\|) | -160 (p90 \|320\|) | +5 (p90 \|53\|) | +1 (p90 \|93\|) | 22/26 |
-| Live chat, Firefox | 4 | -35 (p90 \|42\|) | -5 (p90 \|153\|) | -103 (p90 \|147\|) | -155 (p90 \|242\|) | -22 (p90 \|55\|) | -58 (p90 \|119\|) | 23/26 |
-| Live chat, Safari | 1 | -45 | +80 (p90 \|142\|) | -107 (p90 \|138\|) | -191 (p90 \|373\|) | +1 (p90 \|47\|) | -110 | 4/5 |
+| Speak, first-time (streamed), Chrome | 41 | -55 (p90 \|70\|) | -20 (p90 \|154\|) | -95 (p90 \|148\|) | -147 (p90 \|285\|) | -7 (p90 \|57\|) | -55 (p90 \|117\|) | 234/259 |
+| Speak, cached, Chrome | 10 | -50 (p90 \|55\|) | -27 (p90 \|152\|) | -90 (p90 \|149\|) | -148 (p90 \|248\|) | -9 (p90 \|59\|) | -36 (p90 \|117\|) | 52/55 |
+| Speak, cached, Firefox | 5 | -45 (p90 \|55\|) | -32 (p90 \|155\|) | -81 (p90 \|148\|) | -148 (p90 \|250\|) | -7 (p90 \|54\|) | -31 (p90 \|116\|) | 40/43 |
+| Speak, cached, Safari | 5 | -50 (p90 \|58\|) | -11 (p90 \|154\|) | -81 (p90 \|149\|) | -142 (p90 \|333\|) | -3 (p90 \|50\|) | -5 (p90 \|115\|) | 40/43 |
+| Real lines replayed, streamed pace, Chrome | 6 | -45 (p90 \|55\|) | -42 (p90 \|153\|) | -76 (p90 \|149\|) | -147 (p90 \|266\|) | -19 (p90 \|59\|) | -106 (p90 \|117\|) | 72/76 |
+| Real lines replayed, Firefox | 12 | -45 (p90 \|55\|) | -37 (p90 \|153\|) | -81 (p90 \|149\|) | -147 (p90 \|244\|) | -15 (p90 \|57\|) | -86 (p90 \|119\|) | 132/145 |
+| Real lines replayed, Safari | 5 | -50 (p90 \|61\|) | -37 (p90 \|154\|) | -79 (p90 \|147\|) | -156 (p90 \|317\|) | -5 (p90 \|56\|) | -63 (p90 \|118\|) | 62/66 |
+| Slow network (underruns), Chrome | 2 | -42 (p90 \|44\|) | -18 (p90 \|153\|) | -143 (p90 \|149\|) | -181 (p90 \|293\|) | +2 (p90 \|51\|) | -29 (p90 \|114\|) | 26/27 |
+| Live chat, Chrome | 4 | -50 (p90 \|68\|) | -5 (p90 \|152\|) | -90 (p90 \|149\|) | -157 (p90 \|315\|) | +5 (p90 \|54\|) | -23 (p90 \|116\|) | 22/26 |
+| Live chat, Firefox | 4 | -58 (p90 \|64\|) | -25 (p90 \|164\|) | -122 (p90 \|150\|) | -164 (p90 \|244\|) | -7 (p90 \|61\|) | -80 (p90 \|116\|) | 24/26 |
+| Live chat, Safari | 1 | -65 (p90 \|65\|) | +62 (p90 \|136\|) | -116 (p90 \|137\|) | -208 (p90 \|367\|) | +0 (p90 \|46\|) | -64 (p90 \|64\|) | 4/5 |
 
 **What the columns mean:**
 - **Whole-line lag:** the best match between the opening and the loudness over the whole line.
@@ -133,3 +136,73 @@ The same plosive line, filmed off the real screen against the Mac's mic:
 
 See `qa/lipsync/README.md`. In short: `node speak.mjs …`, `node chat.mjs …`, `node replay.mjs …`, `node room.mjs …`, then
 `./analyse.sh '<runs>'` and `uv run summary.py --md`. The saved real lines (`qa/lipsync/out/clips/`) give the identical audio for the before/after comparison in Step 5.
+
+
+---
+
+# Step 2: timing fixes
+
+All timing changes are measured on the same saved production lines, before and after. `?lipsync=v1` puts the old timing back on the same page for comparison (temporary).
+
+## What changed and why
+
+| Change | Where | Fixes |
+|---|---|---|
+| **Mouth lead 80 → 30 ms** | `evaluator.ts` `LIPSYNC.lead` | Problem 1 (the whole mouth early) and the early releases (2a). With the closures placed right (below), 30 ms puts the release on the burst as drawn in all three browsers. The early closing movement per sound stays: closures start forming attack + closureOnShift before their silence. |
+| **A pause counts as a syllable between two closures** | `evaluator.ts` `syllableBetween` | Problem 2b, the main cause of "but" not being mouthed. After "peppers," the phrase before trailed off more than 10 dB below "but"'s vowel, so every quiet moment in the pause was rejected. The b was pushed past its own vowel, and Bob's closure after it. |
+| **A p/b/m after silence spans up to its burst** | `evaluator.ts` `closureSpan` | Same case when the pause is clean silence (nothing to measure a drop from): the cue used to stay on its late stamp. |
+| **Phrases re-anchored after pauses when far off** | `evaluator.ts` `placePhrases` (Speak only; live chats have their own anchors) | 17 of 65 phrase starts were more than 80 ms off their sound, up to 300 ms ("mood, mostly", the pauses line). Only offsets over 30 ms are moved; smaller ones are left to the snapping. |
+| **f/v and th start 25 ms earlier** | `evaluator.ts` `hissOnShift` | Problem 5. The lip reaches the teeth as the hiss begins. |
+| **One heard clock** | `clock.ts` (player and live) | Problems 3, 4 and 7. Time carried between Chrome's 10.7 ms clock steps; +80 ms when the reported delay looks like Bluetooth (≥ 100 ms); −50 ms on iPhone Safari; read once per frame. |
+| **Testable mouth** | `envelope.ts`, `mouth.ts` (from `player.ts`, `LipSync.tsx`, same code) | Lets `qa/lipsync/bench.sh` run the app's exact mouth on saved lines with no browser: 41 real lines in seconds. |
+
+**Measured, not changed:**
+- **First-time vs cached:** no difference, so the player's start-up buffer stays as it is.
+- **Underruns:** handled acceptably; the mouth goes still in the gap and catches up.
+- **Faster lip openings** (higher speed and acceleration limits): no gain on the unmouthed words, so the "jumpy" fixes stay.
+
+## Before → after, same lines (in-page, pooled)
+
+Lines: A-plosive, A-round, A-long, B-plosive, B-mumble, C-plosive-happy. Production vs a local production build of the branch.
+
+| Path | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Closing starts | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
+|---|---|---|---|---|---|---|---|---|
+| Before, Chrome (prod) | 6 | -45 (p90 \|55\|) | -42 (p90 \|153\|) | -76 (p90 \|149\|) | -147 (p90 \|266\|) | -19 (p90 \|59\|) | -106 (p90 \|117\|) | 72/76 |
+| **After, Chrome** | 6 | **+5 (p90 \|10\|)** | **+8 (p90 \|140\|)** | -49 (p90 \|145\|) | -109 (p90 \|232\|) | -10 (p90 \|44\|) | -49 (p90 \|116\|) | 69/76 |
+| Before, Firefox (prod) | 6 | -42 (p90 \|52\|) | -37 (p90 \|150\|) | -81 (p90 \|149\|) | -143 (p90 \|245\|) | -15 (p90 \|57\|) | -51 (p90 \|119\|) | 71/76 |
+| **After, Firefox** | 6 | **+5 (p90 \|8\|)** | **+7 (p90 \|145\|)** | -39 (p90 \|145\|) | -110 (p90 \|266\|) | -12 (p90 \|50\|) | -13 (p90 \|112\|) | 69/76 |
+| Before, Safari (prod) | 5 | -50 (p90 \|61\|) | -37 (p90 \|154\|) | -79 (p90 \|147\|) | -156 (p90 \|317\|) | -5 (p90 \|56\|) | -63 (p90 \|118\|) | 62/66 |
+| **After, Safari** | 5 | **+0 (p90 \|5\|)** | **+7 (p90 \|146\|)** | -49 (p90 \|137\|) | -138 (p90 \|299\|) | -9 (p90 \|51\|) | -52 (p90 \|106\|) | 60/66 |
+
+**Offline bench** (all 41 saved lines, the app's exact mouth code, a perfect clock, `bench.py`):
+- **Lips part vs burst:** −47 → +6 ms.
+- **Seal:** −65 → −30 ms.
+- **Releases more than 100 ms late:** 31 → 21.
+- **Vowel peaks:** −25 → −16 ms.
+- **Lip speed and acceleration:** unchanged (137 mm/s, 3.6 m/s²).
+
+## Before → after on the real screen with the Mac's mic (speakers)
+
+Lips part vs the burst on the plosive lines:
+
+| Browser | Before | After |
+|---|---|---|
+| Chrome | −65 / −39 | **−10 / −10** |
+| Firefox | −49 | **−3** |
+| Safari | −68 | **−29 / −25** |
+
+- **Seals:** 17/17 on every run.
+- **Seal timing:** before the sound stops by 22–55 ms (was 77–116).
+- **Whole-line lag:** 15–40 ms early (was 50–75). That match is smeared by room echo; the burst-based release above is the reliable one.
+
+Safari stays the earliest. Its own speaker-delay report is about 20 ms short on this Mac (calibration, Step 1). A further +20 ms for desktop Safari would centre it, but it rests on one Mac, so it isn't applied.
+
+## Performance
+
+Script per frame while speaking, Chrome with a phone screen and the CPU slowed 4×: 0.33 ms on production, 0.32 ms on the new build. Both at 120 fps with no dropped frames.
+
+## Still open (for Step 3 and 5)
+
+- **The long-seal tail:** about 1 in 10 p/b/m still opens more than 100 ms late in fast speech (the angry take, C's voices: "peppers", "before") and on m-heavy lines ("mostly", "maybe"). Some are quirks of my measure: "mm" is a hum with closed lips, and "stop!" ends in silence. Fast sequences need Step 3's blending of neighbouring sounds and phonemes.
+- **Not re-measured after the change:** Bluetooth and iPhone. Their corrections come from the Step 1 calibrations and are re-checked in Step 5.
+- **Live chats** use the new clock. Their re-measurement is Step 4.

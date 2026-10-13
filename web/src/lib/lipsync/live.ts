@@ -10,8 +10,8 @@
  *     held back LIVE.delay, so the meter runs that far ahead of what is heard, plus the output latency, as it does
  *     on a decoded line: played from livekit-client's element instead, the meter heard each sound only after it had
  *     been played (Chrome's MediaStreamSource buffers; Safari's element drifts while the microphone is on), and the
- *     mouth ran behind (Chrome and Safari, 2026-10-11). The delay to the speakers is outputLatency, or (Safari)
- *     estimated from getOutputTimestamp as the speech player does.
+ *     mouth ran behind (Chrome and Safari, 2026-10-11). The delay to the speakers comes from the heard clock the
+ *     speech player uses too (clock.ts).
  *
  * Each reply is one "line" to the evaluator, pinned to the voice it hears: the voice's onset here is where the agent
  * measured it on the words' clock (agent/src/onset.ts, the same rule as ONSET_RMS). Not the first word's stamp: v4 Turbo
@@ -27,6 +27,7 @@
  *     stamps don't always leave a gap where the voice pauses). Found in what is heard instead, a breath or a click read
  *     as the voice coming back, and each wrong anchor carried into the next: a greeting's last words ran a second early.
  */
+import { HeardClock } from "./clock";
 import { alignmentToCues, type Alignment, type Cue } from "./cues";
 import type { SpeechSource } from "./evaluator";
 import { speechPlayer } from "./player";
@@ -56,7 +57,7 @@ const FOLLOW = { window: 1.5, search: 0.3, corr: 0.85, step: 0.04, every: 25 };
  * does a recorded line (decoded before it plays): its gate reads ~60 ms ahead and the mouth runs LIPSYNC.lead ahead.
  * Replies start that much later.
  */
-export const LIVE = { delay: 0.13 }; // the gate's ~60 ms look-ahead plus LIPSYNC.lead (80 ms), less the output latency
+export const LIVE = { delay: 0.13 }; // how far the meter runs ahead of what is heard: the gate's ~60 ms look-ahead, the closures' ~90 ms anticipation
 
 /** How far past the last measured block (10 ms blocks) its level holds. */
 const HOLD_BLOCKS = 8;
@@ -125,13 +126,17 @@ export class LiveSpeech implements SpeechSource {
   private sinceFollow = 0; // blocks measured since the last match
   private replying = false;
   private endedAt = NaN;
-  private latencyEst: number | null = null;
+  private clock: HeardClock;
   private detached = false;
   private wordsCame = false; // a words stream opened since the last reply started
   private sent: number[] = []; // the reply's loudness as the agent sent it (RMS, 10 ms blocks on the words' clock)
 
+  /** Phrases are placed here, on the agent's audio (anchors), not by the evaluator's placePhrases. */
+  readonly phrasesPlaced = true;
+
   constructor(ctx: AudioContext) {
     this.ctx = ctx;
+    this.clock = new HeardClock(() => this.ctx);
   }
 
   /**
@@ -393,23 +398,10 @@ export class LiveSpeech implements SpeechSource {
     this.cues = alignmentToCues(a);
   }
 
-  /** How long after the meter sees a sample it is heard: the output path, plus the listener's own Sync setting. */
+  /** How long after the meter sees a sample it is heard, beyond the output path: the held-back voice (LIVE.delay) and
+   *  the listener's own Sync setting. The output path itself is in the heard clock (clock.ts). */
   private heardAfter(): number {
-    return this.outputLatency() + this.delay + speechPlayer.syncDelayMs / 1000;
-  }
-
-  /** The output path's delay: outputLatency where the browser reports it, else (Safari) from getOutputTimestamp,
-   *  carried forward to now and eased, as lib/lipsync/player.ts does. */
-  private outputLatency(): number {
-    const ctx = this.ctx;
-    if (ctx.outputLatency > 0) return ctx.outputLatency;
-    if (typeof ctx.getOutputTimestamp !== "function") return 0;
-    const ts = ctx.getOutputTimestamp();
-    if (!(typeof ts.contextTime === "number" && ts.contextTime > 0 && typeof ts.performanceTime === "number" && ts.performanceTime > 0)) return this.latencyEst ?? 0;
-    const playing = ts.contextTime + (performance.now() - ts.performanceTime) / 1000;
-    const est = Math.max(0, Math.min(0.5, ctx.currentTime - playing));
-    this.latencyEst = this.latencyEst === null ? est : this.latencyEst + (est - this.latencyEst) * 0.1;
-    return this.latencyEst;
+    return this.delay + speechPlayer.syncDelayMs / 1000;
   }
 
   get playing(): boolean {
@@ -423,7 +415,7 @@ export class LiveSpeech implements SpeechSource {
   }
 
   time(): number {
-    return Number.isNaN(this.lineAt) ? -1 : this.ctx.currentTime - this.heardAfter() - this.lineAt;
+    return Number.isNaN(this.lineAt) ? -1 : this.clock.heard() - this.heardAfter() - this.lineAt;
   }
 
   decodedSeconds(): number {

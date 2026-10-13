@@ -307,7 +307,8 @@ describe("m closures and rounding", () => {
     expect(span[0]).toBeLessThanOrEqual(0.01);
     expect(span[1]).toBeGreaterThanOrEqual(0.09);
     expect(span[1]).toBeLessThanOrEqual(0.11);
-    expect(closureSpan(loud, 0.01, LIPSYNC.closureSearch, false)).toBeNull(); // the old rule had nothing to hold on to
+    // a p/b after silence (the loudness, not the treble) parts at the sound's onset: the burst
+    expect(closureSpan(loud, 0.01, LIPSYNC.closureSearch, false)![1]).toBeCloseTo(0.03, 6);
   });
 });
 

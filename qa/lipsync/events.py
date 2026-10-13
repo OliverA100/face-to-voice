@@ -4,9 +4,8 @@
 # ///
 """Pairs every audio event (truth.json) with what the mouth did on screen (mouth.json) and prints the offsets.
 
-Time base: the "heard" clock. A sample the page played at context time X is heard when the browser's output clock
-(getOutputTimestamp, extrapolated with performance.now) reaches X; each frame is placed at the heard time of the
-moment it was drawn. So offsets already include the latency the browser REPORTS; the real device delay is measured
+Time base: the "heard" clock. A sample the page played at context time X is heard when currentTime − outputLatency
+(the browser's report) reaches X; each frame is placed at the heard time of the moment it was drawn. So offsets already include the latency the browser REPORTS; the real device delay is measured
 separately (capture-room).  Positive = the mouth is LATE.
 
   closure  p/b/m: seal start − sound stops (on); release (lips part) − burst; closing movement start − on
@@ -24,21 +23,29 @@ import sys
 
 import numpy as np
 
-from runio import Run, envelope
+from runio import RUNS as RUNS_DIR, Run, envelope
 
 SEAL_PX = 3.4  # opening height at or under which the lips count as sealed (px on a 1× canvas; a closed lip line is ~2–3)
 
 
 def heard_times(run: Run, ctx: int) -> dict[int, float]:
+    """Each frame's heard time, by the rule the room recordings back (LIPSYNC_REPORT.md): ctx.currentTime minus the
+    reported outputLatency. Not getOutputTimestamp: Firefox's and Safari's leave the output delay out. Chrome's
+    currentTime moves in 10.7 ms steps; between steps the time is carried on performance.now (at most 12 ms), as the
+    app's clock does."""
     out = {}
+    last_t, since = None, 0.0
     for r in run.frames:
         if len(r["ctx"]) <= ctx:
             continue
         c = r["ctx"][ctx]
-        if c.get("otp") and c.get("otc") is not None and c["otp"] > 0:
-            out[r["i"]] = c["otc"] + (r["perf"] - c["otp"]) / 1000
-        else:
-            out[r["i"]] = c["t"] - (c.get("out") or 0)
+        if c["t"] != last_t:
+            last_t, since = c["t"], r["perf"]
+        carry = min(0.012, max(0.0, (r["perf"] - since) / 1000))
+        lat = c.get("out") or 0
+        if not lat and c.get("otp") and c.get("otc") is not None:  # no outputLatency (older Safari): from the timestamp
+            lat = max(0.0, c["t"] - (c["otc"] + (r["perf"] - c["otp"]) / 1000))
+        out[r["i"]] = c["t"] + carry - lat
     return out
 
 
@@ -192,8 +199,8 @@ def analyse(name: str, seal_px: float | None = None):
 if __name__ == "__main__":
     verbose = "-v" in sys.argv
     for n in [a for a in sys.argv[1:] if not a.startswith("-")]:
-        if not (Run(n).dir / "truth.json").exists():
-            continue  # nothing spoken (calibration runs)
+        if not ((RUNS_DIR / n / "meta.json").exists() and (RUNS_DIR / n / "truth.json").exists()):
+            continue  # nothing spoken (calibration runs), or a run cut short
         s, rows = analyse(n)
         print(json.dumps(s))
         if verbose:

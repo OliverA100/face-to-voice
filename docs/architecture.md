@@ -155,16 +155,20 @@ PCM + character times ◄──────── NDJSON passed through, then wr
 - **One paid job at a time.** A Redis lock per description (design) and per take (save): a second request waits for
   the first one's result instead of paying again. The voice pool is one hash field per take, so concurrent requests
   never drop each other's entries, and speaking with a voice moves it to the back of the eviction queue.
-- **Lip sync** (`web/src/lib/lipsync/`): `player.ts` schedules PCM chunks gaplessly on the AudioContext clock,
-  compensates output latency and keeps a loudness envelope plus one above 2 kHz; `cues.ts` maps letters to visemes
+- **Lip sync** (`web/src/lib/lipsync/`): `player.ts` schedules PCM chunks gaplessly on the AudioContext clock and
+  keeps a loudness envelope plus one above 2 kHz (`envelope.ts`); `clock.ts` turns that clock into what is heard now
+  (the reported output delay, plus the measured extra for Bluetooth and iPhone Safari, smoothed between Chrome's
+  10.7 ms clock steps); `cues.ts` maps letters to visemes
   (TalkingHead's rules, numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
-  unstressed "a/the/of/-ably" are weak); `evaluator.ts` places the line on the voice onset, snaps closures (p/b/m, f/v,
+  unstressed "a/the/of/-ably" are weak); `evaluator.ts` places the line on the voice onset and each phrase after a pause where its stamps are far off,
+  snaps closures (p/b/m, f/v,
   th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble) and vowels to loudness peaks, keeping
   the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly), then blends with anticipation, closure
-  dominance and smoothing; `LipSync.tsx` writes the result into the viseme morph layer, capped per face by the limiter
+  dominance and smoothing; `mouth.ts` (run by `LipSync.tsx`) writes the result into the viseme morph layer, capped per face by the limiter
   and held to a top speed for the lips and the jaw (`visemes.json` "speed"). How far the mouth opens follows
   the loudness syllable by syllable, measured against the loudest moment nearby (so a line that trails off still
-  forms its last words), and the whole mouth runs 80 ms ahead of the sound, as a real mouth does. The lips keep a
+  forms its last words), and the whole mouth runs 30 ms ahead of the sound: as drawn, the lips part on each p/b/m
+  burst (measured in Chrome, Firefox and Safari, `qa/lipsync`, `LIPSYNC_REPORT.md`). The lips keep a
   vowel's rounding or spread while the loudness takes the opening away; the corners and the rounding have top speeds
   of their own, and every movement eases in. Because eleven_v4_turbo times letters from the text, the audio corrects
   it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds its syllable (a breath

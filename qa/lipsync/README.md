@@ -51,6 +51,18 @@ uv run phone.py film.mov <mouth x> <mouth y> <camera delay ms> <line starts…>
 Negative offsets = the mouth is early. "Heard time" means the moment the browser says a sample reaches the
 speakers; the room and phone tools check that against reality.
 
+## Offline bench (no browser)
+
+```bash
+uv run truth.py out/clips/*.ndjson                       # once per saved line: its audio truth on the line's own clock
+./bench.sh --tag try --set lead=0.03,phraseSlack=0.03 [--off placePhrases] out/clips/*.ndjson
+uv run bench.py base try [-v]                            # pooled offsets, late releases, lip speed/acceleration
+```
+
+`bench.sh` runs the app's own `web/src/lib/lipsync` code (`mouth.ts`, the evaluator) on saved lines at 120 fps, on a
+perfect clock, and records the lips' and jaw's opening in mm. `--set` overrides `LIPSYNC` constants and `--off`
+switches `LIPSYNC_PARTS` off. Browsers add about 12 ms of drawing delay to what the bench shows.
+
 ## Phone and Bluetooth recipes
 
 - **AirPods:**
