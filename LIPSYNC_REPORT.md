@@ -66,9 +66,16 @@ The first version used `getOutputTimestamp`, which in Firefox and Safari leaves 
 | Real lines replayed, Firefox | 12 | -45 (p90 \|55\|) | -37 (p90 \|153\|) | -81 (p90 \|149\|) | -147 (p90 \|244\|) | -15 (p90 \|57\|) | -86 (p90 \|119\|) | 132/145 |
 | Real lines replayed, Safari | 5 | -50 (p90 \|61\|) | -37 (p90 \|154\|) | -79 (p90 \|147\|) | -156 (p90 \|317\|) | -5 (p90 \|56\|) | -63 (p90 \|118\|) | 62/66 |
 | Slow network (underruns), Chrome | 2 | -42 (p90 \|44\|) | -18 (p90 \|153\|) | -143 (p90 \|149\|) | -181 (p90 \|293\|) | +2 (p90 \|51\|) | -29 (p90 \|114\|) | 26/27 |
-| Live chat, Chrome | 4 | -50 (p90 \|68\|) | -5 (p90 \|152\|) | -90 (p90 \|149\|) | -157 (p90 \|315\|) | +5 (p90 \|54\|) | -23 (p90 \|116\|) | 22/26 |
-| Live chat, Firefox | 4 | -58 (p90 \|64\|) | -25 (p90 \|164\|) | -122 (p90 \|150\|) | -164 (p90 \|244\|) | -7 (p90 \|61\|) | -80 (p90 \|116\|) | 24/26 |
+| Live chat, Chrome* | 4 | -70 (p90 \|80\|) | -19 (p90 \|150\|) | -115 (p90 \|145\|) | -174 (p90 \|342\|) | +5 (p90 \|58\|) | -78 (p90 \|112\|) | 22/26 |
+| Live chat, Firefox* | 4 | -58 (p90 \|64\|) | -43 (p90 \|159\|) | -112 (p90 \|150\|) | -161 (p90 \|273\|) | -4 (p90 \|59\|) | -25 (p90 \|116\|) | 23/24 |
 | Live chat, Safari | 1 | -65 (p90 \|65\|) | +62 (p90 \|136\|) | -116 (p90 \|137\|) | -208 (p90 \|367\|) | +0 (p90 \|46\|) | -64 (p90 \|64\|) | 4/5 |
+
+\* *Corrected in Step 4.* In Chrome chats the head pitches for seconds at a time (probably following the scripted mouse,
+which rests below the face after a click), and the lips left the fixed mouth crop: the pixels read the chin. Frames
+like that are now left out (`mouth.py` "clipped"), and runs that lose over half their events to it (three of the four
+Chrome chats) use the app's own per-frame mouth values, as the dark-skinned face does (the drawing delay of about
+12 ms isn't in them). Two Firefox chats lost a few seconds each. The live lag is −50 to −70 either way, and every
+other row is unchanged.
 
 **What the columns mean:**
 - **Whole-line lag:** the best match between the opening and the loudness over the whole line.
@@ -205,7 +212,7 @@ Script per frame while speaking, Chrome with a phone screen and the CPU slowed 4
 
 - **The long-seal tail:** about 1 in 10 p/b/m still opens more than 100 ms late in fast speech (the angry take, C's voices: "peppers", "before") and on m-heavy lines ("mostly", "maybe"). Some are quirks of my measure: "mm" is a hum with closed lips, and "stop!" ends in silence. Fast sequences need Step 3's blending of neighbouring sounds and phonemes.
 - **Not re-measured after the change:** Bluetooth and iPhone. Their corrections come from the Step 1 calibrations and are re-checked in Step 5.
-- **Live chats** use the new clock. Their re-measurement is Step 4.
+- **Live chats** use the new clock. Their re-measurement is Step 4 (below).
 
 
 ---
@@ -310,3 +317,52 @@ The one face that limited "oo" (to 0.16) also limited "oh" to 0.15: an extreme f
 | **Step 3 + shapes** | **+10** | **+2** | **−40** | **−20** | **+2** | **71/76** |
 
 On the bench, lip speed and acceleration are unchanged (p99 137 mm/s, p95 3.8 m/s²). The rounded line's whole-line lag is back down to 22 ms (it was 60 before the shape and gate changes).
+
+
+---
+
+# Step 4: live conversations
+
+## What changed
+
+| Change | Where | Why |
+|---|---|---|
+| **Same clock and pipeline as Speak** | `live.ts` (`HeardClock`), `cues.ts` | Live replies already went through `alignmentToCues`; they now also use the heard clock, the jaw/lip split, the "l" tongue and the phrase placing (`phrasesPlaced`). |
+| **Phonemes for live words** | `/api/phonemes` (new), `phonemes.ts` `queuePhonemes`, `live.ts` `addWords` | The agent sends only words, so the page asks the server for their phonemes. A reply's words are gathered for 150 ms and sent in one request (up to 60 words). Words arrive ahead of the sound, so the cues are rebuilt before they are heard. The route answers only plain lower-case words, at most 80 per request, cached for good. |
+| **Batching fixed a real failure** | `phonemes.ts` | The first version asked once per word: a chat on the preview hit the site's `/api` rate limit (429) within a reply, and the words fell back to the letter rules. One request per reply stays far below the limit. |
+
+**Tried and dropped:** shaping the mouth from the agent's own loudness ("sent", which arrives well ahead of the sound)
+instead of the page's meter, so the closure and vowel snapping could see further ahead. On the live bench it changed
+nothing (releases −14 both ways, seals −51 both ways, vowels −20 vs −24, one more late release). The meter's 130 ms
+look-ahead is already enough for the phrase placing, which is what live replies need: the agent's word times are
+off by up to 300 ms per phrase. The code is removed.
+
+## Measured
+
+**Real chats on the preview** (Chrome, character A, a greeting + 3 turns each; the replies are different words each
+time, so the rows compare the same kind of speech, not the same lines). Both rows are measured the same way (pixels where the lips stayed in
+the crop, the app's per-frame values for the chats where the head left it; see the correction under Step 1):
+
+| | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Closing starts | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
+|---|---|---|---|---|---|---|---|---|
+| Production | 4 | -70 (p90 \|80\|) | -19 (p90 \|150\|) | -115 (p90 \|145\|) | -174 (p90 \|342\|) | +5 (p90 \|58\|) | -78 (p90 \|112\|) | 22/26 |
+| **Step 4** | 4 | **-10** (p90 \|21\|) | **+14** (p90 \|129\|) | **-54** (p90 \|134\|) | -146 (p90 \|292\|) | -12 (p90 \|49\|) | **-9** (p90 \|86\|) | 18/20 |
+
+The one chat whose lips stayed in the crop throughout (the greeting) gives, by pixels: lag −10, releases +15,
+seal −84, 5/5 sealed.
+
+**Offline live bench** (`live-bench.sh`, the 3 recorded replies through the real `LiveSpeech` and mouth):
+releases −14 (p90 131, 3 over 100 ms late), seals −51, closing −157, vowels −20 (p90 54), f/v −8, 14/14 sealed.
+Script time 21–35 µs per frame.
+
+## Still open
+
+- **Live closures still close early** (seal −54, closing −146): the agent's word times are coarse, and the phrase
+  placing can only move whole phrases. Releases are on time.
+- **Firefox and Safari live** are not re-measured: the day's chat limit was nearly used. They share the clock and
+  pipeline, and Speak shows no browser differences after Step 2.
+- **The recorder now follows the lips** (it looks for them every 0.5 s and moves the crop), and `mouth.py` marks
+  frames whose lips are out of the crop (frames grouped by the head's position, each group judged by its median lip
+  height); `events.py` leaves those out. The new live runs in Step 5 can
+  then be measured by pixels.
+

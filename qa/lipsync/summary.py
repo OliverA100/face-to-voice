@@ -5,7 +5,9 @@
 """Pools every analysed run into one table per path × browser (the numbers in LIPSYNC_REPORT.md).
 
 Events from all runs in a group are pooled (not averaged per run). Offsets in ms, negative = the mouth is EARLY.
-Runs on a dark-skinned face use the app's own values (events-app.json), every other run the pixels (events.json).
+Runs on a dark-skinned face use the app's own values (events-app.json), every other run the pixels (events.json),
+unless the head moved out of the mouth crop for over half of the run's events (mouth.py "clipped"): those use the
+app's values too.
 
   uv run summary.py [--md]     (--md prints a Markdown table)
 """
@@ -38,8 +40,11 @@ DARK = {"C"}  # characters whose skin is too dark for the pixel measure
 
 def load(name: str):
     char = name.split("-")[0]
-    f = RUNS / name / ("events-app.json" if char in DARK and (RUNS / name / "events-app.json").exists() else "events.json")
-    return json.loads(f.read_text()) if f.exists() else None
+    pixels, app = RUNS / name / "events.json", RUNS / name / "events-app.json"
+    e = json.loads(pixels.read_text()) if pixels.exists() else None
+    if app.exists() and (char in DARK or (e and e["summary"].get("unmeasured", 0) > len(e["rows"]) / 2)):
+        return json.loads(app.read_text())
+    return e
 
 
 def stats(v):

@@ -160,7 +160,8 @@ PCM + character times ◄──────── NDJSON passed through, then wr
   (the reported output delay, plus the measured extra for Bluetooth and iPhone Safari, smoothed between Chrome's
   10.7 ms clock steps); `cues.ts` maps words to visemes from
   their phonemes (the CMU Pronouncing Dictionary stays on the server: each spoken line arrives with its own words'
-  phonemes as a first NDJSON line, `lib/server/pronounce.ts`), else from TalkingHead's letter rules (numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
+  phonemes as a first NDJSON line, `lib/server/pronounce.ts`; a live reply's words are looked up in one batched
+  request to `/api/phonemes`), else from TalkingHead's letter rules (numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
   unstressed "a/the/of/-ably" are weak); `evaluator.ts` places the line on the voice onset and each phrase after a pause where its stamps are far off,
   snaps closures (p/b/m, f/v,
   th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble) and vowels to loudness peaks, keeping

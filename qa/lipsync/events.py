@@ -84,11 +84,13 @@ def analyse(name: str, seal_px: float | None = None):
     T = np.array([ht[i] for i in idx])
     Hh = np.array([mouth[i]["height"] for i in idx], dtype=float)
     A = np.array([mouth[i]["area"] for i in idx], dtype=float)
+    C = np.array([bool(mouth[i].get("clipped")) for i in idx])  # the lips left the crop (head moved): not measurable
     order = np.argsort(T)
-    T, Hh, A = T[order], Hh[order], A[order]
+    T, Hh, A, C = T[order], Hh[order], A[order], C[order]
     fps = 1 / np.median(np.diff(T)) if len(T) > 2 else 0
 
     rows = []
+    unmeasured = 0
     mids = sorted((e["on"] + e["release"]) / 2 for e in truth["events"] if e["kind"] == "closure" and not e.get("weak"))
 
     def owner(t: float) -> float:
@@ -100,6 +102,9 @@ def analyse(name: str, seal_px: float | None = None):
             on, rel = e["on"], e["release"]
             w = (T >= on - 0.15) & (T <= rel + 0.15)
             if not w.any():
+                continue
+            if C[w].any():
+                unmeasured += 1
                 continue
             sealed = w & (Hh <= seal_px)
             r = {"kind": "closure", "c": e["c"], "word": e["word"], "on": on, "release": rel, "minH": float(Hh[w].min())}
@@ -127,6 +132,9 @@ def analyse(name: str, seal_px: float | None = None):
             w = (T >= max(e["s"] - 0.04, pk - 0.15)) & (T <= min(e["e"] + 0.04, pk + 0.15))
             if w.sum() < 2:
                 continue
+            if C[w].any():
+                unmeasured += 1
+                continue
             j = np.where(w)[0]
             # plateau-aware: centre of the frames within 1 px of the max
             hm = Hh[j].max()
@@ -135,6 +143,9 @@ def analyse(name: str, seal_px: float | None = None):
         elif e["kind"] in ("fv", "th"):
             w = (T >= e["on"] - 0.12) & (T <= e["off"] + 0.04)
             if w.sum() < 2:
+                continue
+            if C[w].any():
+                unmeasured += 1
                 continue
             j = np.where(w)[0]
             k = j[int(np.argmin(Hh[j]))]
@@ -185,6 +196,7 @@ def analyse(name: str, seal_px: float | None = None):
         "fv_med_ms": ms(med([r["off"] for r in fv])),
         "xcorr_lag_ms": lag,
         "xcorr": round(best, 3),
+        "unmeasured": unmeasured,
     }
     # drift: release offsets vs time along the line
     if len(sealed) >= 4:

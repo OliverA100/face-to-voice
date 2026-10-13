@@ -19,6 +19,9 @@
     recording: false,
     crop: null, // {x, y, w, h} in CSS px relative to the canvas; null = auto (centre of the face, see defaultCrop)
     fullWidth: 360, // whole-canvas thumbnail width
+    // look for the lips again this often (s) and move the crop when they have moved by over 15% of its height: the head
+    // pitches for seconds at a time (cursor follow, nods in a chat) and the lips would leave a fixed crop
+    recropEvery: 0.5,
     frames: [], // per rendered frame while recording
     audio: [], // {ctx, sr, f (frame index of first sample), b64 (Int16 mono)}
     images: [], // {i, kind, b64}
@@ -198,6 +201,7 @@
 
   let worker = null;
   let frameNo = 0;
+  let lastCrop = 0;
   function encoder() {
     if (worker) return worker;
     const src = `
@@ -262,7 +266,16 @@
       const k = findCrop(c, r);
       if (k) Q.crop = k;
       Q.recrop = false;
+      lastCrop = performance.now();
       Q.mark("crop " + JSON.stringify(Q.crop));
+    } else if (c && Q.crop && Q.recropEvery > 0 && performance.now() - lastCrop > Q.recropEvery * 1000) {
+      lastCrop = performance.now();
+      const k = findCrop(c, c.getBoundingClientRect());
+      const o = Q.crop;
+      if (k && Math.abs(k.y + k.h / 2 - (o.y + o.h / 2)) > 0.15 * o.h) {
+        Q.crop = { ...o, x: k.x + Math.round((k.w - o.w) / 2), y: k.y + Math.round((k.h - o.h) / 2) }; // same size, moved
+        Q.mark("crop " + JSON.stringify(Q.crop));
+      }
     }
     const i = frameNo++;
     const row = { i, ts, perf: performance.now(), cb: performance.now() - before, ctx: [] };

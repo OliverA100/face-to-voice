@@ -26,13 +26,19 @@ cd qa/lipsync && pnpm install
 |---|---|---|
 | `node replay.mjs [--browser b] [--pace instant\|stream\|slow] clip.ndjson …` | Saved lines through the live site's own player (`?debug`) | free |
 | `node speak.mjs --url <deployment> --char A [--restore A] [--random --skin fair] [--emotion -,Happy] [--lines plosive,fv] [--cached\|--cachedOnly] [--browser b]` | Real Speak presses; saves every line to `out/clips/` for replays | TTS credits; `--random` = 1 design + 1 save |
-| `node chat.mjs --url <deployment> --char A [--restore A] [--turns 3] [--browser b]` | A live chat. The visitor is `out/visitor/*.wav` (macOS `say`); each reply is one run | Chat minutes |
+| `node chat.mjs --url <deployment> --char A [--restore A] [--turns 3] [--browser b] [--tag t]` | A live chat. The visitor is `out/visitor/*.wav` (macOS `say`); each reply is one run (`<tag>-A-chat<k>-<browser>`), with the page's reply data (words, the agent's loudness, anchors, cues) in `meta.json` "live" | Chat minutes (10 chats per visitor per day) |
 | `node room.mjs --browser b cal` / `replay clip…` | The screen + Mac mic (`screencapture`); needs Screen Recording permission | free |
 | `node cal.mjs b raw` | The in-page recorder's self-check on `calibrate.html` | free |
 | `node perf.mjs [--cpu 4] clip.ndjson` | Frame rate and script time per frame, phone screen, slowed CPU | free |
 
 **Find my voice counts against your IP's daily limit** (20), even for cached voices. Reuse saved characters with
 `--restore <char>` (sessions are saved in `out/chars/`) instead of making new ones.
+
+**The head moves:** it pitches for seconds at a time (cursor follow, nods in a chat). The recorder looks for the lips
+every 0.5 s and moves the crop when they have moved. `mouth.py` marks frames whose lips are out of the crop ("clipped": frames
+are grouped by the head's outline in the whole-head grab, and each group judged by its median lip height) and
+`events.py` leaves their events out ("unmeasured").
+`summary.py` falls back to `events.py --app` for runs where over half the events are unmeasured.
 
 **Characters:** dark skin hides the open mouth from the pixel measure. Make new characters with `--skin fair` or
 `--skin light`, or score them with `events.py --app`.
@@ -62,6 +68,17 @@ uv run bench.py base try [-v]                            # pooled offsets, late 
 `bench.sh` runs the app's own `web/src/lib/lipsync` code (`mouth.ts`, the evaluator) on saved lines at 120 fps, on a
 perfect clock, and records the lips' and jaw's opening in mm. `--set` overrides `LIPSYNC` constants and `--off`
 switches `LIPSYNC_PARTS` off. Browsers add about 12 ms of drawing delay to what the bench shows.
+
+**Live replies:**
+
+```bash
+./live-bench.sh --tag try [--set k=v] [--off part] L2-A-chat0-chrome L2-A-chat1-chrome   # recorded chat.mjs runs
+uv run bench.py base try
+```
+
+`live-bench.sh` replays a recorded reply as a chat delivers it: the words and the agent's loudness up front, the
+meter's 10 ms blocks from the heard audio `LIVE.delay` ahead, and the AudioContext clock stepping per frame, through
+the real `LiveSpeech` and mouth. It needs a run's `truth.json` and `meta.json` "live" (chat.mjs from Step 4 on).
 
 ## Shapes contact sheet
 
