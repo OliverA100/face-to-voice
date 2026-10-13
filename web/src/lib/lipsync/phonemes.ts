@@ -134,3 +134,28 @@ export function spokenWords(text: string): string[] {
   }
   return out;
 }
+
+/** Words already asked for (found or not): each is fetched once per page. */
+const asked = new Set<string>();
+
+/**
+ * A live conversation's words, looked up as they arrive (GET /api/phonemes): the agent sends words, not phonemes.
+ * Resolves true when new phonemes came in (the cues are then built again). Failures leave the letter rules in place.
+ */
+export async function requestPhonemes(words: string[]): Promise<boolean> {
+  if (!PHONEMES.enabled) return false;
+  const want = [...new Set(words)].filter((w) => /^[a-z']{1,40}$/.test(w) && !asked.has(w));
+  if (!want.length) return false;
+  for (const w of want) asked.add(w);
+  try {
+    const res = await fetch(`/api/phonemes?w=${encodeURIComponent(want.sort().join(","))}`);
+    if (!res.ok) return false;
+    const { phonemes } = (await res.json()) as { phonemes?: Record<string, string> };
+    if (!phonemes || !Object.keys(phonemes).length) return false;
+    addPhonemes(phonemes);
+    return true;
+  } catch {
+    for (const w of want) asked.delete(w); // a later reply tries again
+    return false;
+  }
+}

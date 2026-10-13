@@ -5,7 +5,9 @@ vi.mock("server-only", () => ({}));
 import { phonemesFor } from "@/lib/server/pronounce";
 
 import { alignmentToCues, FOLD, wordShapes } from "../cues";
-import { addPhonemes, PHONEMES, phonemesToVisemes, spokenWords } from "../phonemes";
+import { GET } from "@/app/api/phonemes/route";
+
+import { addPhonemes, PHONEMES, phonemesOf, phonemesToVisemes, requestPhonemes, spokenWords } from "../phonemes";
 
 const shapes = (word: string) => wordShapes(word).map((v) => FOLD[v.viseme] + (v.viseme === "AX" ? "~" : ""));
 const timed = (text: string) => {
@@ -62,5 +64,26 @@ describe("phonemes", () => {
     expect(Object.keys(p).sort()).toEqual(["forty", "hello", "two", "worlds"]);
     expect(p.hello).toBe("HH AH0 L OW1");
     expect(p.happy).toBeUndefined();
+  });
+});
+
+describe("live words' phonemes", () => {
+  it("are looked up once each, from the dictionary route, and kept", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      calls.push(url);
+      return GET(new Request("https://face.example" + url));
+    });
+    expect(await requestPhonemes(["quixotic", "zephyr", "notaword"])).toBe(true);
+    expect(phonemesOf("quixotic")).toEqual(["K W IH0 K S AA1 T IH0 K"].join(" ").split(" "));
+    expect(await requestPhonemes(["quixotic", "notaword"])).toBe(false); // asked already: no second request
+    expect(calls).toHaveLength(1);
+    vi.unstubAllGlobals();
+  });
+
+  it("the route answers only plain lower-case words, a bounded number of them, cacheable", async () => {
+    const res = await GET(new Request("https://face.example/api/phonemes?w=hello,<script>,WORLD,world"));
+    expect(res.headers.get("cache-control")).toContain("immutable");
+    expect(Object.keys((await res.json()).phonemes).sort()).toEqual(["hello", "world"]);
   });
 });
