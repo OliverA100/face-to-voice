@@ -428,3 +428,17 @@ silence.)
 The site's Speak limit is 100 per visitor in a sliding 24 hours, shared by the previews and the live site: this pass
 used it up for the day (the last cached replay got a 429).
 
+## Live in Firefox (2026-10-14)
+
+A chat on the preview (Step 4 code; character A, greeting + 3 turns), measured by pixels: the recorder now follows the
+lips, and only 28 frames of one reply left the crop.
+
+| | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Closing starts | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
+|---|---|---|---|---|---|---|---|---|
+| Production | 4 | -58 (p90 \|64\|) | -43 (p90 \|159\|) | -112 (p90 \|150\|) | -161 (p90 \|273\|) | -4 (p90 \|59\|) | -25 (p90 \|116\|) | 23/24 |
+| **Step 4** | 4 | **-5** (p90 \|17\|) | **-5** (p90 \|152\|) | -86 (p90 \|147\|) | -160 (p90 \|254\|) | -7 (p90 \|54\|) | +13 (p90 \|112\|) | 24/25 |
+
+Firefox now matches Chrome: the mouth is on the voice, and p/b/m part on the burst. Live closures still close early
+(−86 here, −54 in Chrome). **Safari live** is still to do: with the Mac's display asleep Safari reports the page as
+hidden and draws no frames, so the head never finishes loading.
+
