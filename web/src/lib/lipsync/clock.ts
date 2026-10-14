@@ -8,7 +8,8 @@
  *    stands still (iOS while the context resumes) still stands still after CARRY.
  *  - Bluetooth: browsers report ~160–170 ms for AirPods, which really take ~245 ms. A reported delay of
  *    BLUETOOTH.reported or more gets BLUETOOTH.extra on top.
- *  - iPhone Safari's sound is heard ~50 ms sooner than its reported delay says: IOS_EXTRA (negative).
+ *  - iPhone Safari's sound is heard ~50 ms sooner than its reported delay says (its screen trails its sound): IOS_EXTRA
+ *    (negative), applied in full even past zero (iPhones report ~12 ms).
  * Safari before outputLatency: the delay comes from getOutputTimestamp, carried forward to now and eased.
  */
 export const BLUETOOTH = { reported: 0.1, extra: 0.08 };
@@ -27,7 +28,8 @@ export class HeardClock {
 
   constructor(private readonly ctxOf: () => AudioContext | null) {}
 
-  /** Seconds between ctx.currentTime and the sound reaching the listener, with the device corrections. */
+  /** Seconds between ctx.currentTime and the sound reaching the listener, with the device corrections (negative on an
+   *  iPhone: see IOS_EXTRA). */
   latency(): number {
     const ctx = this.ctxOf();
     if (!ctx) return 0;
@@ -46,8 +48,12 @@ export class HeardClock {
       l = this.latencyEst ?? 0;
     }
     if (CLOCK.fixes && l >= BLUETOOTH.reported) l += BLUETOOTH.extra;
+    l = Math.max(0, l);
+    // not clamped: an iPhone reports ~12 ms, and its screen trails its sound by ~50 ms more than that says, so the mouth
+    // is drawn for a moment ~38 ms ahead of currentTime (clamped at 0, only 12 of the 50 ms applied: the mouth ran
+    // ~38 ms late on an iPhone 2026-10-14, phone-2 film)
     if (CLOCK.fixes && (this.ios ??= isIOS())) l += IOS_EXTRA;
-    return Math.max(0, l);
+    return l;
   }
 
   /** The context time being heard now. */

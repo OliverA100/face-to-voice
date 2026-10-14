@@ -36,6 +36,8 @@ describe("the heard clock", () => {
     vi.spyOn(performance, "now").mockReturnValue(1000);
     vi.stubGlobal("navigator", { maxTouchPoints: 5, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1" });
     expect(new HeardClock(() => ctxWith(5, 0.08)).heard()).toBeCloseTo(5 - (0.08 + IOS_EXTRA), 9);
+    // as an iPhone really reports (12 ms): the whole correction, past zero, not clamped to 12 ms
+    expect(new HeardClock(() => ctxWith(5, 0.012)).heard()).toBeCloseTo(5 - (0.012 + IOS_EXTRA), 9);
   });
 });
 

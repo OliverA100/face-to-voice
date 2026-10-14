@@ -476,3 +476,44 @@ All three were measured before changing anything; none called for an app change.
   or 75) fixes some closures and breaks as many ("picked" fixed, "breakfast" broken): late releases 31 → 32–33 and the
   worst 10% 136 → 147–151 ms across the 65 lines. Kept at 150.
 
+## iPhone, filmed (2026-10-14)
+
+The phone played saved lines from a local build (a test-only overlay, never committed: tap-to-play buttons and the
+camera on the mouth, so the mouth is ~250 px wide in the film), filmed by the Mac's camera with QuickTime. Each film has
+the new timing and `?lipsync=v1` (the old) on the same 4 lines. `qa/lipsync/phone2.py` finds each line in the film's
+sound by its clip, maps the clip's audio truth onto the film, and measures the mouth's opening per frame. The camera's
+own delay (93 ms) is from the phone-cal film's clap in Step 1, so absolute numbers carry about ±15–30 ms; new vs old in
+the same film doesn't depend on it.
+
+| Film | | Whole-line lag | p/b/m lips part vs burst | Vowels |
+|---|---|---|---|---|
+| phone-2 | old | −10 | +43 | −8 |
+| phone-2 | new (Step 4 code) | +28 | +64 | +1 |
+| phone-3 | old | −40 | +5 | 0 |
+| phone-3 | new (clock fix) | −42 | (not measurable*) | +8 |
+
+**Found and fixed: the iPhone correction was clamped.** An iPhone reports an output delay of 12 ms (read off the
+phone), and its screen trails its sound by ~50 ms more than that. The correction (−50 ms) was clamped at zero, so
+only 12 ms of it applied and the mouth ran ~38 ms late (phone-2: new 38 ms later than old). It now applies in full,
+past zero (`clock.ts`). In phone-3 the new timing moved 40 ms earlier as predicted (new − old: +38 → −2 ms).
+
+\* phone-3 was filmed brighter: the mouth's interior shows up purple-blue rather than dark, so small openings read
+as closed and the release measure saturates; the whole-line lag and vowels don't depend on it.
+
+**What you saw in the film, and what it was:**
+
+| Line | Seen | Cause | Done |
+|---|---|---|---|
+| 3 (E2, Happy) | a pause on "picked" | The line starts with an audio tag; ElevenLabs stamped the tag as 0.32 s and squeezed "Peter" into 30 ms, so the line looked 370 ms late and was shifted early, but only "Peter" was late: "Piper" and "picked" landed ~270 ms early | **Fixed:** a first word squeezed after a tag is spread back to the voice's onset on its own (`LIPSYNC_PARTS.squeezedFirst`; 6 of the 55 tagged lines) |
+| 3 | a pause on "blue" | v4 Turbo spaces a word's letters evenly: vowels are stamped near the sound, a word's first consonant up to ~170 ms late. "big"'s "b" took the quiet "g b" before "blue", "blue"'s took "bat"'s, and "blue"'s "oo" came after that | Partly: a p/b/m now lies between the vowels around it (`vowelBounds`, 40 ms slack before): "blue"'s closure is right, its "oo" still ~190 ms late |
+| 4 (A) | "maybe" mouthed longer than the sound | "maybe"'s "b" is stamped 250 ms after its closure, out of reach; it stayed in the pause after the word, and its "ee" with it | Open |
+| 4 | jumpy at "my mood" | "my"'s "m" took "mood"'s closure, "mood"'s "m" was squeezed in after it, and the "y" between became a 1–2 mm flicker | Open |
+
+Offline, across the 65 lines: the worst 10% of p/b/m releases 136 → 111 ms, late releases (>100 ms) 31 → 28; medians
+unchanged (−4 → −3); live replies unchanged. "absolutely" (all 6 voices, ~−200 → ~0), "picked", "blue"'s closure and
+"Bob bought" in E1 improve; "peppers" in E2, "breakfast" in A's angry take and "I'm" in A's preset get worse.
+
+The open ones share a cause: each p/b/m is placed on its own, nearest-first, and when a word's stamps are off by more
+than the search, the wrong pick pushes the next sounds along. Placing a phrase's closures and vowels together, in
+order, against the audio's quiet stretches and syllable peaks, would address all three; that is the next piece of work.
+

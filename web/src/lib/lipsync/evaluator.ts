@@ -93,6 +93,9 @@ export const LIPSYNC = {
   closureMaxDur: 0.2,
   closureBurstDb: 6, // a rise of this much (dB per 10 ms) after the dip counts as the burst
   closureApart: 0.04, // s: gap kept between two p/b/m closures (no two letters share one quiet stretch)
+  squeezedPerCue: 0.06, // s per mouth shape: a first word stamped tighter than this is squeezed (placeLine)
+  vowelBoundSlack: 0.03, // s: a closure's dip may lie this far past the centre of the vowel stamped after it
+  vowelBoundBefore: 0.04, // s: … and lies after the centre of the vowel stamped before it, less this (−1: no such bound)
   joinWithin: 0.25, // s: two p/b/m with no vowel between, their dips this close, are one closure (joinClosure)
   /** A closure the letters put after a vowel ("pro-b", "Bo-b") goes on a dip with that vowel's syllable before it: the
    *  loudest moment since the previous closure must come within this many dB of the loudest one just after the dip.
@@ -215,6 +218,8 @@ export const LIPSYNC_PARTS = {
   jawSplit: true, // the loudness opens the jaw; the lips keep the sound's shape (LIPSYNC.shapeGate, mouth.ts)
   lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
   joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
+  vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
+  squeezedFirst: true, // a first word squeezed after an audio tag is spread back to the voice's onset, alone (placeLine)
 };
 
 /**
@@ -231,6 +236,8 @@ export function oldTiming(): void {
   LIPSYNC_PARTS.jawSplit = false;
   LIPSYNC_PARTS.lateral = false;
   LIPSYNC_PARTS.joinClosures = false;
+  LIPSYNC_PARTS.vowelBounds = false;
+  LIPSYNC_PARTS.squeezedFirst = false;
   LIPSYNC.snapBefore = 0.04;
   LIPSYNC.snapDbPerS = 0;
 }
@@ -509,7 +516,20 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     if (hi + LIPSYNC.closureSearch > decodedSeconds) continue;
     // with a vowel between, only dips that have a syllable since the previous closure (LIPSYNC.closureSyllableDb)
     const from = before ? before.end + LIPSYNC.closureOffShift : 0;
-    const allowed = (t: number) => !needSyllable || syllableBetween(loudness, from, t);
+    // a p/b/m lies between the vowel before it and the one after it (eleven_v4_turbo spaces a word's letters evenly: its
+    // vowels are stamped close to the sound, a consonant starting the word up to ~170 ms late, where the next word's
+    // closure can be nearer: "blue" took "bat"'s, "bat" took "before"'s)
+    let vLo = -Infinity, vHi = Infinity;
+    if (c.viseme === "PP" && LIPSYNC_PARTS.vowelBounds) {
+      if (lastVowel && LIPSYNC.vowelBoundBefore >= 0) vLo = midOf(lastVowel) - LIPSYNC.vowelBoundBefore;
+      for (let k = order.indexOf(c) + 1; k < order.length; k++) {
+        if (VOWELS.has(order[k].viseme)) {
+          vHi = midOf(order[k]) + LIPSYNC.vowelBoundSlack;
+          break;
+        }
+      }
+    }
+    const allowed = (t: number) => t > vLo && t < vHi && (!needSyllable || syllableBetween(loudness, from, t));
     // an "m" hums on through the nose: its closure shows in the treble, not in the loudness
     const env = c.nasal ? treble : loudness;
     // Nearest dip wins over the deepest one: quiet + a small penalty for distance from the stamp.
@@ -693,11 +713,28 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
     }
   }
   const d0 = onset === null || !LIPSYNC_PARTS.placeLine ? 0 : Math.max(-LIPSYNC.lineMaxShift, Math.min(0, onset - first)); // late stamps only
+  // A first word squeezed after an audio tag ("[happy, bright and bouncy] Peter Piper…": "Peter" stamped in 30 ms at
+  // 0.37 s, said from 0 to 0.35): only that word is late. Spread it back over where the voice starts; the words after
+  // it are stamped where they are said, and moving them by its lateness put "Piper" and "picked" ~270 ms early.
+  let next = Infinity, n = 0;
+  for (const c of cues) {
+    if (c.ws === first) n++;
+    else if (c.ws !== undefined && c.ws > first && c.ws < next) next = c.ws;
+  }
+  const squeezed = LIPSYNC_PARTS.squeezedFirst && d0 < 0 && next < Infinity && (next - first) / Math.max(1, n) < LIPSYNC.squeezedPerCue;
   for (const c of cues) {
     if (c.ws === undefined || lined.has(c)) continue;
-    const d = d0 * Math.max(0, 1 - (c.ws! - first) / LIPSYNC.lineFade);
-    c.start = Math.max(0, c.start + d);
-    c.end += d;
+    if (squeezed) {
+      if (c.ws === first) {
+        const k = (next - (first + d0)) / (next - first); // [first, next] onto [onset, next]
+        c.start = Math.max(0, first + d0 + (c.start - first) * k);
+        c.end = first + d0 + (c.end - first) * k;
+      }
+    } else {
+      const d = d0 * Math.max(0, 1 - (c.ws! - first) / LIPSYNC.lineFade);
+      c.start = Math.max(0, c.start + d);
+      c.end += d;
+    }
     lined.add(c);
   }
   cues.sort((p, q) => p.start - q.start);
@@ -739,7 +776,7 @@ export function placePhrases(cues: Cue[], loudness: (t: number) => number, decod
       let at = Infinity;
       for (const c of cues) if (c.ws === first && c.start < at) at = c.start;
       const off = onset - at;
-      if (at !== Infinity && Math.abs(off) > LIPSYNC.phraseSlack && Math.abs(off) <= LIPSYNC.phraseMaxShift) {
+        if (at !== Infinity && Math.abs(off) > LIPSYNC.phraseSlack && Math.abs(off) <= LIPSYNC.phraseMaxShift) {
         for (const c of cues) {
           if (c.ws === undefined || c.ws < first) continue;
           c.start = Math.max(0, c.start + off);
