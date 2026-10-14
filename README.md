@@ -4,10 +4,13 @@
 
 **Try it: [facetovoice.com](https://facetovoice.com)**
 
-Shape a realistic 3D head, style it, give it an expression, and hear the voice it suggests. Claude casts the
-character from the face, ElevenLabs designs three matching voices, and the head lip-syncs to every line it speaks.
-Then meet the character and talk to them out loud: they answer live, in their own voice, with the face moving as they
-speak.
+A voice is hard to put into words. "Warm, a little gravelly, middle-aged" could be a hundred different people. But it's
+often easy to picture the person whose voice you're after: their face, their age, their hair, the look they're giving
+you. Face to Voice lets you start from that picture.
+
+Shape a realistic 3D head, style it and give it an expression. Claude reads the face like a casting director,
+ElevenLabs designs three voices to match, and the head lip-syncs to every line it speaks. Then meet the character and
+talk to them out loud: they answer live, in their own voice, with the face moving as they speak.
 
 ![Face to Voice: a character with a high bun, styled in the builder's Style tab](docs/images/face-to-voice-style.jpg)
 
@@ -15,23 +18,31 @@ The head is Google's [GNM Head](https://github.com/google/GNM), a linear statist
 exported to the browser as glTF morph targets. Everything on top of it (semantic sliders, a geometry limiter, strand
 hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 
-**Contents:** [Highlights](#engineering-highlights) · [How it works](#how-it-works) ·
-[How ElevenLabs is used](#how-elevenlabs-is-used) · [Known limitations](#known-limitations) · [Run it](#run-it) · [Responsible AI](#responsible-ai) ·
-[Credits and licences](#credits-and-licences) · [Architecture](docs/architecture.md)
+**Contents:** [How ElevenLabs is used](#how-elevenlabs-is-used) · [Highlights](#engineering-highlights) ·
+[How it works](#how-it-works) · [Known limitations](#known-limitations) · [Run it](#run-it) ·
+[Responsible AI](#responsible-ai) · [Credits and licences](#credits-and-licences) · [Architecture](docs/architecture.md)
 
-## Engineering highlights
+## How ElevenLabs is used
 
 | | |
 |---|---|
-| Model export | 125 morph targets, every vertex and delta within 6 µm of the source; 2.88 MB brotli for both files |
-| Limiter | blocks only impossible geometry; a slider grab costs one frame, per-face animation caps run off the main thread |
-| Stress test | 8 families of states, each exact-checked: Random face, Random character and animation driven in the real app in headless Chrome, single sliders, pairs, multi-slider faces, fine-tune and add-ons generated with the limiter's Python mirror; 0 of 223 single-slider ends and 0 of 4,224 slider pairs broken |
-| Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 569 KB initial JS gzip |
-| Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 / 61–62 |
-| Accessibility | WCAG 2.2 AA pass: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; Lighthouse 100 / 96 |
-| Tests | 340 vitest tests (web, plus 31 for the agent) and 162 pytest tests (pipeline), run in CI on every push |
+| **Timestamps → lip sync** | The character timestamps from the speech stream drive the mouth. Closures (p/b/m, f/v, th) and vowels are then snapped to the audio itself, since stamps inside a word can be ~100 ms off. Live chats do the same with word timings from the dialogue websocket. |
+| **Voice Design from the face** | `eleven_ttv_v3`, with a description built from Claude's casting by a fixed template. The preview text is the character's own line, so all three previews already sound in character. |
+| **Text to speech** | `eleven_v4_turbo` streamed with timestamps as `pcm_24000` straight to the browser, the expression riding along as an audio tag. First audio about 0.4 s after the request. |
+| **Live conversations** | A LiveKit agent answers as the character with Claude Haiku 5.5 and speaks in their designed voice over the text-to-dialogue websocket. |
+| **Cost and limits** | A design is never paid for twice (voices cached per description, spoken lines in Vercel Blob). Saved voices live in a small pool sized to the plan, with a studio voice as the fallback, and every paid route is rate-limited and capped. |
 
-Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
+More: [voice and lip sync](docs/architecture.md#voice-and-lip-sync), [live conversations](docs/architecture.md#live-conversations).
+
+## Engineering highlights
+
+- **Fast:** the head is on screen in under half a second on desktop and under a second on a throttled phone.
+- **Smooth:** 60 fps on a phone profile while dragging sliders, switching emotions and speaking.
+- **Only impossible faces are blocked:** weird faces are fine, skin through the eyeball isn't. A stress test checks
+  thousands of app states exactly.
+- **Tested:** over 500 tests (web, agent and pipeline) run in CI on every push.
+
+All the numbers and how they were measured: [docs/architecture.md](docs/architecture.md#numbers).
 
 ## How it works
 
@@ -59,52 +70,26 @@ Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewpor
                                                        ──► live lip sync, the reply's mood on the face
 ```
 
-**The head.** GNM is linear, so each of its components bakes into an exact glTF morph target. The pipeline exports 30
-identity and 40 expression components, and `uv run verify` checks every vertex and morph delta against the source. The
-33 **Shape** sliders (jaw width, eye spacing, lip fullness …) are not raw components but directions solved on the
-model, each moving its own measurement while holding the others. Slider ends reach up to ±4.5 SD of their feature,
-pulled back where adult anthropometry (ANSUR II, NIOSH, 3DFN) or the geometry says stop.
-[More](docs/architecture.md#pipeline--morph-targets)
+**The head.** GNM is linear, so each component bakes into an exact glTF morph target. The 33 **Shape** sliders (jaw
+width, eye spacing, lip fullness …) are directions solved on the model, each moving its own measurement while holding
+the others, with ranges checked against adult anthropometry. [More](docs/architecture.md#pipeline--morph-targets)
 
-**Only impossible faces are blocked.** Weird faces are allowed; skin through the eyeball, lips through each other or
-teeth through the cheek are not. Exact checks in the pipeline find what breaks, and a fast mirror in the app turns
-each slider's track into "as far as this face allows" and caps the blink, emotion and mouth shapes per face. An
-automated stress test proves it on thousands of app states. [More](docs/architecture.md#the-limiter-and-the-stress-test)
+**Only impossible faces are blocked.** Exact checks in the pipeline find what breaks, and a fast mirror in the app
+turns each slider's track into "as far as this face allows". [More](docs/architecture.md#the-limiter-and-the-stress-test)
 
-**Hair and add-ons on a morphing face.** 228 strand hair styles are drawn on the GPU (camera-facing ribbons, child
-strands generated around each guide, Kajiya-Kay shading), with every root tied to the skin so hair moves with sliders,
-blinks and expressions. Eyebrows, lashes, beards and glasses are generated by the pipeline; glasses refit at runtime to
-wide or long heads. [More](docs/architecture.md#hair-and-add-ons)
+**Hair and add-ons.** 228 strand hair styles drawn on the GPU, every root tied to the skin so hair follows sliders,
+blinks and expressions. Eyebrows, lashes, beards and glasses come from the pipeline.
+[More](docs/architecture.md#hair-and-add-ons)
 
-**Expression and voice.** Twelve emotions come from GNM's ExpressionSampler, with Fine-tune controls that go as far as
-the emotion leaves room for. Claude casts the character from a screenshot into a fixed schema; a template turns that
-into an ElevenLabs Voice Design prompt; the chosen take speaks with `eleven_v4_turbo`, and the lip sync places every
-p/b/m, f/v and th closure on the audio itself. [More](docs/architecture.md#voice-and-lip-sync)
+**Expression and voice.** Twelve emotions from GNM's ExpressionSampler. Claude casts the character from a screenshot
+into a fixed schema, a template turns that into the Voice Design prompt, and the chosen take speaks with lip sync
+placed on the audio. [More](docs/architecture.md#voice-and-lip-sync)
 
-**Meet and talk.** On the Meet step Claude writes the character's profile once per voice: a name and title, a
-backstory, traits, what they want right now and a greeting that drops you into a scene. "Chat" starts a live voice
-conversation: a LiveKit agent (`agent/`) hears the visitor, answers as the character with Claude Haiku 5.5 and speaks
-in their designed voice. The face lip-syncs to the voice as it arrives and takes on each reply's mood.
-[More](docs/architecture.md#live-conversations)
+**Meet and talk.** Claude writes the character once per voice: a name, a backstory and a greeting that drops you into
+a scene. "Chat" starts a live voice conversation with them. [More](docs/architecture.md#live-conversations)
 
 **Export.** "Download character" builds a zip in the browser: a transparent portrait, the casting and voice prompt,
-the chosen take, the character's profile, a rebuild link, and a licence file written from the licence of each piece the
-character wears.
-[More](docs/architecture.md#export)
-
-## How ElevenLabs is used
-
-| | |
-|---|---|
-| **Voice Design from the face** | `POST /v1/text-to-voice/design` with `eleven_ttv_v3`. The description is assembled from Claude's casting by a fixed template, and the preview text is the character's own line, so the three previews already sound in character. |
-| **Text to speech** | `POST /v1/text-to-speech/{voice}/stream/with-timestamps`, `eleven_v4_turbo`, `pcm_24000`, passed straight through to the browser. The expression rides along as an audio tag at three strengths. |
-| **Timestamps → lip sync** | Character times become viseme cues; closures and vowels are then snapped to the audio's loudness, since word-medial stamps can be ~100 ms off. |
-| **Latency** | First audio about 0.4 s after the request, with or without an expression tag; playback starts on the first chunk. |
-| **Caching** | Voices are cached per voice description (a design is never paid for twice), castings per visitor and face, spoken lines in Vercel Blob by voice and text, and only when the stream was the whole line. |
-| **Voice slots** | Saved voices live in a small LRU pool sized to the plan; when the day's saves or the month's operations run out, the visitor gets the closest pre-designed studio voice instead of an error. |
-| **Rate limits and cost** | Same-origin, Vercel BotID, per-visitor limits and global daily caps in Upstash Redis on every paid route; one request at a time designs a description or saves a take. Production refuses to run without Redis. |
-| **Live conversations** | A LiveKit agent speaks as the character in its own designed voice (`eleven_v4_turbo` over the text-to-dialogue websocket), with Claude Haiku 5.5 and live lip sync from ElevenLabs' word timings, forwarded ahead of the audio. Open to everyone, within daily limits. |
-| **Mock mode** | `FTV_MOCK_ELEVENLABS=1` and `FTV_MOCK_CLAUDE=1` replace every paid call, so the whole flow and the lip sync run without keys; `FTV_SAVED_VOICES=1` alongside lets Speak use the saved studio voices for real speech, still designing no new voices. |
+the chosen take, the profile, a rebuild link and a licence file. [More](docs/architecture.md#export)
 
 ## Known limitations
 
@@ -146,7 +131,8 @@ pnpm dev                           # http://localhost:3000
 
 - **Without keys**, with both mocks on, everything runs: every slider, styling, expression, pose, the voice flow
   (generated tones with lip sync) and export. A real casting needs `ANTHROPIC_API_KEY` (about a cent per face); Voice
-  Design needs an ElevenLabs paid plan (Starter is enough).
+  Design needs an ElevenLabs paid plan (Starter is enough). `FTV_SAVED_VOICES=1` alongside the mocks lets Speak use
+  the saved studio voices for real speech, still designing no new voices.
 - **Without the hair files** the app works bald, and the hair panel says how to get them.
 - **Live conversations** need a LiveKit project (`LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`) and the agent
   running; [agent/README.md](agent/README.md) says how, including a canned agent that needs no other keys. Chat shows

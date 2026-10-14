@@ -27,6 +27,20 @@ agent talk to Claude and ElevenLabs; the browser never holds a key.
                                                                                       agent/ (Node)  STT → Claude Haiku 5.5 → ElevenLabs v4 Turbo
 ```
 
+## Numbers
+
+| | |
+|---|---|
+| Model export | 125 morph targets, every vertex and delta within 6 µm of the source; 2.88 MB brotli for both files |
+| Limiter | blocks only impossible geometry; a slider grab costs one frame, per-face animation caps run off the main thread |
+| Stress test | 8 families of states, each exact-checked: Random face, Random character and animation driven in the real app in headless Chrome, single sliders, pairs, multi-slider faces, fine-tune and add-ons generated with the limiter's Python mirror; 0 of 223 single-slider ends and 0 of 4,224 slider pairs broken ([table](#the-limiter-and-the-stress-test)) |
+| Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 569 KB initial JS gzip |
+| Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 / 61–62 |
+| Accessibility | WCAG 2.2 AA pass: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; Lighthouse 100 / 96 |
+| Tests | 340 vitest tests (web, plus 31 for the agent) and 162 pytest tests (pipeline), run in CI on every push |
+
+Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
+
 ## Pipeline → morph targets
 
 - **One linear model, exact targets.** A GNM face is `mean + Σ wᵢ·componentᵢ`, so a component at kσ is an exact morph
