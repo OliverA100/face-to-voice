@@ -1,0 +1,245 @@
+{
+ "_": "Conversational test lines in the app's own style (written for this project, free to use). Only for final checks, never tuned on.",
+ "lines": [
+  {
+   "id": "c01",
+   "text": "Hi there! I'm so glad you stopped by."
+  },
+  {
+   "id": "c02",
+   "text": "Oh, hello. I wasn't expecting anyone today."
+  },
+  {
+   "id": "c03",
+   "text": "Well, well, look who finally decided to show up."
+  },
+  {
+   "id": "c04",
+   "text": "Hmm, let me think about that for a moment."
+  },
+  {
+   "id": "c05",
+   "text": "Honestly? I have no idea what you mean."
+  },
+  {
+   "id": "c06",
+   "text": "Wait, did you just say what I think you said?"
+  },
+  {
+   "id": "c07",
+   "text": "No, no, no. That's not how it works at all."
+  },
+  {
+   "id": "c08",
+   "text": "My mum makes the best pumpkin bread in the whole town."
+  },
+  {
+   "id": "c09",
+   "text": "I've never felt so alive in my entire life!"
+  },
+  {
+   "id": "c10",
+   "text": "Who knew you'd come through for us in the end?"
+  },
+  {
+   "id": "c11",
+   "text": "You know what? Maybe you're right. Maybe I'm wrong."
+  },
+  {
+   "id": "c12",
+   "text": "Let's grab a coffee and talk it over, shall we?"
+  },
+  {
+   "id": "c13",
+   "text": "I was born in a tiny village by the sea, a long, long time ago."
+  },
+  {
+   "id": "c14",
+   "text": "People say I'm stubborn. I prefer the word determined."
+  },
+  {
+   "id": "c15",
+   "text": "Please, call me Bob. Everybody does."
+  },
+  {
+   "id": "c16",
+   "text": "It's quarter past nine, and I've already had three cups of tea."
+  },
+  {
+   "id": "c17",
+   "text": "We should probably get moving before it starts to rain."
+  },
+  {
+   "id": "c18",
+   "text": "Oh boy. This is going to be a very long week."
+  },
+  {
+   "id": "c19",
+   "text": "Do you remember the first time we met? You looked terrified."
+  },
+  {
+   "id": "c20",
+   "text": "That's brilliant! Why didn't I think of that?"
+  },
+  {
+   "id": "c21",
+   "text": "I'm not angry. I'm just a little bit disappointed."
+  },
+  {
+   "id": "c22",
+   "text": "Every morning I walk my dog, Pepper, along the river."
+  },
+  {
+   "id": "c23",
+   "text": "Fine. Have it your way. But don't come crying to me later."
+  },
+  {
+   "id": "c24",
+   "text": "Ah, the smell of fresh bread. Nothing beats it."
+  },
+  {
+   "id": "c25",
+   "text": "I could tell you, but then I'd have to make you promise to keep it secret."
+  },
+  {
+   "id": "c26",
+   "text": "Mm, maybe tomorrow. Today I'm just too tired."
+  },
+  {
+   "id": "c27",
+   "text": "Look, I don't want any trouble. I'm only passing through."
+  },
+  {
+   "id": "c28",
+   "text": "Thank you, really. That means more to me than you know."
+  },
+  {
+   "id": "c29",
+   "text": "Seventy-two days at sea, and not a single storm. Can you believe it?"
+  },
+  {
+   "id": "c30",
+   "text": "Shh! Keep your voice down, they might hear us."
+  },
+  {
+   "id": "c31",
+   "text": "What a wonderful surprise! Come in, come in."
+  },
+  {
+   "id": "c32",
+   "text": "I've been thinking about moving somewhere warm. Maybe Portugal, maybe Mexico."
+  },
+  {
+   "id": "c33",
+   "text": "Some people collect stamps. I collect stories."
+  },
+  {
+   "id": "c34",
+   "text": "Are you sure about this? Because once we start, there's no going back."
+  },
+  {
+   "id": "c35",
+   "text": "My brother Paul borrowed my bike and broke the back wheel."
+  },
+  {
+   "id": "c36",
+   "text": "Wow. Just, wow. I'm speechless."
+  },
+  {
+   "id": "c37",
+   "text": "The meeting is on Monday at ten, in the big room upstairs."
+  },
+  {
+   "id": "c38",
+   "text": "If you ever need a hand, you know where to find me."
+  },
+  {
+   "id": "c39",
+   "text": "I used to be a baker, before all of this happened."
+  },
+  {
+   "id": "c40",
+   "text": "Please don't touch that. It's very old, and very fragile."
+  },
+  {
+   "id": "c41",
+   "text": "Oh, you're good. You're really, really good."
+  },
+  {
+   "id": "c42",
+   "text": "Remember: measure twice, cut once."
+  },
+  {
+   "id": "c43",
+   "text": "I'm hungry. Are you hungry? Let's find some food."
+  },
+  {
+   "id": "c44",
+   "text": "Maybe the problem isn't the map. Maybe it's the people reading it."
+  },
+  {
+   "id": "c45",
+   "text": "Back in my day, we walked five miles to school, both ways."
+  },
+  {
+   "id": "c46",
+   "text": "Well, that went better than expected. Mostly."
+  },
+  {
+   "id": "c47",
+   "text": "Ha! I knew it. I knew you'd say that."
+  },
+  {
+   "id": "c48",
+   "text": "My favourite movie? Probably something with pirates and a big, booming soundtrack."
+  },
+  {
+   "id": "c49",
+   "text": "Hold on, I'm almost finished. Just one more minute."
+  },
+  {
+   "id": "c50",
+   "text": "I promise I'll be back before midnight. Probably."
+  },
+  {
+   "id": "c51",
+   "text": "Could you pass me the pepper and the butter, please?"
+  },
+  {
+   "id": "c52",
+   "text": "Twenty-three, forty-seven, ninety-nine. Those were the winning numbers."
+  },
+  {
+   "id": "c53",
+   "text": "Ugh, Mondays. Why do they always feel so long?"
+  },
+  {
+   "id": "c54",
+   "text": "Be brave. Be bold. And maybe bring a jumper."
+  },
+  {
+   "id": "c55",
+   "text": "Wonderful weather we're having, isn't it? Perfect for a picnic."
+  },
+  {
+   "id": "c56",
+   "text": "I've made up my mind. We're moving to the mountains in May."
+  },
+  {
+   "id": "c57",
+   "text": "Mmm, this soup is amazing. What's in it?"
+  },
+  {
+   "id": "c58",
+   "text": "Please, please, please tell me you brought the map."
+  },
+  {
+   "id": "c59",
+   "text": "Bye for now. Be safe, and say hello to your mother for me."
+  },
+  {
+   "id": "c60",
+   "text": "Good morning! Did you sleep well? You look much better today."
+  }
+ ]
+}

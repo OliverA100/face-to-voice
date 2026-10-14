@@ -268,7 +268,7 @@ describe("word shapes", () => {
     snapClosures(cues, loud, Infinity, snapped);
     snapVowels(cues, loud, Infinity, snapped);
     const [p, , o, b1, schwa, b2] = [0, 1, 2, 3, 4, 5].map((n) => cues.find((c) => c.n === n)!);
-    expect(p.end).toBeLessThan(0.16);
+    expect(p.end).toBeCloseTo(0.16 - LIPSYNC.closureOffShift, 2); // parts at its burst
     expect(b1.start).toBeGreaterThan(0.3); // not on the "r"
     expect(b1.end).toBeCloseTo(0.41 - LIPSYNC.closureOffShift, 2);
     const oc = (o.start + o.end) / 2, sc = (schwa.start + schwa.end) / 2;

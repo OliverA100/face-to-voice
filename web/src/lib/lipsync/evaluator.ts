@@ -50,7 +50,10 @@ export const LIPSYNC = {
    *  jaw nearly shut) and an "eh" its spread in "ee" (O, E: share of the vowel handed over); "ee" and "oo", mostly lip
    *  shape themselves, keep at least this much of themselves (I, U). The poses stay the solved, capped ones. */
   shapeHold: { O: 0.7, E: 0.5, I: 0.8, U: 0.85 } as Record<"O" | "E" | "I" | "U", number>,
-  gateLookahead: 0.03, // s; the audio is decoded ahead of playback, so the gate can open as the sound starts
+  /** s ahead the gate reads the loudness. 0.03 opened the mouth as the sound started, but real lips (GRID, 4 talkers,
+   *  qa/lipsync/human.py) start closing for a p/b/m ~90 ms before the sound falls and open widest ~27 ms after a vowel's
+   *  loudest moment: at 0.03 the app closed ~100 ms ahead and peaked ~22 ms before; at 0, −86 ms and −12 ms (2026-10-14). */
+  gateLookahead: 0,
   /** The open gate measures the loudness against the loudest moment within ±gateLocal (s), not the line's peak: a voice
    *  trails off toward the end of a line ("…about it" ~20 dB down), and its last words would barely open. The reference
    *  never drops below gateLocalFloor (of the line's peak), so real pauses stay shut. 0 = the line's peak. */
@@ -80,12 +83,15 @@ export const LIPSYNC = {
   snapAfter: 0.16,
   /** A p/b/m then spans the closure the audio shows: from where the sound drops into the dip to the burst (the
    *  steepest rise after it), so the lips part when the sound comes back and back-to-back closures keep the vowel
-   *  between them. The edges are moved earlier by these (s): the mouth's smoothing and LIPSYNC.lead take the rest. */
-  closureOnShift: 0.03,
+   *  between them. The edges are moved earlier by these (s): the mouth's smoothing and LIPSYNC.lead take the rest.
+   *  Set (2026-10-14) from real lips (GRID corpus, 4 talkers, qa/lipsync/grid.py and human.py, measured the same way):
+   *  after a vowel they are shut ~4 ms after the sound falls and part ~24 ms after the burst; with 0.03 / 0.02 the
+   *  mouth shut ~13 ms early and parted on the burst. */
+  closureOnShift: 0,
   /** … an f/v or th starts this much earlier still (s): the lower lip is on the teeth (the tongue between them) as the
    *  hiss begins, not 25 ms into it */
   hissOnShift: 0.025,
-  closureOffShift: 0.02,
+  closureOffShift: -0.01,
   closureMinDur: 0.05, // s: shorter closures start earlier (the lips need this long to meet), still parting at the burst
   closureSearch: 0.12, // s searched before the dip (for the drop) and after it (for the burst)
   hissSearch: 0.25, // … before an f/v's dip: a hiss can be longer than a closure, so the vowel before it lies further back
@@ -142,6 +148,7 @@ export const LIPSYNC = {
    *  closure and vowel snapping already look further after a stamp than before it, for early ones. The voice onset
    *  is the first 10 ms louder than lineOnsetDb. */
   lineOnsetDb: -30,
+  lineOnsetGap: 0.1, // s: a sound this far apart (in silence) from the first word's stretch of voice is not the line's start
   lineMaxShift: 0.3,
   lineFade: 1.5,
   /** placePhrases: after a pause (pauseLevel for pauseMin), the first word stamped after the voice stopped moves onto
@@ -234,6 +241,7 @@ export const LIPSYNC_PARTS = {
   lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
   joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
+  onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
   squeezedFirst: true, // a first word squeezed after an audio tag is spread back to the voice's onset, alone (placeLine)
 };
@@ -255,6 +263,7 @@ export function oldTiming(): void {
   LIPSYNC_PARTS.vowelBounds = false;
   LIPSYNC_PARTS.squeezedFirst = false;
   LIPSYNC_PARTS.alignPhrases = false;
+  LIPSYNC_PARTS.onsetGap = false;
   LIPSYNC.snapBefore = 0.04;
   LIPSYNC.snapDbPerS = 0;
 }
@@ -725,11 +734,13 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
   if (until > decodedSeconds) return false;
   const level = Math.pow(10, LIPSYNC.lineOnsetDb / 20);
   let onset: number | null = null;
-  for (let t = 0; t <= until; t += 0.01) {
+  for (let t = 0, quiet = Infinity; t <= until; t += 0.01) {
     if (loudness(t) > level) {
-      onset = t;
-      break;
-    }
+      // the start of the stretch of voice the first word is in: a sound before it, apart from it by a silence
+      // (lineOnsetGap: the voice sounding an audio tag, "[suspicious, low and guarded] Open…"), is not the line's start
+      if (onset === null || (LIPSYNC_PARTS.onsetGap && quiet >= LIPSYNC.lineOnsetGap && t <= first + 0.05)) onset = t;
+      quiet = 0;
+    } else quiet += 0.01;
   }
   const d0 = onset === null || !LIPSYNC_PARTS.placeLine ? 0 : Math.max(-LIPSYNC.lineMaxShift, Math.min(0, onset - first)); // late stamps only
   // A first word squeezed after an audio tag ("[happy, bright and bouncy] Peter Piper…": "Peter" stamped in 30 ms at
