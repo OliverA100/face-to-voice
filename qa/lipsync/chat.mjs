@@ -79,13 +79,26 @@ await headReady(page);
 
 // to the Meet step (a chosen voice is restored straight onto Speak), then Chat
 if (!(await page.$('textarea[aria-label="Text to speak"]'))) {
+  // a restored character should come back on its voice: pressing Find my voice would spend a voice design (20 per
+  // visitor in 24 h, shared with the live site), so stop instead (Safari's restore can miss)
+  if (restore) {
+    console.log(`--restore ${restore} did not bring its voice back (no Speak box): stopping before Find my voice`);
+    await br.close();
+    process.exit(1);
+  }
   await clickText(page, /Find my voice|New voices/);
   await page.waitForFunction(() => document.querySelector('textarea[aria-label="Text to speak"]') || [...document.querySelectorAll("button")].some((b) => /Use voice/.test(b.textContent || "")), { timeout: 240_000, polling: 500 });
   await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => /Use voice/.test(b.textContent || "") && b.offsetParent)?.click());
   await page.waitForSelector('textarea[aria-label="Text to speak"]', { timeout: 120_000 });
 }
 await clickText(page, /^Meet$/);
-await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => /^Chat$/.test((b.textContent || "").trim()) && b.offsetParent), { timeout: 120_000, polling: 300 });
+try {
+  await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => /^Chat$/.test((b.textContent || "").trim()) && b.offsetParent), { timeout: 120_000, polling: 300 });
+} catch (e) {
+  // say why (a limit, a sign-in, an error message) rather than only "timed out"
+  console.log("no Chat button. The panel says:\n" + (await page.evaluate(() => document.querySelector("main")?.innerText.slice(0, 1200))));
+  throw e;
+}
 
 const wordsNow = () =>
   page.evaluate(() => {
