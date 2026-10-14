@@ -4,7 +4,7 @@
  *
  *   node speak.mjs --url <deployment> --char <label> [--random] [--take 0|1|2] [--browser chrome|firefox|safari]
  *                  [--lines plosive,fv,...] [--emotion Happy] [--cached] [--cachedOnly] [--skin fair] [--age -1..1]
- *                  [--lookOnly]   (--lookOnly: roll and save the face, no voice: look at out/chars/<char>.png first)
+ *                  [--lookOnly] [--set lines.json]   (--lookOnly: roll and save the face, no voice: look at out/chars/<char>.png first)
  *
  * Every Speak response is saved to out/clips/<char>-<line>[-<emotion>].ndjson (+ .arrivals.json: each NDJSON line's
  * arrival time), so replay.mjs can play the very same audio in other browsers for free.
@@ -29,7 +29,8 @@ const browser = opt("browser", "chrome");
 const emotion = opt("emotion", null);
 const cached = !!opt("cached", false);
 const cachedOnly = !!opt("cachedOnly", false);
-const { lines } = JSON.parse(fs.readFileSync(new URL("./lines.json", import.meta.url)));
+// --set <file.json>: another set of lines ({ lines: [{ id, text }] }), e.g. a held-out set kept out of the repo
+const { lines } = JSON.parse(fs.readFileSync(opt("set", null) ?? new URL("./lines.json", import.meta.url)));
 const wanted = opt("lines", null);
 const todo = wanted ? lines.filter((l) => wanted.split(",").includes(l.id)) : lines;
 const CLIPS = path.join(OUT, "clips");
@@ -94,7 +95,10 @@ if (opt("lookOnly", false)) {
 
 // voice: Find my voice → the take's "Use voice"
 console.log("finding the voice");
-await clickText(page, /Find my voice|New voices/);
+// a restored character comes back on its voice (the Speak box): pressing Find my voice would count against the
+// visitor's designs for nothing
+await sleep(1500);
+if (!(await page.$('textarea[aria-label="Text to speak"]'))) await clickText(page, /Find my voice|New voices/);
 // a face whose voice was already chosen goes straight to Speak; otherwise the three takes appear
 await page.waitForFunction(() => document.querySelector('textarea[aria-label="Text to speak"]') || [...document.querySelectorAll("button")].some((b) => /Use voice/.test(b.textContent || "")), { timeout: 240_000, polling: 500 });
 await sleep(1000);

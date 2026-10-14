@@ -541,3 +541,45 @@ Frame cost unchanged (120 fps at 4× CPU, nothing over 33 ms).
 Tried and dropped: aligning the vowels only (worse: 34 late), adding t/d/k/g as events (29 late), rewarding deeper
 dips (27–28 late), stricter or looser spreads and skip costs (24–29 late).
 
+## A held-out set, and a forced aligner (2026-10-14)
+
+Every tuning so far used the same 10 texts (65 recordings). A held-out set: Harvard sentences lists 1–4 and CMU ARCTIC
+prompts a0002–a0021 (60 lines; the texts stay in `qa/lipsync/out/sets`, not committed: the Harvard sentences' licence
+is unclear), spoken by 6 new characters (the 6 saved studio voices: the local build in development mode,
+`FTV_MOCK_ELEVENLABS=1 FTV_SAVED_VOICES=1`, fake designs, real speech, no production limits), half with the face's
+expression, half neutral.
+
+The forced aligner: ElevenLabs' Forced Alignment API (`qa/lipsync/fa.py`; billed as Speech to Text) on each line's audio
+and words, its timings put in place of the TTS stamps (`out/clips-fa`), same audio and truth.
+
+| Set | Version | Late (>100 ms) | Worst 10% | Sealed |
+|---|---|---|---|---|
+| Dev (65 lines) | today | 24 | 109 ms | 382/404 |
+| Dev | forced aligner | 24 | 110 ms | 383/404 |
+| Dev | forced aligner, retuned on dev | 22 | 84 ms | 383/404 |
+| **Held-out (60)** | Step 4 code | 11 | 155 ms | 97/105 |
+| Held-out | today | 12 | 153 ms | 97/105 |
+| Held-out | forced aligner | 11 | 155 ms | 96/105 |
+| Held-out | forced aligner, retuned | 12 | 155 ms | 95/105 |
+
+Leaving out p/b/m at the end of a phrase (14 of 105: "time.", "game.", "Tom,": the lips stay shut into the pause, which
+is natural, and there is no release to time), held-out: Step 4 5 late of 91 (worst 10% 126 ms), today 7 (140 ms), forced
+aligner 5 (141 ms).
+
+**What this says:**
+- On ordinary sentences, today's placement changes and the forced aligner make no measurable difference. Between Step
+  4 and today, 34 of the 105 held-out closures move by over 40 ms, about half each way: the changes help dense or fast
+  p/b/m lines (the tongue twisters, "blue", "my mood", "Bob bought") and reshuffle the rest.
+- The forced aligner isn't worth building into the app now: it fixes words stamped far off ("maybe"), but on the
+  held-out set it changes nothing overall.
+- Lip sync on ordinary speech: p/b/m part within a few ms of the burst (median), 90% sealed, ~6% of releases over
+  100 ms late.
+- Tuning from here should use both sets together and a fresh set kept back for the final check.
+
+## The face easing back after speaking
+
+The emotion's mouth part steps back while a character speaks; when the voice stopped it came back with a 0.1 s
+exponential, fastest in its first frames, so the face snapped back to its expression. It now returns along an
+ease-in-out over `LIPSYNC.speechRelease` (0.8 s, after the existing 0.35 s hold); stepping back when speech starts is
+unchanged.
+
