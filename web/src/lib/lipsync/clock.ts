@@ -13,8 +13,6 @@
  * Safari before outputLatency: the delay comes from getOutputTimestamp, carried forward to now and eased.
  */
 export const BLUETOOTH = { reported: 0.1, extra: 0.08 };
-/** The corrections and the carry above; off = the clock as it was before 2026-10-13 (`?lipsync=v1`, evaluator.ts). */
-export const CLOCK = { fixes: true };
 export const IOS_EXTRA = -0.05;
 const CARRY = 0.012; // s: a little more than one 10.7 ms step
 
@@ -47,12 +45,12 @@ export class HeardClock {
       }
       l = this.latencyEst ?? 0;
     }
-    if (CLOCK.fixes && l >= BLUETOOTH.reported) l += BLUETOOTH.extra;
+    if (l >= BLUETOOTH.reported) l += BLUETOOTH.extra;
     l = Math.max(0, l);
     // not clamped: an iPhone reports ~12 ms, and its screen trails its sound by ~50 ms more than that says, so the mouth
     // is drawn for a moment ~38 ms ahead of currentTime (clamped at 0, only 12 of the 50 ms applied: the mouth ran
     // ~38 ms late on an iPhone 2026-10-14, phone-2 film)
-    if (CLOCK.fixes && (this.ios ??= isIOS())) l += IOS_EXTRA;
+    if ((this.ios ??= isIOS())) l += IOS_EXTRA;
     return l;
   }
 
@@ -66,7 +64,7 @@ export class HeardClock {
       this.lastRaw = raw;
       this.rawSince = now;
     }
-    return raw + (CLOCK.fixes ? Math.min(CARRY, Math.max(0, (now - this.rawSince) / 1000)) : 0) - this.latency();
+    return raw + Math.min(CARRY, Math.max(0, (now - this.rawSince) / 1000)) - this.latency();
   }
 
   reset(): void {

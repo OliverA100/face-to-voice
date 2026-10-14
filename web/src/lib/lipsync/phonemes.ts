@@ -113,7 +113,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
 
 /** The phonemes received so far (word → ARPAbet), from each line's {"phonemes"} NDJSON line. */
 const dict = new Map<string, string[]>();
-/** Off = the letter rules only (`?lipsync=v1`, evaluator.ts oldTiming). */
+/** Off = the letter rules only (`?lipsyncOff=phonemes`). */
 export const PHONEMES = { enabled: true };
 
 /** Keeps a line's words' phonemes: { word: "HH AH0 L OW1" }. */

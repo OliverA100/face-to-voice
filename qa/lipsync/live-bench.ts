@@ -12,7 +12,6 @@ import fs from "node:fs";
 import path from "node:path";
 
 import dictionary from "@/data/phonemes.json";
-import { CLOCK } from "@/lib/lipsync/clock";
 import { LIPSYNC, LIPSYNC_PARTS } from "@/lib/lipsync/evaluator";
 import { LIVE, LiveSpeech, type LiveWord } from "@/lib/lipsync/live";
 import { Mouth } from "@/lib/lipsync/mouth";
@@ -46,7 +45,6 @@ for (const p of off.split(",").filter(Boolean)) {
   if (p === "phonemes") PHONEMES.enabled = false;
   else (LIPSYNC_PARTS as Record<string, boolean>)[p] = false;
 }
-CLOCK.fixes = true;
 if (delay) LIVE.delay = Number(delay);
 const DICT = dictionary as Record<string, string>;
 

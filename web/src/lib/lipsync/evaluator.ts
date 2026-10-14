@@ -5,7 +5,6 @@
  * frame-rate-independent exponential smoothing removes flicker. Tune attack/release first.
  */
 import { VISEME_IDS, type Cue, type VisemeId } from "./cues";
-import { PHONEMES } from "./phonemes";
 
 export const LIPSYNC = {
   /** Seconds the mouth runs ahead (+) or behind (−) the sound: the whole mouth (shapes and loudness) is evaluated this
@@ -256,35 +255,6 @@ export const LIPSYNC_PARTS = {
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
   squeezedFirst: true, // a first word squeezed after an audio tag is spread back to the voice's onset, alone (placeLine)
 };
-
-/**
- * `?lipsync=v1`: the timing as it was before the 2026-10-13 pass (80 ms lead, no phrase placement, the old closure
- * rules, the old clock), to compare by eye on the same page. TEMPORARY: remove once the new timing is settled.
- */
-export function oldTiming(): void {
-  PHONEMES.enabled = false;
-  LIPSYNC.lead = 0.08;
-  LIPSYNC.hissOnShift = 0;
-  LIPSYNC_PARTS.placePhrases = false;
-  LIPSYNC_PARTS.pauseBoundary = false;
-  LIPSYNC_PARTS.silenceSpan = false;
-  LIPSYNC_PARTS.jawSplit = false;
-  LIPSYNC_PARTS.lateral = false;
-  LIPSYNC_PARTS.joinClosures = false;
-  LIPSYNC_PARTS.vowelBounds = false;
-  LIPSYNC_PARTS.squeezedFirst = false;
-  LIPSYNC_PARTS.alignPhrases = false;
-  LIPSYNC_PARTS.onsetGap = false;
-  LIPSYNC.snapBefore = 0.04;
-  LIPSYNC.snapDbPerS = 0;
-  LIPSYNC.gateLookahead = 0.03;
-  LIPSYNC.closureOnShift = 0.03;
-  LIPSYNC.closureOffShift = 0.02;
-  LIPSYNC.nasalRelease = 0;
-  LIPSYNC.closureMinDur = 0.05;
-  LIPSYNC.closeBoost = 1;
-  LIPSYNC.liveGateLookahead = 0.03;
-}
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
 export function mouthLead(param: string | null): number {

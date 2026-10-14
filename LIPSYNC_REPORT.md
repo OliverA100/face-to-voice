@@ -665,7 +665,7 @@ they first separate. Step 5's "part on the burst" was therefore early by this me
 | `onsetGap` (new part) | – | on | a sound before the first word, apart from it by a silence (an audio tag voiced), is no longer the line's start ("Open the crate" −178 → +22 ms) |
 | `liveGateLookahead` (new) | – | 0 | live chats keep the gate at 0: their f/v aren't placed on the hiss, and reading behind held the vowel before them open |
 
-`?lipsync=v1` puts all of these back as well.
+`?lipsync=v1` (the old timing, kept for comparing) was removed on 2026-10-15, after this pass went live; `?lipsyncOff=<part>` still switches single parts off.
 
 ## Measured (offline bench, the app's own code on every saved line)
 

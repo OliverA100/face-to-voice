@@ -31,7 +31,7 @@ describe("phonemes", () => {
     for (let k = 1; k < v.length; k++) expect(v[k].from).toBeCloseTo(v[k - 1].to, 9);
   });
 
-  it("replace the letter rules for the words a line brings, and leave the rest (and ?lipsync=v1) to them", () => {
+  it("replace the letter rules for the words a line brings, and leave the rest (and ?lipsyncOff=phonemes) to them", () => {
     addPhonemes({ maybe: "M EY1 B IY0", all: "AO1 L" });
     expect(shapes("maybe")).toEqual(["PP", "E", "I", "PP", "I"]); // the letters said "PP E PP": no "ee" after the b
     expect(shapes("all")).toEqual(["O", "DD"]); // rounded, not a wide "aa"
