@@ -624,3 +624,97 @@ whole-line lag −5 to −12 ms, lips part −5 to +18 ms, in Chrome, Firefox an
 **Measuring notes:** Safari keeps an AudioContext made outside a click "interrupted" (it runs and plays nothing), so
 `replay.mjs` now unlocks it inside a real click; the Safari adapter reloads the page only when a session is restored.
 
+
+# Tuned to real talkers (2026-10-14, branch `lipsync`, not deployed)
+
+Steps 1–5 tuned the mouth on about 25 lines and against targets set by reasoning ("the lips part on the burst").
+This pass changes both: many more lines, kept apart for tuning and checking, and targets measured on real people.
+
+**Lines** (studio voices, recorded against a local server, about 21,000 characters of TTS):
+
+| Set | Lines | Used for |
+|---|---|---|
+| Tuning: Harvard sentences, lists 5–34 | 300 | the only set any setting was tuned on |
+| Held out: Harvard 1–4 + CMU ARCTIC | 61 | checking |
+| ARCTIC, two more sets | 80 | checking |
+| Conversation lines written for this project (`qa/lipsync/sets/conversation.json`) | 60 | checking |
+| The original stress lines (tongue twisters, m-heavy) | 65 | regressions |
+
+**Real lips:** the GRID audio-visual corpus (CC BY 4.0), 4 talkers, about 2,000 p/b/m. Their lips are measured
+from video with MediaPipe's face mesh, and the app's lips with the same rule ("shut" = within 15% of the line's
+lip range above its smallest), against the same acoustic landmarks (`qa/lipsync/grid.py`, `human.py`). Real lips:
+
+| | Closing starts | Shut | Part |
+|---|---|---|---|
+| p/b/m after a vowel (vs the sound falling; part vs the burst) | −90 ms | −6 ms | +24 ms |
+| p/b/m after silence | −156 ms | −41 ms | +21 ms |
+
+They also reach the teeth on an f/v 74 ms after the hiss starts, and are widest 27 ms after a vowel's loudest moment.
+Note that by this rule real lips "part" about 24 ms after the burst: the lips open gradually, and the burst comes as
+they first separate. Step 5's "part on the burst" was therefore early by this measure.
+
+## What changed
+
+| Setting | Was (Step 5) | Now | Why |
+|---|---|---|---|
+| `gateLookahead` | 0.03 | −0.04 | the mouth opened ahead of the sound; real lips are widest after the loudest point |
+| `closureOnShift` / `closureOffShift` | 0.03 / 0.02 | 0 / 0 | p/b/m shut ~18 ms early and parted ~24 ms early vs real lips |
+| `closureMinDur` | 0.05 | 0.09 | short closures start earlier, so the lips get there |
+| `closeBoost` (new) | – | 2 | lips and jaw may shut twice as fast as they open: after a wide vowel ("copper", "rubbish", 16 mm open, 60 ms closure) the calm speeds never met |
+| `nasalRelease` (new) | – | 0.02 | an m's release (read from the treble, which comes back gradually) landed earlier than a p's |
+| `onsetGap` (new part) | – | on | a sound before the first word, apart from it by a silence (an audio tag voiced), is no longer the line's start ("Open the crate" −178 → +22 ms) |
+| `liveGateLookahead` (new) | – | 0 | live chats keep the gate at 0: their f/v aren't placed on the hiss, and reading behind held the vowel before them open |
+
+`?lipsync=v1` puts all of these back as well.
+
+## Measured (offline bench, the app's own code on every saved line)
+
+The app's lips against real talkers' (`human.py`). Held-out sets only (held, ARCTIC, conversation; nothing here was
+tuned on), ms:
+
+| | Closing starts | Shut | Part | f/v to the teeth | Widest vowel |
+|---|---|---|---|---|---|
+| Real talkers, after a vowel | −90 | −6 | +24 | +74 | +27 |
+| Step 5 (live now), after a vowel | −100 | −11 | −1 | +46 | −21 |
+| **Now**, after a vowel | **−89** | **−5** | **+26** | +55 | **+7** |
+| Real talkers, after silence | −156 | −41 | +21 | | |
+| Step 5, after silence | −120 | −58 | −5 | | |
+| **Now**, after silence | −108 | −29 | **+25** | | |
+
+Per set, Step 5 → now (`board.py`; p/b/m at the end of a phrase counted apart):
+
+| Set | Sealed p/b/m | Part (median) | Widest vowel | f/v |
+|---|---|---|---|---|
+| Tuning | 383 → **392** of 402 | −3 → +24 | −24 → +5 | +55 → +67 |
+| Held out | 85 → **89** of 93 | −2 → +22 | −20 → +9 | +54 → +34 |
+| ARCTIC 2 | 60 → **65** of 65 | −4 → +26 | −24 → +3 | +59 → +79 |
+| ARCTIC 3 | 55 → 55 of 57 | +2 → +33 | −16 → +7 | +43 → +51 |
+| Conversation | 171 → **174** of 186 | −4 → +24 | −23 → +5 | +38 → +55 |
+| Stress | 359 → **368** of 378 | −5 → +25 | −21 → +5 | +26 → +33 |
+
+Sharp speed changes (p95 acceleration) are unchanged on every set. Top lip speed rises from 145 to about 164 mm/s
+(the faster closing), below the 200–300 mm/s real lips typically reach when closing.
+
+**Live chats** (offline live bench, the 4 recorded replies), Step 5 → now: parts +9 → +19, shut −58 → −33, widest
+vowel −24 → −10, f/v +37 → +62, sealed 19 → 19 of 20. Every measure moves toward the real talkers'.
+
+**Frame cost** (phone screen, CPU slowed 4×, local production build): speaking p95 9.2 ms per frame, the same as
+idle; no frame over 33 ms; lip-sync script 0.4 ms per frame.
+
+**In the browser:** saved lines replayed through the local production build in Chrome and Firefox, with no errors.
+
+**Clips** (Step 5 on facetovoice.com | now, same audio, 1× and slowed to 0.25×):
+`qa/lipsync/out/compare/tuned-{V3-c32-happy,V3-c44-neutral,V1-c08-happy}*.mp4`.
+
+## Still open
+
+- **Outliers.** On the tuning set, 37 releases are over 100 ms late and 13 early (real talkers: 6% and 0.8% by the same
+  rule; the app is at 9% and 3%). The ones checked against the waveform are mostly wrong ground truth (the aligner put the
+  "p" of "the point" on the "th" before it; "apple"'s closure before its own vowel), or word-final p's with no real
+  burst ("sharp", "tape", "cap").
+- **The widest point** of a vowel is still ~20 ms earlier than real lips' (+7 vs +27). Reading the gate further behind
+  moves it later but holds f/v open.
+- **After silence** the lips start closing later than real ones (−108 vs −156 ms). A real talker gets ready before
+  speaking; GRID's spread there is wide (IQR −250 to −80).
+- **Not yet on a device:** these settings are measured offline and in desktop Chrome/Firefox. iPhone and AirPods
+  checks, and a deploy, wait for you.

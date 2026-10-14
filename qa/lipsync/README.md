@@ -92,6 +92,26 @@ uv run bench.py base try
 meter's 10 ms blocks from the heard audio `LIVE.delay` ahead, and the AudioContext clock stepping per frame, through
 the real `LiveSpeech` and mouth. It needs a run's `truth.json` and `meta.json` "live" (chat.mjs from Step 4 on).
 
+**Sets, and real lips as the target:**
+
+```bash
+uv run board.py base try                                 # every set apart: tune on T* only, the rest are checks
+uv run human.py try ['^T\d']                             # the app against real talkers (GRID), measured the same way
+uv run word.py try T1-t031-neutral point                 # one word: the sound's events, the cues, when the lips were shut
+```
+
+Lines are filed by the clip's first letter: `T` tuning (Harvard sentences 5–34), `S` held out (Harvard 1–4, CMU
+ARCTIC), `U`/`W` more ARCTIC, `V` this project's own conversation lines (`sets/conversation.json`), `A`–`E` the
+original stress lines. The Harvard and ARCTIC texts stay out of the repo (`out/sets/`); `speak.mjs --set` records a
+set's lines in the studio voices against a local server (`FTV_MOCK_ELEVENLABS=1 FTV_SAVED_VOICES=1`).
+
+`grid.py` measures real lips in the GRID audio-visual corpus (Cooke et al. 2006, CC BY 4.0, zenodo.org/records/3625687:
+the talkers' video zips unpacked to `out/grid/<talker>/`, `alignments.zip` to `out/grid/align/`): MediaPipe's face mesh on each 25 fps video,
+the sound from its own audio track, per p/b/m when the lips start closing, shut and part, per f/v and vowel when they
+reach the teeth or are widest. `uv run grid.py out/grid/s1` → `out/grid/s1.jsonl`; `uv run grid.py --summary
+out/grid/*.jsonl`. `human.py` reads those files and applies the same "shut" rule (15% of the line's lip range) to the
+bench, split by what comes before the p/b/m (a vowel, or silence).
+
 ## Shapes contact sheet
 
 ```bash
