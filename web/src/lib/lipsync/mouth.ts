@@ -174,7 +174,8 @@ export class Mouth {
     }
     // the top speeds (lip gap and jaw, then the mouth's width and rounding), then how fast a movement may start
     for (const v of VISEME_IDS) askedAct[v] = (split ? shapes : act)[v] * (v === "PP" || v === "FF" ? 1 : seal);
-    const share = speedUpShare(dGap, dJaw, shapeShare(drawnAct, askedAct, speedShare(dGap, dJaw, step), step), this.gapVel, this.jawVel, step);
+    const closing = scratch.PP + scratch.FF > 0.3; // a p/b/m or f/v is pulling the lips together (LIPSYNC.closeBoost)
+    const share = speedUpShare(dGap, dJaw, shapeShare(drawnAct, askedAct, speedShare(dGap, dJaw, step, closing), step), this.gapVel, this.jawVel, step, closing);
     this.gapVel = (dGap * share) / step;
     this.jawVel = (dJaw * share) / step;
     for (const v of VISEME_IDS) drawnAct[v] += (askedAct[v] - drawnAct[v]) * share;

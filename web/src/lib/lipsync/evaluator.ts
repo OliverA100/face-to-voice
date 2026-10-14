@@ -50,10 +50,14 @@ export const LIPSYNC = {
    *  jaw nearly shut) and an "eh" its spread in "ee" (O, E: share of the vowel handed over); "ee" and "oo", mostly lip
    *  shape themselves, keep at least this much of themselves (I, U). The poses stay the solved, capped ones. */
   shapeHold: { O: 0.7, E: 0.5, I: 0.8, U: 0.85 } as Record<"O" | "E" | "I" | "U", number>,
-  /** s ahead the gate reads the loudness. 0.03 opened the mouth as the sound started, but real lips (GRID, 4 talkers,
-   *  qa/lipsync/human.py) start closing for a p/b/m ~90 ms before the sound falls and open widest ~27 ms after a vowel's
-   *  loudest moment: at 0.03 the app closed ~100 ms ahead and peaked ~22 ms before; at 0, −86 ms and −12 ms (2026-10-14). */
-  gateLookahead: 0,
+  /** s ahead the gate reads the loudness (negative: behind). 0.03 opened the mouth as the sound started, but real lips
+   *  (GRID, 4 talkers, qa/lipsync/human.py) start closing for a p/b/m ~90 ms before the sound falls and open widest
+   *  ~27 ms after a vowel's loudest moment: at 0.03 the app closed ~100 ms ahead and peaked ~22 ms before; at 0, −86 ms
+   *  and −12 ms; at −0.04 (with closureOffShift 0), −89 ms and +5 ms, f/v +67 ms vs the talkers' +74 (2026-10-14). */
+  gateLookahead: -0.04,
+  /** … for a chat (live.ts): its f/v stay on the agent's word times, and reading behind held the vowel before them open
+   *  (live bench f/v +62 → +102 ms vs the talkers' +74). */
+  liveGateLookahead: 0,
   /** The open gate measures the loudness against the loudest moment within ±gateLocal (s), not the line's peak: a voice
    *  trails off toward the end of a line ("…about it" ~20 dB down), and its last words would barely open. The reference
    *  never drops below gateLocalFloor (of the line's peak), so real pauses stay shut. 0 = the line's peak. */
@@ -91,8 +95,9 @@ export const LIPSYNC = {
   /** … an f/v or th starts this much earlier still (s): the lower lip is on the teeth (the tongue between them) as the
    *  hiss begins, not 25 ms into it */
   hissOnShift: 0.025,
-  closureOffShift: -0.01,
-  closureMinDur: 0.05, // s: shorter closures start earlier (the lips need this long to meet), still parting at the burst
+  closureOffShift: 0, // s before the burst a p/b/m's cue ends (−0.01 until the gate read behind: releases +27 → +31 ms)
+  nasalRelease: 0.02, // s added to an "m"'s end (its release is read from the treble coming back, which rises gradually)
+  closureMinDur: 0.09, // s: shorter closures start earlier (the lips need this long to meet), still parting at the burst (0.05 → 0.09: tuning lines sealed 388 → 390, closing starts −85 → −91 ms vs GRID talkers −90)
   closureSearch: 0.12, // s searched before the dip (for the drop) and after it (for the burst)
   hissSearch: 0.25, // … before an f/v's dip: a hiss can be longer than a closure, so the vowel before it lies further back
   closureMinDb: 6, // a dip shallower than this (dB below the sound around it) is not trusted: the cue stays centred on it
@@ -203,6 +208,12 @@ export const LIPSYNC = {
    *  toward its new shape as both allow (its path is kept, only slowed). From visemes.json "speed". 0 = no limit. */
   gapSpeed: 150,
   jawSpeed: 100,
+  /** gapSpeed, jawSpeed and speedUp are this many times higher while a p/b/m or f/v pulls the mouth shut: real lips
+   *  shut at 200–300 mm/s, and at the calm speeds a short closure after a wide vowel ("copper", "rubbish": 16 mm open,
+   *  60 ms shut) never met. Opening keeps the calm speeds. 1 = no difference. */
+  closeBoost: 2, // tuning lines: sealed 385 → 388 of 402, sharp speed changes unchanged (closeBoostUp 1.5: 392, but 3.4 → 3.9 m/s²)
+  /** As closeBoost, for how fast a closing may speed up (speedUp). */
+  closeBoostUp: 1,
   /** How fast (m/s², lips and jaw alike) a movement may speed up: the smoothing moves fastest the moment a shape is
    *  asked for, so every movement started with a jolt ("still a little jumpy", 2026-10-11). Slowing down is
    *  left alone, so the mouth never overshoots (a p/b/m still shuts). Sharp speed changes p95 4.0 → 3.2 m/s² on the
@@ -266,6 +277,13 @@ export function oldTiming(): void {
   LIPSYNC_PARTS.onsetGap = false;
   LIPSYNC.snapBefore = 0.04;
   LIPSYNC.snapDbPerS = 0;
+  LIPSYNC.gateLookahead = 0.03;
+  LIPSYNC.closureOnShift = 0.03;
+  LIPSYNC.closureOffShift = 0.02;
+  LIPSYNC.nasalRelease = 0;
+  LIPSYNC.closureMinDur = 0.05;
+  LIPSYNC.closeBoost = 1;
+  LIPSYNC.liveGateLookahead = 0.03;
 }
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
@@ -404,10 +422,13 @@ export function sealWeight(act: Activations): number {
 
 /** The share (0..1) of this frame's step the mouth may take: the lips may open or close by at most LIPSYNC.gapSpeed and
  *  the jaw by jawSpeed (mm/s) over `dt` seconds. dGap / dJaw: the step's change in mm. */
-export function speedShare(dGap: number, dJaw: number, dt: number): number {
+export function speedShare(dGap: number, dJaw: number, dt: number, closing = false): number {
   let share = 1;
-  if (LIPSYNC.gapSpeed > 0 && Math.abs(dGap) > LIPSYNC.gapSpeed * dt) share = Math.min(share, (LIPSYNC.gapSpeed * dt) / Math.abs(dGap));
-  if (LIPSYNC.jawSpeed > 0 && Math.abs(dJaw) > LIPSYNC.jawSpeed * dt) share = Math.min(share, (LIPSYNC.jawSpeed * dt) / Math.abs(dJaw));
+  const boost = closing ? LIPSYNC.closeBoost : 1;
+  const gapSpeed = LIPSYNC.gapSpeed * (dGap < 0 ? boost : 1);
+  const jawSpeed = LIPSYNC.jawSpeed * (dJaw < 0 ? boost : 1);
+  if (gapSpeed > 0 && Math.abs(dGap) > gapSpeed * dt) share = Math.min(share, (gapSpeed * dt) / Math.abs(dGap));
+  if (jawSpeed > 0 && Math.abs(dJaw) > jawSpeed * dt) share = Math.min(share, (jawSpeed * dt) / Math.abs(dJaw));
   return share;
 }
 
@@ -416,14 +437,16 @@ export function speedShare(dGap: number, dJaw: number, dt: number): number {
  * `share` from speedShare, and last frame's lip and jaw velocities (mm/s, signed: a turn starts again from rest).
  * Slowing down is never limited.
  */
-export function speedUpShare(dGap: number, dJaw: number, share: number, gapVel: number, jawVel: number, dt: number): number {
+export function speedUpShare(dGap: number, dJaw: number, share: number, gapVel: number, jawVel: number, dt: number, closing = false): number {
   if (!(LIPSYNC.speedUp > 0) || dt <= 0) return share;
   const grow = LIPSYNC.speedUp * 1000 * dt; // mm/s the speed may grow by this frame
+  const boost = closing ? LIPSYNC.closeBoostUp : 1;
   let k = share;
   for (const [d, last] of [[dGap, gapVel], [dJaw, jawVel]]) {
+    const g = d < 0 ? grow * boost : grow;
     const speed = (Math.abs(d) * share) / dt;
     const from = Math.sign(d) === Math.sign(last) ? Math.abs(last) : 0;
-    if (speed > from + grow) k = Math.min(k, (share * (from + grow)) / speed);
+    if (speed > from + g) k = Math.min(k, (share * (from + g)) / speed);
   }
   return k;
 }
@@ -593,7 +616,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
       claimed.push(claimOf.get(c)!);
     }
     if (span) {
-      c.end = span[1] - LIPSYNC.closureOffShift;
+      c.end = span[1] - LIPSYNC.closureOffShift + (c.nasal ? LIPSYNC.nasalRelease : 0);
       const onShift = LIPSYNC.closureOnShift + (c.viseme === "PP" ? 0 : LIPSYNC.hissOnShift);
       c.start = Math.max(0, Math.min(span[0] - onShift, c.end - LIPSYNC.closureMinDur));
       if (needSyllable && before) c.start = Math.max(c.start, Math.min(before.end + LIPSYNC.closureGapMin, c.end - LIPSYNC.closureKeep));
@@ -1149,6 +1172,8 @@ export interface SpeechSource {
   trebleLoudness(t: number): number;
   /** The source places each phrase on its sound itself (live.ts anchors): the evaluator's placePhrases stays out. */
   readonly phrasesPlaced?: boolean;
+  /** The gate's own look-ahead instead of LIPSYNC.gateLookahead (live.ts: LIPSYNC.liveGateLookahead). */
+  readonly gateLookahead?: number;
 }
 
 /** What one source's frames keep between frames (LipSync.tsx keeps one per source). */
@@ -1178,10 +1203,11 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   if (LIPSYNC_PARTS.snapVowels) snapVowels(src.cues, loudnessOf, decoded, mem.snapped);
   targetsAt(src.cues, t + lead, out);
   // The open shapes read a windowed loudness (no wobble on 10 ms dips); closures read the raw one.
-  const loud = src.loudness(t + LIPSYNC.gateLookahead);
-  const loudSmooth = windowedLoudness(loudnessOf, t + LIPSYNC.gateLookahead, LIPSYNC.gateWindow);
+  const at = t + (src.gateLookahead ?? LIPSYNC.gateLookahead);
+  const loud = src.loudness(at);
+  const loudSmooth = windowedLoudness(loudnessOf, at, LIPSYNC.gateWindow);
   // measured against the loudest moment nearby, so a line that trails off still opens its last words (gateLocal)
-  const rel = Math.min(1, loudSmooth / localPeak(loudnessOf, t + LIPSYNC.gateLookahead));
+  const rel = Math.min(1, loudSmooth / localPeak(loudnessOf, at));
   const gate = LIPSYNC_PARTS.gates ? loudnessGate(rel) * LIPSYNC.openGain : 1;
   if (shapes) {
     // the lips' shapes: the same cues under the softer shape gate (LIPSYNC.shapeGate); the jaw keeps `out`

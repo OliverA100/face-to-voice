@@ -45,6 +45,12 @@ describe("speedShare", () => {
     expect(jaw * 8).toBeCloseTo(LIPSYNC.jawSpeed * dt, 6);
     expect(speedShare(10, 8, dt)).toBe(Math.min(lips, jaw)); // the stricter of the two
   });
+  it("lets a p/b/m shut faster than the mouth opens (closeBoost)", () => {
+    const dt = 1 / 60;
+    expect(speedShare(-10, -8, dt, true) * 8).toBeCloseTo(LIPSYNC.jawSpeed * LIPSYNC.closeBoost * dt, 6);
+    expect(speedShare(10, 8, dt, true)).toBe(speedShare(10, 8, dt)); // opening: the calm speeds
+    expect(speedShare(-10, -8, dt)).toBe(speedShare(10, 8, dt)); // no closure asked for: the calm speeds
+  });
 });
 
 

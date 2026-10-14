@@ -298,7 +298,7 @@ describe("m closures and rounding", () => {
     const treble = (t: number) => (t >= 0.395 && t < 0.465 ? 0.02 : 0.6);
     const cues: Cue[] = [{ viseme: "PP", start: 0.36, end: 0.44, text: "m", nasal: true }];
     snapClosures(cues, loud, Infinity, new WeakSet(), treble);
-    expect(cues[0].end).toBeCloseTo(0.47 - LIPSYNC.closureOffShift, 2);
+    expect(cues[0].end).toBeCloseTo(0.47 - LIPSYNC.closureOffShift + LIPSYNC.nasalRelease, 2);
     expect(audioClosureAt(cues, 0.43, loud, "PP", treble)).toBeGreaterThan(0.9); // past the closure gate, the hum is loud
     const plain: Cue[] = [{ viseme: "PP", start: 0.36, end: 0.44, text: "m", nasal: true }];
     snapClosures(plain, loud, Infinity, new WeakSet()); // no treble: no dip, so not anchored

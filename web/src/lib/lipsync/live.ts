@@ -30,7 +30,7 @@
 import { HeardClock } from "./clock";
 import { alignmentToCues, type Alignment, type Cue } from "./cues";
 import { queuePhonemes, spokenWords } from "./phonemes";
-import type { SpeechSource } from "./evaluator";
+import { LIPSYNC, type SpeechSource } from "./evaluator";
 import { speechPlayer } from "./player";
 
 /** One word as the agent sends it: text, and seconds from the start of the reply's audio. */
@@ -107,6 +107,9 @@ const metered = new WeakMap<BaseAudioContext, Promise<void>>();
 
 export class LiveSpeech implements SpeechSource {
   cues: Cue[] = [];
+  get gateLookahead(): number {
+    return LIPSYNC.liveGateLookahead;
+  }
   private readonly ctx: AudioContext;
   private node: AudioWorkletNode | null = null;
   private source: MediaStreamAudioSourceNode | null = null;
