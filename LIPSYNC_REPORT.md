@@ -457,3 +457,22 @@ the script must never press Find my voice for a restored character (that spends 
 site); and it now clicks the Meet card's button, not the "Meet" step, once the card is there. With the Mac's display
 asleep Safari reports the page as hidden and draws nothing, so the head never loads.
 
+## The three small open items, checked (2026-10-14)
+
+All three were measured before changing anything; none called for an app change.
+
+- **f/v early in Safari live (−103): the words, not Safari.** Safari's replies happened to say "office" and "coffee"
+  twice each (about −110 apiece); Firefox's "coffee" came out +63 and +71. Replayed offline with a perfect clock, the
+  same replies give −47 (Safari's) and +28 (Firefox's). Across all 11 live replies the f/v median is −1 ms, with about
+  ±110 ms of scatter in every browser. Giving the live meter more look-ahead (holding the voice back 0.3 or 0.5 s
+  instead of 0.13, `live-bench.sh --delay`) doesn't help f/v (+12, +9). It would put p/b/m on the burst (releases
+  −29 → −2) but with more very late ones (worst 10%: 140 → 158 ms), and every reply would start 170–370 ms later.
+  Kept at 0.13.
+- **D1 (old, Tired) parting late (+21 in Chrome by pixels): within the noise.** Offline its median is +6 with a wide
+  spread (middle half −9..+26 ms); the other new voices are +4..+13 in Chrome. With 40 closures, a 10 ms difference
+  between voices isn't a shift.
+- **E1's late tail: its stamps.** In "summer" the whole word is stamped about 100 ms late. The real "m" is within the
+  search, but a shallow dip next to the late stamp scores better. A gentler distance penalty (`snapDbPerS` 150 → 100
+  or 75) fixes some closures and breaks as many ("picked" fixed, "breakfast" broken): late releases 31 → 32–33 and the
+  worst 10% 136 → 147–151 ms across the 65 lines. Kept at 150.
+

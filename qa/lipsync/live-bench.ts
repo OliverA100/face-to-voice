@@ -6,7 +6,7 @@
  *   - the meter: the heard audio's 10 ms RMS (and > 2 kHz), LIVE.delay ahead of what is heard (the voice is held back);
  *   - the clock: ctx.currentTime stepping at --fps.
  *
- *   ./live-bench.sh [--tag live] [--set k=v,…] [--off part,…] <run> [<run> …]      (runs under out/runs)
+ *   ./live-bench.sh [--tag live] [--set k=v,…] [--off part,…] [--delay s] <run> [<run> …]      (runs under out/runs)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -30,6 +30,7 @@ const fps = Number(opt("fps", "120"));
 const tag = opt("tag", "live");
 const sets = opt("set", "");
 const off = opt("off", "");
+const delay = opt("delay", ""); // seconds the voice is held back (LIVE.delay): how far the meter sees ahead
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const RUNS = path.join(HERE, "out", "runs");
 const OUT = path.join(HERE, "out", "bench");
@@ -46,6 +47,7 @@ for (const p of off.split(",").filter(Boolean)) {
   else (LIPSYNC_PARTS as Record<string, boolean>)[p] = false;
 }
 CLOCK.fixes = true;
+if (delay) LIVE.delay = Number(delay);
 const DICT = dictionary as Record<string, string>;
 
 /** 16-bit mono WAV → samples (−1..1) and rate. */
