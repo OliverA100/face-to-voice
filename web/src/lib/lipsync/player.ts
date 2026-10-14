@@ -10,6 +10,7 @@ import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cu
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
 import { addPhonemes } from "./phonemes";
+import { takeLongHide } from "./staleTab";
 
 const SAMPLE_RATE = ENVELOPE_RATE;
 const PRIME_SECONDS = 0.25; // audio buffered before playback starts (raised when chunks arrive slowly)
@@ -94,6 +95,12 @@ class SpeechPlayer {
 
   /** Call synchronously in the user's tap. */
   unlock(): void {
+    // an iPhone tab back from a long time in the background can play silently (staleTab.ts): start the audio over
+    if (takeLongHide() && this.ctx) {
+      void this.ctx.close().catch(() => {});
+      this.ctx = null;
+      audioSession("auto"); // asked for again below, so iOS sets the playback session up afresh
+    }
     audioSession("playback");
     if (!this.ctx) this.ctx = new AudioContext();
     if (this.ctx.state !== "running") void this.ctx.resume();

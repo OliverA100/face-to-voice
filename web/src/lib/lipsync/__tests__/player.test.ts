@@ -36,6 +36,11 @@ class FakeContext {
   outputLatency = 0.01;
   destination = {};
   resume = () => Promise.resolve();
+  closed = false;
+  close = () => {
+    this.closed = true;
+    return Promise.resolve();
+  };
   createBuffer = (c: number, n: number, r: number) => new FakeBuffer(c, n, r);
   createBufferSource() {
     const s: FakeSource = { buffer: null, when: 0, started: false, stopped: false, ended: false, onended: null };
@@ -253,5 +258,35 @@ describe("SpeechPlayer", () => {
     expect(speechPlayer.streamDone).toBe(true);
     speechPlayer.stop();
     expect(speechPlayer.streamDone).toBe(false);
+  });
+
+  it("an iPhone tab back from a long time in the background starts its audio over on the next Speak (it could play silently)", async () => {
+    let visibility = "visible";
+    let onVisibility = (): void => {};
+    const session = { type: "auto" };
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1", maxTouchPoints: 5, audioSession: session });
+    vi.stubGlobal("document", {
+      get visibilityState() {
+        return visibility;
+      },
+      addEventListener: (_: string, fn: () => void) => {
+        onVisibility = fn;
+      },
+    });
+    vi.stubGlobal("window", { location: { search: "" } });
+    const { speechPlayer } = await import("../player");
+    await speechPlayer.speak(async () => stream(0.5));
+    const first = ctx;
+    await speechPlayer.speak(async () => stream(0.5));
+    expect(ctx).toBe(first); // a second line: same audio
+    visibility = "hidden";
+    onVisibility();
+    vi.advanceTimersByTime(3 * 60_000);
+    visibility = "visible";
+    onVisibility();
+    await speechPlayer.speak(async () => stream(0.5));
+    expect(first.closed).toBe(true);
+    expect(ctx).not.toBe(first); // a new AudioContext, made in the tap
+    expect(session.type).toBe("playback");
   });
 });

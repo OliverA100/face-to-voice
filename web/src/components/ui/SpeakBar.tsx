@@ -30,7 +30,8 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
   const [state, setState] = useState<PlayerState>(speechPlayer.state);
   const [error, setError] = useState<string | null>(null);
   const [showSync, setShowSync] = useState(false);
-  // Safari on a computer, back from a long time in the background: its sound can come late or not at all (staleTab.ts)
+  // Safari on a computer, an iPhone or iPad, back from a long time in the background: the sound can come late or not at
+  // all (staleTab.ts)
   const staleTab = useSyncExternalStore(subscribeStaleTab, staleTabSnapshot, () => false);
   const lineIds = useId();
   const speakButton = useRef<HTMLButtonElement>(null);

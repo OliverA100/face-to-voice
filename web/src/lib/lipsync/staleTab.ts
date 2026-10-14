@@ -3,7 +3,11 @@
  * a second or more late, or silent, while Safari keeps reporting it as on time (outputLatency, getOutputTimestamp), so
  * the page cannot tell. A new AudioContext inherits it; only a reload clears it. So once such a tab has been hidden for
  * STALE_AFTER_S, the speak bar offers a reload (the face and the voice survive it: lib/faceSession.ts,
- * lib/voice/voiceSession.ts). Everywhere else this stays false.
+ * lib/voice/voiceSession.ts).
+ *
+ * iPhone and iPad (2026-10-14): a tab left open a while can play silently, the mouth moving to no sound, until it is
+ * reloaded. There the player also starts over on the next Speak (takeLongHide: a new AudioContext and the audio
+ * session asked for again, in the tap), and the reload stays offered in case that isn't enough. Elsewhere all false.
  */
 const STALE_AFTER_S = 2 * 60; // short: the hint is one quiet line, and nobody knows how soon Safari drifts
 
@@ -14,7 +18,14 @@ export function isDesktopSafari(): boolean {
   return /Safari\//.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua) && !(navigator.maxTouchPoints > 1);
 }
 
+/** iPhone or iPad (WebKit with touch: iPadOS says it is a Mac; every browser there is WebKit). */
+export function isAppleTouch(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return navigator.maxTouchPoints > 1 && /AppleWebKit/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+}
+
 let stale = false;
+let longHide = false; // a long time hidden since the player last took it (takeLongHide)
 let hiddenAt: number | null = null;
 let installed = false;
 const listeners = new Set<() => void>();
@@ -26,15 +37,18 @@ function staleAfterMs(): number {
 }
 
 function install(): void {
-  if (installed || typeof document === "undefined" || !isDesktopSafari()) return;
+  if (installed || typeof document === "undefined" || !(isDesktopSafari() || isAppleTouch())) return;
   installed = true;
   if (document.visibilityState === "hidden") hiddenAt = performance.now();
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") hiddenAt = performance.now();
     else if (hiddenAt !== null) {
-      if (!stale && performance.now() - hiddenAt >= staleAfterMs()) {
-        stale = true;
-        for (const fn of listeners) fn();
+      if (performance.now() - hiddenAt >= staleAfterMs()) {
+        longHide = true;
+        if (!stale) {
+          stale = true;
+          for (const fn of listeners) fn();
+        }
       }
       hiddenAt = null;
     }
@@ -47,5 +61,14 @@ export function subscribeStaleTab(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** True once a desktop Safari tab has come back from a long time in the background (until the page is reloaded). */
+/** True once a desktop Safari, iPhone or iPad tab has come back from a long time in the background (until reloaded). */
 export const staleTabSnapshot = () => stale;
+
+/** iPhone and iPad: true once after each return from a long time in the background, for the player to start its audio
+ *  over (call it in the tap). Watches from the first call on. */
+export function takeLongHide(): boolean {
+  install();
+  if (!longHide || !isAppleTouch()) return false;
+  longHide = false;
+  return true;
+}
