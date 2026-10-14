@@ -53,6 +53,8 @@ export class Mouth {
   // "Speaking" as the emotion and the mouth sliders see it, 0..1: is there voice within speechHold before or
   // speechAhead after now (the audio is decoded ahead)? Eased by speechFade. They step back once per phrase.
   private held = 0;
+  private release = -1; // 0..1 through the ease back to the expression once the voice stops (−1: speaking)
+  private releaseFrom = 0; // `held` when the voice stopped
   // How rounded a p/b/m is made now (0 = the plain PP shape, 1 = "ppr"), eased (LIPSYNC.roundTau).
   private rounding = 0;
   // how far the tongue tip is up for a d/t/n/l (tongueAt), smoothed; and how much of that is an "l" (lateralAt)
@@ -108,7 +110,20 @@ export class Mouth {
           voiced = 1;
           break;
         }
-    this.held += (voiced - this.held) * (1 - Math.exp(-step / LIPSYNC.speechFade));
+    if (voiced || LIPSYNC.speechRelease <= 0) {
+      this.held += (voiced - this.held) * (1 - Math.exp(-step / LIPSYNC.speechFade));
+      this.release = -1;
+    } else if (this.held > 0) {
+      // the voice has stopped: back to the expression along an ease-in-out from where it was, not an exponential (its
+      // first frames are its fastest: the face snapped back)
+      if (this.release < 0) {
+        this.release = 0;
+        this.releaseFrom = this.held;
+      }
+      this.release = Math.min(1, this.release + step / LIPSYNC.speechRelease);
+      const r = this.release;
+      this.held = this.releaseFrom * (1 - r * r * (3 - 2 * r));
+    }
     if (this.held < 0.002) this.held = 0;
     const held = this.held;
     state.active = any || held > 0;

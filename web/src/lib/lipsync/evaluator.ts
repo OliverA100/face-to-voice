@@ -181,11 +181,13 @@ export const LIPSYNC = {
   /** The emotion's mouth part and the mouth sliders step back while speaking: while there is voice (louder than
    *  speechLoud, 0..1 of the clip's peak) within speechHold (s) before or speechAhead (s) after now, eased with time
    *  constant speechFade (s). Once per phrase, not after every word: following the mouth's own activity makes them
-   *  pump back in between words, which reads as the mouth moving after the sound. */
+   *  pump back in between words, which reads as the mouth moving after the sound. When the voice stops they come back
+   *  over speechRelease (s), eased in and out: with speechFade they snapped back to the expression in a few frames. */
   speechHold: 0.35,
   speechAhead: 0.15,
   speechLoud: 0.06,
   speechFade: 0.1,
+  speechRelease: 0.8,
   /** Closure activation (PP + FF, after smoothing) at which the open shapes are fully suppressed,
    *  so the lips really meet on a "p"/"b"/"m" instead of hovering over a fading vowel. */
   sealAt: 0.9,
