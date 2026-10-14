@@ -176,9 +176,11 @@ export const LIPSYNC = {
   vowelRescue: 0.35,
   vowelSilence: 0.08,
   /** fitPhrases: a pause is the voice quieter than pauseLevel (of the line's peak, 40 ms window) for at least pauseMin
-   *  (s): lower than vowelSilence, which an f, th or s can fall under for as long. */
+   *  (s): lower than vowelSilence, which an f, th or s can fall under for as long. Longer than a stop's closure: at 0.15
+   *  the 160 ms "b" of a stressed "best" was taken for a pause and placePhrases moved "the best pumpkin bread" 0.23 s
+   *  late (2026-10-15). */
   pauseLevel: 0.03,
-  pauseMin: 0.15,
+  pauseMin: 0.2,
   holdLevel: 0.2, // … and holds its last vowel while the voice is at least this loud (of the line's peak)
   vowelProm: 3,
   vowelShift: 0,
@@ -250,6 +252,7 @@ export const LIPSYNC_PARTS = {
   jawSplit: true, // the loudness opens the jaw; the lips keep the sound's shape (LIPSYNC.shapeGate, mouth.ts)
   lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
   joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
+  ppFirst: true, // p/b/m find their silences before f/v and th, which then keep off them (snapClosures)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -508,13 +511,16 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
   const claimed: [number, number][] = [];
   for (const c of cues) if (snapped.has(c) && claimOf.has(c)) claimed.push(claimOf.get(c)!);
   const taken = (t: number) => claimed.some(([a, b]) => t > a - LIPSYNC.closureApart / 2 && t < b + LIPSYNC.closureApart / 2);
+  vowelBefore.clear();
+  const order = spoken(cues);
+  // p/b/m first (LIPSYNC_PARTS.ppFirst): their silences are the surest, and an f/v or th placed before them took one
+  // ("the best": the th of "the", stamped late, sat on the b's silence and every closure after it moved one along)
+  for (const pass of LIPSYNC_PARTS.ppFirst ? ["pp", "rest"] : ["all"]) {
   let prev: Cue | null = null; // the closure before this one, in spoken order
   let vowelSince = false; // a vowel came between it and this one
   let prevPP: Cue | null = null; // the p/b/m before this one, and whether a vowel came since
   let vowelSincePP = false;
   let lastVowel: Cue | null = null;
-  vowelBefore.clear();
-  const order = spoken(cues);
   for (const c of order) {
     if (VOWELS.has(c.viseme)) lastVowel = c;
     if (VOWELS.has(c.viseme) && !c.glide) vowelSince = vowelSincePP = true;
@@ -530,6 +536,9 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
       vowelSincePP = false;
       vowelBefore.set(c, lastVowel);
     }
+    if ((pass === "pp" && c.viseme !== "PP") || (pass === "rest" && c.viseme === "PP")) continue;
+    // … and an f/v or th never takes a p/b/m's stretch
+    const blocked = c.viseme === "PP" || pass === "rest";
     if (snapped.has(c) || !isPlaced(c)) continue;
     const centre = (c.start + c.end) / 2;
     const lo = Math.max(0, centre - LIPSYNC.snapBefore);
@@ -556,7 +565,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     // Nearest dip wins over the deepest one: quiet + a small penalty for distance from the stamp.
     let bestT = centre, best = Infinity;
     for (let t = lo; t <= hi; t += 0.01) {
-      if ((c.viseme === "PP" && taken(t)) || !allowed(t)) continue;
+      if ((blocked && taken(t)) || !allowed(t)) continue;
       const score = LIPSYNC.snapDbPerS > 0 ? 20 * Math.log10(Math.max(env(t), 1e-3)) + LIPSYNC.snapDbPerS * Math.abs(t - centre) : env(t) + 0.5 * (Math.abs(t - centre) / LIPSYNC.snapAfter);
       if (score < best) {
         best = score;
@@ -566,7 +575,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     // the stamp can sit on the edge of a dip (even just past the burst): take the quietest moment around it
     const near = bestT;
     for (let t = near - 0.03; t <= near + 0.03; t += 0.01) {
-      if (env(t) < env(bestT) && !(c.viseme === "PP" && taken(t)) && allowed(t)) bestT = t;
+      if (env(t) < env(bestT) && !(blocked && taken(t)) && allowed(t)) bestT = t;
     }
     // an "m" fades into its closure (the hum's treble sinks gradually): follow it down to the bottom of the dip
     if (c.nasal) {
@@ -605,6 +614,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
       if (own >= 0) claimed.splice(own, 1);
       claimOf.set(c, claimOf.get(joinTo)!);
     }
+  }
   }
   if (moved) cues.sort((p, q) => p.start - q.start);
   return moved;

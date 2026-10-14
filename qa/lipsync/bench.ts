@@ -31,6 +31,9 @@ const tag = opt("tag", "bench");
 const sets = opt("set", "");
 const off = opt("off", "");
 const out = opt("out", path.join(path.dirname(new URL(import.meta.url).pathname), "out", "bench"));
+// mm per unit morph weight of the mouth's width, upper teeth shown and lips forward (pipeline rig shape_coefs.py), if made
+const coefsFile = path.join(path.dirname(new URL(import.meta.url).pathname), "out", "shape_coefs.json");
+const coefs = fs.existsSync(coefsFile) ? (JSON.parse(fs.readFileSync(coefsFile, "utf8")) as Record<string, Record<string, number>>) : null;
 
 // LIPSYNC overrides: "key=value,key.sub=value"
 const L = LIPSYNC as unknown as Record<string, unknown>;
@@ -91,14 +94,19 @@ for (const clip of args.map((a) => path.resolve(process.env.INIT_CWD ?? process.
   const mouth = new Mouth({ cap: () => 1, userValue: () => 0, speechActivity: () => {}, write: () => {}, clear: () => {} });
   const lead = LIPSYNC.lead;
   const dur = src.decodedSeconds() + 0.5;
-  const frames: { t: number; gap: number; jaw: number; act: Record<string, number> }[] = [];
+  const frames: { t: number; gap: number; jaw: number; act: Record<string, number>; width?: number; teeth?: number; protr?: number }[] = [];
+  const per = (k: string) => mouth.targets.map((t) => coefs?.[k]?.[t] ?? 0);
+  const shapeCoefs = coefs ? { width: per("width"), teeth: per("upperTeeth"), protr: per("protr") } : null;
   const t0 = performance.now();
   for (let k = 0; k * (1 / fps) < dur; k++) {
     const s = k / fps; // the sound's time: what is heard while this frame is on screen
     src.now = s;
     mouth.frame(src, s + lead, 1 / fps);
     const mm = mouth.openingMm();
-    frames.push({ t: s, gap: +mm.gap.toFixed(3), jaw: +mm.jaw.toFixed(3), act: Object.fromEntries(Object.entries(mouth.state.activations).map(([v, a]) => [v, +a.toFixed(3)])) });
+    const f: (typeof frames)[number] = { t: s, gap: +mm.gap.toFixed(3), jaw: +mm.jaw.toFixed(3), act: Object.fromEntries(Object.entries(mouth.state.activations).map(([v, a]) => [v, +a.toFixed(3)])) };
+    if (shapeCoefs)
+      for (const k of ["width", "teeth", "protr"] as const) f[k] = +mouth.written.reduce((sum, w, ti) => sum + w * shapeCoefs[k][ti], 0).toFixed(3);
+    frames.push(f);
   }
   const ms = (performance.now() - t0) / frames.length;
   const name = `${tag}-${path.basename(clip, ".ndjson")}`;

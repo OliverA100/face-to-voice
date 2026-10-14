@@ -2,11 +2,11 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy", "pillow"]
 # ///
-"""Before | after video of the same line: two runs' mouth grabs, each placed at its heard time and lined up on the
+"""Side-by-side video of the same line: two or more runs' mouth grabs, each placed at its heard time and lined up on the
 voice onset (truth.json), with the line's audio. Written at 1× and slowed down (the audio slowed with its pitch kept).
 
-  uv run sidebyside.py <before run> <after run> [--slow 0.25] [--view mouth|full] [--out name]
-      → out/compare/<name>.mp4 and <name>-slow.mp4   (name defaults to the after run's)
+  uv run sidebyside.py <before run> <after run> [<more runs> …] [--labels a,b,…] [--slow 0.25] [--view mouth|full] [--out name]
+      → out/compare/<name>.mp4 and <name>-slow.mp4   (name defaults to the last run's)
 
 Each frame shows what was on screen while that moment of the audio was heard (the latest grab at or before it).
 """
@@ -44,8 +44,9 @@ def opt(k: str, d: str) -> str:
 slow = float(opt("slow", "0.25"))
 view = opt("view", "mouth")
 name = opt("out", "")
-before, after = args[:2]
-name = name or after
+labels = opt("labels", "")
+labels = labels.split(",") if labels else (["before", "after"] if len(args) == 2 else args)
+name = name or args[-1]
 FPS = 60
 PRE, POST = 0.4, 0.4
 H = 300 if view == "mouth" else 420  # each panel's height in the video
@@ -61,7 +62,7 @@ def timeline(run: Run):
     return np.array([x for x, _ in t]), [i for _, i in t], v0, v1 - v0, truth["ctx"]
 
 
-runs = [Run(before), Run(after)]
+runs = [Run(a) for a in args]
 lines = [timeline(r) for r in runs]
 length = max(d for *_, d, _ in lines) + POST
 cache: dict = {}
@@ -81,22 +82,23 @@ def frames(dir: Path, speed: float) -> None:
     n = int((PRE + length) * FPS / speed)
     for f in range(n):
         t = -PRE + f * speed / FPS
-        a, b = panel(0, t), panel(1, t)
-        S = Image.new("RGB", (a.width + b.width + 8, H + 28), "white")
-        S.paste(a, (0, 28))
-        S.paste(b, (a.width + 8, 28))
+        ps = [panel(k, t) for k in range(len(runs))]
+        S = Image.new("RGB", (sum(p.width for p in ps) + 8 * (len(ps) - 1), H + 28), "white")
         g = ImageDraw.Draw(S)
-        g.text((6, 8), f"before ({before})", fill=(0, 0, 0))
-        g.text((a.width + 14, 8), f"after ({after})", fill=(0, 0, 0))
+        x = 0
+        for k, p in enumerate(ps):
+            S.paste(p, (x, 28))
+            g.text((x + 6, 8), f"{labels[k]} ({args[k]})" if len(runs) == 2 and labels[:2] == ["before", "after"] else labels[k], fill=(0, 0, 0))
+            x += p.width + 8
         g.text((S.width - 70, 8), f"{t * 1000:+.0f} ms", fill=(120, 120, 120))
         S.save(dir / f"{f:06d}.jpg", quality=88)
 
 
 def audio(dir: Path) -> Path:
-    """The after run's audio from PRE before the voice onset (both runs replay the same line)."""
-    r = runs[1]
-    x, sr, t0 = r.audio(lines[1][4])
-    v0 = lines[1][2]
+    """The last run's audio from PRE before the voice onset (every run replays the same line)."""
+    r = runs[-1]
+    x, sr, t0 = r.audio(lines[-1][4])
+    v0 = lines[-1][2]
     a = max(0, int((v0 - PRE - t0) * sr))
     seg = x[a : a + int((PRE + length) * sr)]
     if v0 - PRE < t0:  # the recording started after PRE before the voice: pad with silence

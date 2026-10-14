@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { alignmentToCues, mergeAlignments, numberToWords, VISEME_IDS, type Alignment, type Cue } from "../cues";
-import { audioClosureAt, closureSpan, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, tongueAt, windowedLoudness } from "../evaluator";
+import { audioClosureAt, closureSpan, LIPSYNC_PARTS, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, tongueAt, windowedLoudness } from "../evaluator";
 import { wordToVisemes } from "../lipsync-en";
 import { visemePreset } from "@/lib/data";
 
@@ -155,6 +155,21 @@ describe("closures from the audio", () => {
     expect(span[0]).toBeCloseTo(0.5, 2);
     expect(span[1]).toBeCloseTo(0.56, 2);
     expect(closureSpan(() => 0.5, 0.53)).toBeNull(); // no dip: not trusted
+  });
+  it("give a p/b/m its silence before a th stamped late can take it ('the best')", () => {
+    // th .30–.32 (short dip), vowel, b .48–.58 (silence), vowel
+    const l = (t: number) => (t >= 0.295 && t < 0.325 ? 0.05 : t >= 0.475 && t < 0.575 ? 0.002 : 0.8);
+    const th: Cue = { viseme: "TH", start: 0.4, end: 0.46, text: "th" };
+    const b: Cue = { viseme: "PP", start: 0.58, end: 0.64, text: "b" };
+    LIPSYNC_PARTS.ppFirst = false;
+    const t2: Cue = { ...th }, b2: Cue = { ...b };
+    snapClosures([t2, { viseme: "aa", start: 0.46, end: 0.5, text: "e" }, b2, { viseme: "E", start: 0.64, end: 0.7, text: "e" }], l, 2, new WeakSet());
+    LIPSYNC_PARTS.ppFirst = true;
+    expect(t2.end).toBeGreaterThan(0.475); // without it, the th sat on the b's silence
+    snapClosures([th, { viseme: "aa", start: 0.46, end: 0.5, text: "e" }, b, { viseme: "E", start: 0.64, end: 0.7, text: "e" }], l, 2, new WeakSet());
+    expect(b.start).toBeGreaterThan(0.44); // the b on its silence
+    expect(b.start).toBeLessThan(0.55);
+    expect(th.end).toBeLessThan(0.4); // the th on its own dip
   });
   it("move a p cue onto the closure and let it past the closure gate only up to the burst", () => {
     const cues = [{ viseme: "PP" as const, start: 0.46, end: 0.54, text: "p" }];
