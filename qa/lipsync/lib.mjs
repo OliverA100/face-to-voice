@@ -187,14 +187,18 @@ export function writeWav(file, i16, sr) {
 }
 
 // ---------------- the site's own UI ----------------
-export async function clickText(page, re, { timeout = 60_000 } = {}) {
+/** Clicks the first visible button/link/tab whose label or text matches (`last`: the last one, e.g. a card's own
+ *  "Meet" button rather than the "Meet" step above it). */
+export async function clickText(page, re, { timeout = 60_000, last = false } = {}) {
   const h = await page.waitForFunction(
-    (src) => {
+    (src, last) => {
       const r = new RegExp(src);
-      return [...document.querySelectorAll("button,a,[role=button],[role=radio],[role=tab]")].find((b) => (r.test((b.getAttribute("aria-label") || "").trim()) || r.test((b.textContent || "").trim())) && b.offsetParent !== null);
+      const all = [...document.querySelectorAll("button,a,[role=button],[role=radio],[role=tab]")].filter((b) => (r.test((b.getAttribute("aria-label") || "").trim()) || r.test((b.textContent || "").trim())) && b.offsetParent !== null);
+      return last ? all.at(-1) : all[0];
     },
     { timeout, polling: 200 },
     re.source,
+    last,
   );
   await h.asElement().click();
 }

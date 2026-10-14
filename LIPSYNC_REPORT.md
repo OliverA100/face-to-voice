@@ -439,6 +439,21 @@ lips, and only 28 frames of one reply left the crop.
 | **Step 4** | 4 | **-5** (p90 \|17\|) | **-5** (p90 \|152\|) | -86 (p90 \|147\|) | -160 (p90 \|254\|) | -7 (p90 \|54\|) | +13 (p90 \|112\|) | 24/25 |
 
 Firefox now matches Chrome: the mouth is on the voice, and p/b/m part on the burst. Live closures still close early
-(−86 here, −54 in Chrome). **Safari live** is still to do: with the Mac's display asleep Safari reports the page as
-hidden and draws no frames, so the head never finishes loading.
+(−86 here, −54 in Chrome).
+
+**Safari** (the same day, after the push: the preview has the back-to-back p/b/m join and the wider search; pixels,
+no frames out of the crop). Production had only one Safari reply, so its row is thin:
+
+| | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Closing starts | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
+|---|---|---|---|---|---|---|---|---|
+| Production | 1 | -65 (p90 \|65\|) | +62 (p90 \|136\|) | -116 (p90 \|137\|) | -208 (p90 \|367\|) | +0 (p90 \|46\|) | -64 (p90 \|64\|) | 4/5 |
+| **Branch** | 4 | **-12** (p90 \|26\|) | **+18** (p90 \|125\|) | -84 (p90 \|142\|) | -167 (p90 \|322\|) | -14 (p90 \|54\|) | -103 (p90 \|116\|) | **25/25** |
+
+Open: f/v in Safari live reaches the teeth early (−103; Chrome −9, Firefox +13).
+
+Getting Safari to chat took three tool fixes: its driver can't run a script before the page's own, so a restored
+session arrived after the app had read an empty one (the adapter now loads the page a second time the first time);
+the script must never press Find my voice for a restored character (that spends a voice design, shared with the live
+site); and it now clicks the Meet card's button, not the "Meet" step, once the card is there. With the Mac's display
+asleep Safari reports the page as hidden and draws nothing, so the head never loads.
 

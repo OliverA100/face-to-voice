@@ -91,7 +91,9 @@ if (!(await page.$('textarea[aria-label="Text to speak"]'))) {
   await page.evaluate(() => [...document.querySelectorAll("button")].find((b) => /Use voice/.test(b.textContent || "") && b.offsetParent)?.click());
   await page.waitForSelector('textarea[aria-label="Text to speak"]', { timeout: 120_000 });
 }
-await clickText(page, /^Meet$/);
+// the card's own Meet button, not the "Meet" step above it (wait for the card: right after the head loads it isn't there)
+await page.waitForFunction(() => /Meet the character/.test(document.querySelector("main")?.innerText || ""), { timeout: 60_000, polling: 300 });
+await clickText(page, /^Meet$/, { last: true });
 try {
   await page.waitForFunction(() => [...document.querySelectorAll("button")].some((b) => /^Chat$/.test((b.textContent || "").trim()) && b.offsetParent), { timeout: 120_000, polling: 300 });
 } catch (e) {

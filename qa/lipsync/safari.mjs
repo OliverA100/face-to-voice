@@ -69,6 +69,13 @@ class SafariPage {
   async goto(url) {
     await wd("POST", this.s("/url"), { url });
     for (const src of this.scripts) await wd("POST", this.s("/execute/sync"), { script: src, args: [] });
+    // the scripts ran after the page's own: anything the app reads as it starts (a restored session in sessionStorage)
+    // came too late. The first time, load the page again so it starts with them (the scripts guard against running twice)
+    if (this.scripts.length && !this.primed) {
+      this.primed = true;
+      await wd("POST", this.s("/url"), { url });
+      for (const src of this.scripts) await wd("POST", this.s("/execute/sync"), { script: src, args: [] });
+    }
   }
   url() {
     return this._url || "";
