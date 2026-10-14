@@ -112,6 +112,20 @@ reach the teeth or are widest. `uv run grid.py out/grid/s1` → `out/grid/s1.jso
 out/grid/*.jsonl`. `human.py` reads those files and applies the same "shut" rule (15% of the line's lip range) to the
 bench, split by what comes before the p/b/m (a vowel, or silence).
 
+**How far the mouth moves, against real talkers:**
+
+```bash
+uv run gridframes.py out/grid/s1                         # once per GRID talker: per-frame lips → out/grid/frames/s1.jsonl
+uv run appframes.py out/runs/<run> …                     # the app's recorded face (full thumbnails), the same measure
+uv run shapes_vs_real.py --mp "<tag>-S*"                 # opening and width per vowel class, app vs real talkers
+uv run shapes_vs_real.py <bench tag>                     # the same from a bench run (needs out/shape_coefs.json)
+```
+
+Both sides go through MediaPipe's face mesh (inner-lip gap, mouth width over the outer-eye-corner distance, put in mm
+with the app's 88 mm); on the app's renders it reads the lips within ~1 mm of their real opening (r 0.98). The opening
+counts from each sentence's most closed moment, and only inside words. `out/shape_coefs.json` comes from the pipeline
+rig's `shape_coefs.py` (mm per unit of each morph target).
+
 ## Shapes contact sheet
 
 ```bash
