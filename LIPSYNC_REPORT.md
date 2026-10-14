@@ -517,3 +517,27 @@ The open ones share a cause: each p/b/m is placed on its own, nearest-first, and
 than the search, the wrong pick pushes the next sounds along. Placing a phrase's closures and vowels together, in
 order, against the audio's quiet stretches and syllable peaks, would address all three; that is the next piece of work.
 
+## Aligning a line's sounds in order (2026-10-14)
+
+`alignLine` (evaluator.ts, `LIPSYNC_PARTS.alignPhrases`, `?lipsyncOff=alignPhrases` to compare): before the snapping, a
+line's p/b/m and vowel nuclei are matched, in spoken order, to the audio's dips (with a closure's shape) and syllable
+peaks by dynamic programming. A match costs ((audio − stamp) / spread)², a sound left unmatched a fixed cost, a landmark
+left over nothing. The matches move every cue between them (piecewise linear), and the snapping refines from there.
+It runs in batches as a line is decoded (0.45 s ahead), not on live replies. Spreads from the matches themselves: a
+vowel cue's centre sits 20 ms after its peak (spread ~78 ms), a p/b/m cue's on its dip (~61 ms).
+
+| | Late releases (>100 ms) | Worst 10% | Sealed | Vowels under 1 mm |
+|---|---|---|---|---|
+| Bench, 65 lines, before | 28 | 111 ms | 381/404 | 5 |
+| Bench, after | **24** | 109 ms | 382/404 | **2** |
+
+29 closures better, 17 worse (by over 40 ms). Of the three things seen on the phone, "blue" (its "b" and "oo" now on
+the sound) and "my mood" (each "m" on its own closure, the "y" no longer a flicker) are fixed; "maybe" is not: the whole
+word is stamped late, increasingly so (0.13 s on the "a" to 0.4 s on the "ee"), and a cost on each sound's distance
+from its stamp won't move a whole word that far. Worse: "Piper" and "peck" in A's plosive line (lips part ~110–160 ms
+early), "my" in E1's long line. In Chrome on 6 streamed lines it's even (vowels' worst 10% 49 → 43 ms, p/b/m's 117 → 133).
+Frame cost unchanged (120 fps at 4× CPU, nothing over 33 ms).
+
+Tried and dropped: aligning the vowels only (worse: 34 late), adding t/d/k/g as events (29 late), rewarding deeper
+dips (27–28 late), stricter or looser spreads and skip costs (24–29 late).
+

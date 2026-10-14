@@ -120,10 +120,12 @@ describe("followRelease", () => {
   const vowelStart = () => {
     const src = line();
     LIPSYNC_PARTS.placeLine = false; // the line is placed already: only the word moves
+    LIPSYNC_PARTS.alignPhrases = false;
     try {
       frameTargets(src, 0, 0, emptyActivations(), frameMemory());
     } finally {
       LIPSYNC_PARTS.placeLine = true;
+      LIPSYNC_PARTS.alignPhrases = true;
     }
     const b = src.cues.find((c) => c.viseme === "PP")!;
     return { vowel: src.cues.find((c) => c.viseme === "E")!.start, release: b.end };

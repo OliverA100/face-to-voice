@@ -93,6 +93,19 @@ export const LIPSYNC = {
   closureMaxDur: 0.2,
   closureBurstDb: 6, // a rise of this much (dB per 10 ms) after the dip counts as the burst
   closureApart: 0.04, // s: gap kept between two p/b/m closures (no two letters share one quiet stretch)
+  /** alignLine: how far (s) a sound may move, how much a sound left unmatched costs (in (offset/spread)²), the spread
+   *  (s) of a p/b/m's and a vowel's stamps around their sound, where a p/b/m's cue centre sits after its closure's dip
+   *  (s), how much audio (s) past a batch must be decoded before it is aligned, and how often (s of new audio) to align. */
+  alignMaxShift: 0.35,
+  alignSkip: 8,
+  alignSkipWeak: 1,
+  alignSpreadClosure: 0.08,
+  alignSpreadVowel: 0.08,
+  alignClosureBias: 0,
+  alignVowelBias: 0.02,
+  alignAhead: 0.45,
+  alignPeakProm: 1.5, // dB: a syllable peak for alignLine (gentler than vowelProm: a peak left over costs nothing, a missed one shifts the order)
+  alignEvery: 0.25,
   squeezedPerCue: 0.06, // s per mouth shape: a first word stamped tighter than this is squeezed (placeLine)
   vowelBoundSlack: 0.03, // s: a closure's dip may lie this far past the centre of the vowel stamped after it
   vowelBoundBefore: 0.04, // s: … and lies after the centre of the vowel stamped before it, less this (−1: no such bound)
@@ -219,6 +232,7 @@ export const LIPSYNC_PARTS = {
   lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
   joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
+  alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
   squeezedFirst: true, // a first word squeezed after an audio tag is spread back to the voice's onset, alone (placeLine)
 };
 
@@ -238,6 +252,7 @@ export function oldTiming(): void {
   LIPSYNC_PARTS.joinClosures = false;
   LIPSYNC_PARTS.vowelBounds = false;
   LIPSYNC_PARTS.squeezedFirst = false;
+  LIPSYNC_PARTS.alignPhrases = false;
   LIPSYNC.snapBefore = 0.04;
   LIPSYNC.snapDbPerS = 0;
 }
@@ -432,7 +447,9 @@ export function smoothTowards(current: Activations, target: Activations, dt: num
 const lined = new WeakSet<Cue>();
 /** Cues whose phrase has been placed (placePhrases): the audio after their stamp has been looked at for pauses. */
 const phrased = new WeakSet<Cue>();
-const isPlaced = (c: Cue) => c.ws === undefined || (lined.has(c) && phrased.has(c));
+/** Cues alignLine has placed (or left: live replies, ?lipsyncOff=alignPhrases). */
+const aligned = new WeakSet<Cue>();
+const isPlaced = (c: Cue) => c.ws === undefined || (lined.has(c) && phrased.has(c) && aligned.has(c));
 const dipOf = new WeakMap<Cue, number>(); // the loudness dip a closure cue was moved to (snapClosures)
 const claimOf = new WeakMap<Cue, [number, number]>(); // the stretch of audio a p/b/m cue took (snapClosures)
 /** Closure cues whose span came from the audio (closureSpan): audioClosureAt lets them past the closure gate. */
@@ -741,6 +758,151 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
   return true;
 }
 
+/** How far alignLine has gone in a line (the decoded audio it last ran on). */
+const alignedAt = new WeakMap<Cue[], number>();
+
+/**
+ * The words' sounds in spoken order onto the audio, as one sequence (eleven_v4_turbo stamps a word's vowels near the
+ * sound but its first consonant up to ~170 ms late, and snapping each p/b/m on its own then took a neighbour's quiet
+ * stretch and pushed the next sounds along: "blue" took "bat"'s, "my" took "mood"'s). The line's p/b/m and vowel nuclei
+ * are matched, in order, to the audio's dips (closureSpan) and syllable peaks by dynamic programming: a match costs
+ * ((audio − stamp) / spread)², a sound left unmatched alignSkip, a landmark left over nothing (t/d/k closures, unstressed
+ * bumps). The matches then move every cue between them (piecewise linear), and the snapping refines from there. Runs in
+ * batches as the line is decoded (alignAhead past the batch), after placeLine and placePhrases; the snapping waits for it.
+ */
+export function alignLine(cues: Cue[], loudness: (t: number) => number, treble: (t: number) => number, decodedSeconds: number, enabled = LIPSYNC_PARTS.alignPhrases): boolean {
+  if (!enabled) {
+    for (const c of cues) aligned.add(c);
+    return false;
+  }
+  const L = LIPSYNC;
+  const last = alignedAt.get(cues) ?? -Infinity;
+  if (decodedSeconds !== Infinity && decodedSeconds - last < L.alignEvery) return false;
+  const horizon = decodedSeconds === Infinity ? Infinity : decodedSeconds - L.alignAhead;
+  const order = spoken(cues);
+  const batch: Cue[] = [];
+  for (const c of order) {
+    if (aligned.has(c)) continue;
+    if (c.ws === undefined) aligned.add(c);
+    else if (lined.has(c) && phrased.has(c) && (c.start + c.end) / 2 < horizon) batch.push(c);
+  }
+  if (!batch.length) return false;
+  alignedAt.set(cues, decodedSeconds);
+  // the sounds: p/b/m (two with no vowel between are one closure) and vowel nuclei (a diphthong's second part is not a
+  // syllable of its own)
+  type Ev = { cue: Cue; s: number; closure: boolean; nasal: boolean; weak: boolean };
+  const evs: Ev[] = [];
+  let prev: Cue | null = null;
+  for (const c of batch) {
+    const mid = (c.start + c.end) / 2;
+    if (c.viseme === "PP") {
+      if (!(prev && prev.viseme === "PP")) evs.push({ cue: c, s: mid - L.alignClosureBias, closure: true, nasal: !!c.nasal, weak: false });
+      prev = c;
+    } else if (VOWELS.has(c.viseme) && !c.glide) {
+      if (!(prev && VOWELS.has(prev.viseme) && prev.ws === c.ws)) evs.push({ cue: c, s: mid - L.alignVowelBias, closure: false, nasal: false, weak: !!c.weak });
+      prev = c;
+    } else if (!VOWELS.has(c.viseme)) prev = c;
+  }
+  const done = () => {
+    for (const c of batch) aligned.add(c);
+    return false;
+  };
+  if (evs.length < 2) return done();
+  // the audio's landmarks around them: dips with a closure's shape, in the loudness (and the treble, for an "m"), and
+  // syllable peaks (as snapVowels finds them)
+  const t0 = Math.max(0.01, evs[0].s - L.alignMaxShift);
+  const t1 = Math.min(evs[evs.length - 1].s + L.alignMaxShift, decodedSeconds === Infinity ? Infinity : decodedSeconds - 0.05);
+  const db = (env: (t: number) => number, t: number) => 20 * Math.log10(Math.max(env(t), 1e-3));
+  const lv = (t: number) => 20 * Math.log10(Math.max(windowedLoudness(loudness, t, 0.04), 1e-3));
+  const audible = 20 * Math.log10(L.vowelSilence);
+  type Mark = { t: number; kind: "dip" | "mdip" | "peak" };
+  const marks: Mark[] = [];
+  for (let t = t0; t <= t1 && t < t0 + 60; t += 0.01) {
+    const v = lv(t);
+    if (v >= audible && v >= lv(t - 0.01) && v > lv(t + 0.01)) {
+      let left = v, right = v;
+      for (let k = 1; k <= 8; k++) {
+        left = Math.min(left, lv(t - k * 0.01));
+        right = Math.min(right, lv(t + k * 0.01));
+      }
+      if (v - Math.max(left, right) >= L.alignPeakProm) marks.push({ t, kind: "peak" });
+    }
+    for (const [env, kind] of [[loudness, "dip"], [treble, "mdip"]] as const) {
+      if (kind === "mdip" && treble === loudness) continue;
+      const d = db(env, t);
+      if (d <= db(env, t - 0.01) && d <= db(env, t - 0.02) && d < db(env, t + 0.01) && d < db(env, t + 0.02) && closureSpan(env, t, L.closureSearch, kind === "mdip")) marks.push({ t, kind });
+    }
+  }
+  if (!marks.length) return done();
+  // the ordered match: D[i][j] = least cost of the first i sounds over the first j landmarks
+  const n = evs.length, m = marks.length, W = m + 1;
+  const D = new Float64Array((n + 1) * W), how = new Uint8Array((n + 1) * W); // 0 skip landmark, 1 skip sound, 2 match
+  const skip = (e: Ev) => (e.weak ? L.alignSkipWeak : L.alignSkip);
+  for (let i = 1; i <= n; i++) {
+    D[i * W] = D[(i - 1) * W] + skip(evs[i - 1]);
+    how[i * W] = 1;
+  }
+  for (let i = 1; i <= n; i++) {
+    const e = evs[i - 1];
+    const spread = e.closure ? L.alignSpreadClosure : L.alignSpreadVowel;
+    for (let j = 1; j <= m; j++) {
+      let best = D[i * W + j - 1], h = 0;
+      const sk = D[(i - 1) * W + j] + skip(e);
+      if (sk < best) {
+        best = sk;
+        h = 1;
+      }
+      const k = marks[j - 1];
+      const fits = e.closure ? k.kind === "dip" || (k.kind === "mdip" && e.nasal) : k.kind === "peak";
+      const off = k.t - e.s;
+      if (fits && Math.abs(off) <= L.alignMaxShift) {
+        const mc = D[(i - 1) * W + j - 1] + (off / spread) ** 2;
+        if (mc < best) {
+          best = mc;
+          h = 2;
+        }
+      }
+      D[i * W + j] = best;
+      how[i * W + j] = h;
+    }
+  }
+  // back through the choices: each matched sound's cue centre (as stamped) and where it goes
+  const anchors: [number, number][] = [];
+  for (let i = n, j = m; i > 0 && j >= 0; ) {
+    const h = how[i * W + j];
+    if (j > 0 && h === 0) j--;
+    else if (h === 1 || j === 0) i--;
+    else {
+      const e = evs[i - 1];
+      anchors.push([(e.cue.start + e.cue.end) / 2, marks[j - 1].t + (e.closure ? L.alignClosureBias : L.alignVowelBias)]);
+      i--;
+      j--;
+    }
+  }
+  anchors.reverse();
+  const keep: [number, number][] = [];
+  for (const a of anchors) if (!keep.length || (a[0] > keep[keep.length - 1][0] && a[1] > keep[keep.length - 1][1])) keep.push(a);
+  if (!keep.length) return done();
+  // every cue of the batch moves by the offset at its centre, interpolated between the matched sounds
+  const offsetAt = (x: number) => {
+    if (x <= keep[0][0]) return keep[0][1] - keep[0][0];
+    for (let k = 1; k < keep.length; k++) {
+      const [a, b] = keep[k - 1], [c2, d2] = keep[k];
+      if (x <= c2) return b - a + ((x - a) / (c2 - a)) * (d2 - c2 - (b - a));
+    }
+    const [a, b] = keep[keep.length - 1];
+    return b - a;
+  };
+  for (const c of batch) {
+    const off = offsetAt((c.start + c.end) / 2);
+    c.start = Math.max(0, c.start + off);
+    c.end += off;
+    aligned.add(c);
+  }
+  cues.sort((p, q) => p.start - q.start);
+  return true;
+}
+
 /** How far placePhrases has read a line's loudness, and what it was reading (per cue list). */
 const phraseScan = new WeakMap<Cue[], { t: number; quiet: number; voiced: boolean }>();
 /**
@@ -996,6 +1158,7 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   placePhrases(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placePhrases && !src.phrasesPlaced); // … and after each pause, where they are far off
   // an "m" closure is found in the treble (its hum keeps the loudness up): LIPSYNC_PARTS.trebleM
   const treble = LIPSYNC_PARTS.trebleM ? (x: number) => src.trebleLoudness(x) : loudnessOf;
+  alignLine(src.cues, loudnessOf, treble, decoded, LIPSYNC_PARTS.alignPhrases && !src.phrasesPlaced); // the words' sounds in order onto the audio
   if (LIPSYNC_PARTS.snapClosures) snapClosures(src.cues, loudnessOf, decoded, mem.snapped, treble);
   if (LIPSYNC_PARTS.snapClosures && LIPSYNC_PARTS.followRelease) followRelease(src.cues, loudnessOf, mem.snapped);
   if (LIPSYNC_PARTS.fitPhrases) fitPhrases(src.cues, loudnessOf, decoded);

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BLUETOOTH, HeardClock, IOS_EXTRA } from "../clock";
 import type { Cue } from "../cues";
-import { LIPSYNC, LIPSYNC_PARTS, placeLine, placePhrases, snapClosures } from "../evaluator";
+import { alignLine, LIPSYNC, LIPSYNC_PARTS, placeLine, placePhrases, snapClosures } from "../evaluator";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -80,6 +80,7 @@ describe("a closure after a pause", () => {
     const cues = [cue("PP", 0.0, 0.06, 0.0), cue("E", 0.1, 0.3, 0.0), cue("PP", 0.79, 0.87, 0.85), cue("aa", 0.86, 0.94, 0.85)];
     placeLine(cues, loud, Infinity);
     placePhrases(cues, loud, Infinity, false);
+    alignLine(cues, loud, loud, Infinity, false); // the snapping on its own
     snapClosures(cues, loud, Infinity, new WeakSet<Cue>());
     const b = cues.find((c) => c.viseme === "PP" && c.ws === 0.85)!;
     expect(b.end).toBeCloseTo(0.8 - LIPSYNC.closureOffShift, 2); // the lips part at the burst
@@ -98,6 +99,7 @@ describe("two p/b/m with no vowel between", () => {
     const snap = (cues: Cue[]) => {
       placeLine(cues, loud, Infinity);
       placePhrases(cues, loud, Infinity, false);
+      alignLine(cues, loud, loud, Infinity, false); // the snapping on its own
       snapClosures(cues, loud, Infinity, new WeakSet<Cue>());
     };
     const cues = make();
@@ -111,6 +113,27 @@ describe("two p/b/m with no vowel between", () => {
     snap(old);
     expect(old.filter((c) => c.viseme === "PP").sort((p, q) => p.n! - q.n!)[2].end).toBeGreaterThan(0.55); // as before
     LIPSYNC_PARTS.joinClosures = true;
+  });
+});
+
+describe("aligning a line's sounds in order", () => {
+  it("puts a late-stamped p/b/m on its own closure, not the next word's, and the vowel after it on its own peak", () => {
+    // three syllables (peaks at 0.2, 0.5, 0.8 s) with a closure between each (dips at 0.35 and 0.65); the middle
+    // syllable's "p" and vowel are stamped ~120 ms late, as close to the next closure as to their own
+    const peak = (t: number, at: number) => 0.8 * Math.exp(-(((t - at) / 0.05) ** 2) / 2);
+    const loud = (t: number) => Math.max(0.002, peak(t, 0.2), peak(t, 0.5), peak(t, 0.8));
+    const cues = [cue("aa", 0.16, 0.24, 0.16), cue("PP", 0.47, 0.53, 0.47), cue("E", 0.58, 0.66, 0.47), cue("PP", 0.62, 0.68, 0.62), cue("I", 0.76, 0.84, 0.62)];
+    LIPSYNC_PARTS.placeLine = false;
+    try {
+      placeLine(cues, loud, Infinity);
+    } finally {
+      LIPSYNC_PARTS.placeLine = true;
+    }
+    placePhrases(cues, loud, Infinity, false);
+    alignLine(cues, loud, loud, Infinity, true);
+    const [p1, e] = [cues.find((c) => c.viseme === "PP" && c.ws === 0.47)!, cues.find((c) => c.viseme === "E")!];
+    expect((p1.start + p1.end) / 2).toBeCloseTo(0.35, 1); // its own dip, not the next word's at 0.65
+    expect((e.start + e.end) / 2).toBeLessThan(0.58); // the vowel moved onto its syllable (0.5), ahead of the next closure
   });
 });
 
