@@ -3,7 +3,8 @@
  * voice, then records each test line the first time (paid, streamed) and optionally again (the cache).
  *
  *   node speak.mjs --url <deployment> --char <label> [--random] [--take 0|1|2] [--browser chrome|firefox|safari]
- *                  [--lines plosive,fv,...] [--emotion Happy] [--cached] [--cachedOnly]
+ *                  [--lines plosive,fv,...] [--emotion Happy] [--cached] [--cachedOnly] [--skin fair] [--age -1..1]
+ *                  [--lookOnly]   (--lookOnly: roll and save the face, no voice: look at out/chars/<char>.png first)
  *
  * Every Speak response is saved to out/clips/<char>-<line>[-<emotion>].ndjson (+ .arrivals.json: each NDJSON line's
  * arrival time), so replay.mjs can play the very same audio in other browsers for free.
@@ -68,11 +69,28 @@ if (opt("skin", null)) {
   await page.evaluate((t) => window.__faceToVoice.setSkinTone(t), opt("skin"));
   await sleep(1000);
 }
+// --age <-1..1>: the Age slider (Shape tab), with the keyboard as a visitor would (the slider reads its own events)
+if (opt("age", null) !== null) {
+  const v = Math.max(-1, Math.min(1, Number(opt("age"))));
+  await page.focus('input[type=range][aria-label="Age"]');
+  await page.keyboard.press(v < 0 ? "Home" : "End");
+  for (let k = 0; k < Math.round((1 - Math.abs(v)) / 0.01); k++) await page.keyboard.press(v < 0 ? "ArrowRight" : "ArrowLeft");
+  await sleep(2500); // the head reshapes
+}
 await sleep(1500);
 const charDir = path.join(OUT, "chars");
 fs.mkdirSync(charDir, { recursive: true });
 await (await page.$("canvas")).screenshot({ path: path.join(charDir, `${char}.png`) });
 fs.writeFileSync(path.join(charDir, `${char}.json`), JSON.stringify(await page.evaluate(() => ({ look: window.__faceToVoice.currentLook?.(), addons: { ...window.__faceToVoice.addonState } })), null, 1));
+const saveSession = async () =>
+  fs.writeFileSync(path.join(charDir, `${char}.session.json`), JSON.stringify(await page.evaluate(() => Object.fromEntries(Object.keys(sessionStorage).map((k) => [k, sessionStorage.getItem(k)]))), null, 1));
+// --lookOnly: stop here (no voice design): out/chars/<char>.png to look at, and a session to --restore later
+if (opt("lookOnly", false)) {
+  await saveSession();
+  console.log(`look saved: out/chars/${char}.png (--restore ${char})`);
+  await br.close();
+  process.exit(0);
+}
 
 // voice: Find my voice → the take's "Use voice"
 console.log("finding the voice");
@@ -142,8 +160,6 @@ async function speakOnce(line, suffix) {
   await sleep(800);
 }
 
-const saveSession = async () =>
-  fs.writeFileSync(path.join(charDir, `${char}.session.json`), JSON.stringify(await page.evaluate(() => Object.fromEntries(Object.keys(sessionStorage).map((k) => [k, sessionStorage.getItem(k)]))), null, 1));
 await saveSession();
 
 for (const e of emotion ? String(emotion).split(",") : ["-"]) {

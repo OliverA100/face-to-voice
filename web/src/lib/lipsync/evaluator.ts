@@ -70,9 +70,10 @@ export const LIPSYNC = {
   /** Closures are suppressed above this loudness (0..1 of the clip's peak) over a band this wide. */
   closureLoud: 0.4,
   closureBand: 0.3,
-  /** Closures move to the nearest loudness dip in [stamp − snapBefore, stamp + snapAfter]; the
-   *  stamps run early, so the true closure is usually a little after them. */
-  snapBefore: 0.12,
+  /** Closures move to the nearest loudness dip in [stamp − snapBefore, stamp + snapAfter]. Most stamps run early, but
+   *  a fast voice's can be 140 ms late ("peppers", a happy young voice, 2026-10-14): 0.12 missed those, 0.2 found them
+   *  with no closure worse across 7 voices. */
+  snapBefore: 0.2,
   /** Score candidate dips in dB (quiet − snapDbPerS × distance from the stamp), so a real silence a little further from
    *  the stamp beats a soft consonant next to it; 0 = the plain loudness + distance score. */
   snapDbPerS: 150,

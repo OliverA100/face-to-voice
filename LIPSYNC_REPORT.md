@@ -396,3 +396,35 @@ buffer drains again within a few seconds. Left open: it only happens when the so
 **Step 5 tools:** `rerun.sh` re-records every production replay on a new deploy, `summary.py --compare rp <tag>`
 prints the before/after table, `sidebyside.py` makes the slow-motion clips (see the README).
 
+## Voices that deliver differently (2026-10-14)
+
+Four new characters, light-skinned, picked for contrast before any voice was made (`speak.mjs --age … --lookOnly`),
+each speaking 6 lines with an expression that pulls its delivery: D1 an old man (Tired), D2 a woman (Sad), E1 a young
+woman (Surprised), E2 a young man (Happy). With A, B and C from Step 1 (`voices.py`, offline bench, current code):
+
+| Voice | Lines | Syllables/s | Pauses per 10 s | Median pause | Loudness spread (stress) | p/b/m release | Late (>100 ms) | Sealed | Vowels |
+|---|---|---|---|---|---|---|---|---|---|
+| A (default face) | 16 | 3.8 | 2.5 | 340 ms | 15.3 dB | −3 | 8 | 87/94 | −21 |
+| B | 10 | 3.8 | 2.4 | 305 ms | 10.3 dB | −5 | 3 | 49/54 | −21 |
+| C | 15 | 3.1 | 2.1 | 280 ms | 11.9 dB | −7 | 4 | 87/89 | −16 |
+| D1 old, Tired | 6 | 3.4 | 4.3 | 390 ms | 14.9 dB | +6 | 3 | 41/42 | −19 |
+| D2 Sad | 6 | 3.0 | 4.1 | 295 ms | 11.9 dB | −5 | 2 | 39/42 | −22 |
+| E1 young, Surprised | 6 | 3.6 | 1.1 | 270 ms | 11.0 dB | −2 | 6 | 37/42 | −13 |
+| E2 young, Happy | 6 | 3.7 | 4.0 | 310 ms | 12.7 dB | +2 | 5 | 41/41 | −29 |
+
+(Two "late" per voice are quirks of the measure, in every voice: "mm" is a hum with closed lips, "stop!" ends in
+silence.)
+
+- **The medians hold for every voice:** p/b/m part within −7..+6 ms of the burst whatever the pace, pausing or stress.
+- **The tail depends on the voice.** The young, quick voices had the most late releases. In E2's tongue-twister the
+  second "p" of "peppers" was stamped 140 ms late, and the closure search only looked 120 ms before a stamp. It now
+  looks 200 ms before (`LIPSYNC.snapBefore` 0.12 → 0.2): six closures better across the 65 lines, none worse.
+- **In Chrome** (the app's own per-frame values; D1/D2's heads turned and E1's lips were too pale for the pixel
+  measure), the four new voices before → after today's two changes (back-to-back p/b/m, wider search): late releases
+  20 → 12, worst 10% 152 → 137 ms, medians unchanged (release +8 → +9, vowels −19 → −18).
+- **Still open:** E1 has the most late releases (6 of 40), and D1's lips part about 25 ms late throughout (its tired,
+  breathy p/b/m have soft bursts).
+
+The site's Speak limit is 100 per visitor in a sliding 24 hours, shared by the previews and the live site: this pass
+used it up for the day (the last cached replay got a 429).
+
