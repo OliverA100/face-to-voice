@@ -583,3 +583,44 @@ exponential, fastest in its first frames, so the face snapped back to its expres
 ease-in-out over `LIPSYNC.speechRelease` (0.8 s, after the existing 0.35 s hold); stepping back when speech starts is
 unchanged.
 
+---
+
+# Step 5: on facetovoice.com (2026-10-14)
+
+Deployed: `lipsync` merged to `main` (a8eced6), live on facetovoice.com about 100 s later. The chat agent had no changes
+(no `lk agent deploy`). Checks before the deploy: type-check, lint, all 359 web tests, a production build, and the
+release diff scanned for secrets.
+
+The same 25 saved lines as Step 1's production replays, in the same browsers at the same pace, now on the deployed
+site (`./rerun.sh "https://facetovoice.com/?debug=1" after`, `summary.py --compare rp after`). Same audio before and
+after; only the lip sync differs.
+
+| Browser, delivery | Runs | Whole-line lag | p/b/m lips part vs burst | p/b/m seal vs sound stops | Widest vowel vs loudest | f/v lip-teeth vs hiss | Sealed |
+|---|---|---|---|---|---|---|---|
+| Chrome, streamed: before | 6 | -45 (p90 \|55\|) | -42 (p90 \|153\|) | -76 (p90 \|149\|) | -19 (p90 \|59\|) | -106 (p90 \|117\|) | 72/76 |
+| Chrome, streamed: **after** | 6 | **+12** (p90 \|22\|) | **+2** (p90 \|99\|) | -44 (p90 \|146\|) | -15 (p90 \|47\|) | **-3** (p90 \|119\|) | 72/76 |
+| Firefox, instant: before | 6 | -42 (p90 \|52\|) | -37 (p90 \|150\|) | -81 (p90 \|149\|) | -15 (p90 \|57\|) | -51 (p90 \|119\|) | 71/76 |
+| Firefox, instant: **after** | 6 | **+8** (p90 \|25\|) | **+4** (p90 \|103\|) | -44 (p90 \|143\|) | -20 (p90 \|52\|) | +42 (p90 \|118\|) | 72/76 |
+| Firefox, streamed: before | 6 | -48 (p90 \|55\|) | -35 (p90 \|154\|) | -84 (p90 \|149\|) | -17 (p90 \|56\|) | -105 (p90 \|118\|) | 61/69 |
+| Firefox, streamed: **after** | 6 | **+5** (p90 \|15\|) | **+5** (p90 \|113\|) | -42 (p90 \|145\|) | -19 (p90 \|47\|) | **-17** (p90 \|120\|) | 68/72 |
+| Safari, instant: before | 1 | -45 (p90 \|45\|) | -26 (p90 \|158\|) | -90 (p90 \|160\|) | +2 (p90 \|52\|) | -32 (p90 \|118\|) | 17/17 |
+| Safari, instant: **after** | 1 | **+5** (p90 \|5\|) | **-3** (p90 \|61\|) | -37 (p90 \|139\|) | -19 (p90 \|35\|) | -18 (p90 \|99\|) | 16/17 |
+| Safari, streamed: before | 4 | -52 (p90 \|62\|) | -39 (p90 \|125\|) | -76 (p90 \|147\|) | -6 (p90 \|56\|) | -93 (p90 \|118\|) | 45/49 |
+| Safari, streamed: **after** | 4 | **+5** (p90 \|19\|) | **+7** (p90 \|86\|) | -40 (p90 \|140\|) | -18 (p90 \|45\|) | **+4** (p90 \|116\|) | 45/49 |
+| Chrome, slow network: before | 2 | -42 (p90 \|44\|) | -18 (p90 \|153\|) | -143 (p90 \|149\|) | +2 (p90 \|51\|) | -29 (p90 \|114\|) | 26/27 |
+| Chrome, slow network: **after** | 2 | +15 (p90 \|15\|) | +28 (p90 \|153\|) | -77 (p90 \|147\|) | -16 (p90 \|46\|) | -25 (p90 \|101\|) | 26/27 |
+
+**Against the pass criteria set before Step 1:** the lips part on the burst (median +2 to +7 ms in every browser;
+target 0 to +15); the whole mouth is within ±15 ms of the voice everywhere (target ±40); vowels' widest point is
+within ±20 ms of the loudest (target ±20); f/v reach the teeth within ±20 ms of the hiss in Chrome, Safari and
+Firefox streamed (Firefox instant +42). Not met: the worst 10% of releases (86–113 ms; target ±40), closing starts
+(about −110 to −120 ms; target −60 to −100), and seals (89–99%; target 95%) where several p/b/m come close together.
+
+**Live chats** can't be scripted on production (BotID); the deployed live code is the preview's, measured there:
+whole-line lag −5 to −12 ms, lips part −5 to +18 ms, in Chrome, Firefox and Safari (Step 4 and its follow-ups).
+
+**Clips** (before | after, same audio, 1× and slowed to 0.25×): `qa/lipsync/out/compare/step5-*.mp4`.
+
+**Measuring notes:** Safari keeps an AudioContext made outside a click "interrupted" (it runs and plays nothing), so
+`replay.mjs` now unlocks it inside a real click; the Safari adapter reloads the page only when a session is restored.
+

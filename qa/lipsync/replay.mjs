@@ -47,9 +47,10 @@ const clips = args;
 const br = await launch({ browser, headless });
 const page = await open(br, url);
 await headReady(page);
-// unlock the player's audio context once (a click, as a visitor would)
+// unlock the player's audio context once, in a click as a visitor would (Safari keeps a context made outside one
+// "interrupted": it runs and plays nothing)
+await page.evaluate(() => document.addEventListener("pointerdown", () => window.__faceToVoice.speech.unlock?.(), { once: true, capture: true }));
 await page.mouse.click(300, 300);
-await page.evaluate(() => window.__faceToVoice.speech.unlock?.());
 await sleep(500);
 
 for (const clip of clips) {
