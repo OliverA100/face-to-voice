@@ -32,7 +32,12 @@
     if (ctx.outputLatency > 0) return ctx.outputLatency;
     try { const ts = ctx.getOutputTimestamp(); const playing = ts.contextTime + (performance.now() - ts.performanceTime) / 1000; return Math.max(0, ctx.currentTime - playing); } catch { return 0; }
   }
+  let quiet = false; // calQuiet(true): nothing scheduled, the context idle (as the app's between lines)
+  window.calQuiet = (q) => { quiet = q; };
+  // the context paused while idle (resumed by the next calStart, from a click)
+  window.calSuspend = () => ctx.suspend().then(() => ctx.state);
   function schedule() {
+    if (quiet) return;
     // keep 3 s of beeps queued
     const until = ctx.currentTime + 3;
     let k = beeps.length;
@@ -40,7 +45,7 @@
       const at = t0 + k * PERIOD, len = k % 4 === 0 ? LEN * 3 : LEN;
       const o = ctx.createOscillator(); o.frequency.value = 1000;
       const g = ctx.createGain(); g.gain.value = 0.5;
-      o.connect(g); g.connect(ctx.destination);
+      o.connect(g); g.connect(output());
       o.start(at); o.stop(at + len);
       beeps.push([at, len]); k++;
     }
@@ -57,11 +62,49 @@
     gl.clear(gl.COLOR_BUFFER_BIT);
     info.textContent = `${mode} · out ${(latency() * 1000).toFixed(1)} ms · base ${((ctx.baseLatency || 0) * 1000).toFixed(1)} ms`;
   }
-  document.getElementById("go").onclick = window.calStart = () => {
-    ctx = ctx || new AudioContext();
+  // the beeps' way out: the context's own output, or a MediaStream played by an <audio> element (?route=element)
+  let out = null, el = null;
+  function output() {
+    if (!out) return ctx.destination;
+    return out;
+  }
+  /** opts (Safari stuck-output tests, stale.mjs): fresh (close the context, make a new one), sampleRate, hint
+   *  (latencyHint), route ("direct" | "element"), cycle (suspend then resume the context first). */
+  // a click starts the next measurement with window.calNext's options (Safari starts audio only from a gesture)
+  document.getElementById("go").onclick = () => { window.calInfo = null; window.calStart(window.calNext || {}).then((i) => (window.calInfo = i)); };
+  window.calStart = async (opts = {}) => {
+    quiet = false;
+    if (opts.fresh && ctx) { try { await ctx.close(); } catch {} ctx = null; }
+    if (!ctx) {
+      const o = {};
+      if (opts.sampleRate) o.sampleRate = opts.sampleRate;
+      if (opts.hint) o.latencyHint = opts.hint;
+      ctx = new AudioContext(o);
+      out = null;
+    }
+    if (opts.cycle) { await ctx.suspend(); await ctx.resume(); }
+    if (opts.route === "element") {
+      const d = ctx.createMediaStreamDestination();
+      el = el || document.body.appendChild(document.createElement("audio"));
+      el.srcObject = d.stream;
+      el.play();
+      out = d;
+    } else if (opts.route === "direct") out = null;
     ctx.resume();
     t0 = Math.ceil(ctx.currentTime + 0.5);
     beeps = [];
+    return { sampleRate: ctx.sampleRate, out: ctx.outputLatency, base: ctx.baseLatency };
+  };
+  /** A continuous murmur (the context kept busy), as speech playing when the tab goes to the background. */
+  let fill = null;
+  window.calFill = (on) => {
+    if (fill) { fill.stop(); fill = null; }
+    if (!on) return;
+    ctx = ctx || new AudioContext();
+    ctx.resume();
+    const b = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = b.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.sin(i / ctx.sampleRate * 2 * Math.PI * 180) * 0.05 * (0.5 + 0.5 * Math.sin(i / ctx.sampleRate * 2 * Math.PI * 4));
+    fill = ctx.createBufferSource(); fill.buffer = b; fill.loop = true; fill.connect(output()); fill.start();
   };
   requestAnimationFrame(frame);
 </script>

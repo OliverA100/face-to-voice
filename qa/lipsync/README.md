@@ -28,6 +28,8 @@ cd qa/lipsync && pnpm install
 | `node speak.mjs --url <deployment> --char A [--restore A] [--random --skin fair] [--emotion -,Happy] [--lines plosive,fv] [--cached\|--cachedOnly] [--browser b]` | Real Speak presses; saves every line to `out/clips/` for replays | TTS credits; `--random` = 1 design + 1 save |
 | `node chat.mjs --url <deployment> --char A [--restore A] [--turns 3] [--browser b] [--tag t]` | A live chat. The visitor is `out/visitor/*.wav` (macOS `say`); each reply is one run (`<tag>-A-chat<k>-<browser>`), with the page's reply data (words, the agent's loudness, anchors, cues) in `meta.json` "live" | Chat minutes (10 chats per visitor per day) |
 | `node room.mjs --browser b cal` / `replay clip…` | The screen + Mac mic (`screencapture`); needs Screen Recording permission | free |
+| `STALE_IDLE=1 STALE_TAB=1 node stale.mjs --hide 600` then `uv run calmark.py` | Safari's stuck output after an idle tab: calibrate.html left idle behind another tab, then measured in the same tab (same context, new ones, other sample rates, the `<audio>` route); `STALE_SUSPEND=1` suspends it while idle | free |
+| `uv run beeps.py`, `node appstale.mjs --cal --clip out/beeps.ndjson [--url2 …]`, then `uv run appcal.py` | The same in the app: a beep track through the app's player, a patch flashing on its clock, before and after the idle | free |
 | `node cal.mjs b raw` | The in-page recorder's self-check on `calibrate.html` | free |
 | `node perf.mjs [--cpu 4] clip.ndjson` | Frame rate and script time per frame, phone screen, slowed CPU | free |
 
