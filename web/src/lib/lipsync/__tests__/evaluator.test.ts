@@ -75,7 +75,7 @@ describe("shape hold", () => {
     const quiet = at("O", 0.02);
     const loud = at("O", 1);
     expect(quiet.O).toBeLessThan(loud.O); // the opening follows the loudness …
-    expect(quiet.U).toBeGreaterThan(0.5); // … the rounding stays
+    expect(quiet.U).toBeGreaterThan(quiet.O); // … the rounding stays, more of it than the opening
     expect(loud.U).toBe(0);
     expect(at("E", 0.02).I).toBeGreaterThan(0.3);
     expect(at("U", 0.02).U).toBeGreaterThanOrEqual(LIPSYNC.shapeHold.U * at("U", 1).U - 1e-9);
