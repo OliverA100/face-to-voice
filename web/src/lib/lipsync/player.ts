@@ -10,6 +10,7 @@ import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cu
 import { LIPSYNC_PARTS } from "./evaluator";
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
+import { outputOf, wakeOutput } from "./output";
 import { addPhonemes } from "./phonemes";
 import { takeLongHide } from "./staleTab";
 
@@ -113,6 +114,9 @@ class SpeechPlayer {
     audioSession("playback");
     if (!this.ctx) this.ctx = new AudioContext();
     if (this.ctx.state !== "running") void this.ctx.resume();
+    // the route's <audio> element is made and played here, in the tap (Safari starts media only from a gesture)
+    outputOf(this.ctx);
+    wakeOutput(this.ctx);
   }
 
   /** Clip time in seconds as the listener hears it (negative before playback starts). */
@@ -333,7 +337,7 @@ class SpeechPlayer {
     }
     const src = ctx.createBufferSource();
     src.buffer = buffer;
-    src.connect(ctx.destination);
+    src.connect(outputOf(ctx)); // desktop Safari: an <audio> element plays it (output.ts)
     src.start(this.nextTime);
     src.onended = () => {
       this.sources.delete(src);

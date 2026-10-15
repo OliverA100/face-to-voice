@@ -12,6 +12,8 @@
  *    (negative), applied in full even past zero (iPhones report ~12 ms).
  * Safari before outputLatency: the delay comes from getOutputTimestamp, carried forward to now and eased.
  */
+import { routeDelay } from "./output";
+
 export const BLUETOOTH = { reported: 0.1, extra: 0.08 };
 export const IOS_EXTRA = -0.05;
 const CARRY = 0.012; // s: a little more than one 10.7 ms step
@@ -46,7 +48,7 @@ export class HeardClock {
       l = this.latencyEst ?? 0;
     }
     if (l >= BLUETOOTH.reported) l += BLUETOOTH.extra;
-    l = Math.max(0, l);
+    l = Math.max(0, l) + routeDelay(ctx); // desktop Safari's <audio> element route (output.ts)
     // not clamped: an iPhone reports ~12 ms, and its screen trails its sound by ~50 ms more than that says, so the mouth
     // is drawn for a moment ~38 ms ahead of currentTime (clamped at 0, only 12 of the 50 ms applied: the mouth ran
     // ~38 ms late on an iPhone 2026-10-14, phone-2 film)

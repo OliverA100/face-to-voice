@@ -28,6 +28,7 @@
  *     as the voice coming back, and each wrong anchor carried into the next: a greeting's last words ran a second early.
  */
 import { HeardClock } from "./clock";
+import { outputOf } from "./output";
 import { alignmentToCues, type Alignment, type Cue } from "./cues";
 import { queuePhonemes, spokenWords } from "./phonemes";
 import { LIPSYNC, LIPSYNC_PARTS, type SpeechSource } from "./evaluator";
@@ -183,15 +184,15 @@ export class LiveSpeech implements SpeechSource {
     this.node.port.onmessage = (e: MessageEvent<number[]>) => this.blocks(e.data);
     this.source.connect(this.node);
     // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
-    this.node.connect(this.ctx.destination);
+    this.node.connect(outputOf(this.ctx));
     if (playThrough && delaySeconds > 0) {
       // held back: the meter sees each sound this long before it is heard (the gates and loudness read ahead; the
       // evaluator's closure and vowel snapping need more look-ahead than this, so live they mostly settle after the fact)
       const hold = this.ctx.createDelay(1);
       hold.delayTime.value = delaySeconds;
-      this.source.connect(hold).connect(this.ctx.destination);
+      this.source.connect(hold).connect(outputOf(this.ctx)); // desktop Safari: through an <audio> element (output.ts)
       this.delay = delaySeconds;
-    } else if (playThrough) this.source.connect(this.ctx.destination);
+    } else if (playThrough) this.source.connect(outputOf(this.ctx));
   }
 
   detach(): void {
