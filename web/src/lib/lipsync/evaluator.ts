@@ -278,6 +278,8 @@ export const LIPSYNC_PARTS = {
   sustainYield: true, // the held last vowel (sustainLoud) gives way to a th, f, s or sh being made
   afterStop: true, // an f/v or th right after a t, d, k or g starts on its hiss, without hissOnShift's head start (snapClosures)
   bridgeVowels: true, // two of the same vowel with only a t, d, n or k between are held as one (bridgeVowels)
+  voicedTh: true, // the voiced th of "the" (DH) is not looked for in the audio's quiet stretches (snapClosures)
+  snapHiss: true, // an s or sh is placed on its hiss in the audio like an f/v or th (snapClosures): "the spot", aligned with the s after the p
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -559,10 +561,17 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
   for (const c of order) {
     if (VOWELS.has(c.viseme)) lastVowel = c;
     if (VOWELS.has(c.viseme) && !c.glide) vowelSince = vowelSincePP = true;
-    if (!CLOSED_VISEMES.includes(c.viseme)) continue;
-    const before = prev, needSyllable = vowelSince && prev !== null && snapped.has(prev);
-    prev = c;
-    vowelSince = false;
+    // an s or sh is found on its hiss too (LIPSYNC_PARTS.snapHiss), but is no closure for the p/b/m rules around it
+    const hissOnly = LIPSYNC_PARTS.snapHiss && (c.viseme === "SS" || c.viseme === "CH");
+    if (!CLOSED_VISEMES.includes(c.viseme) && !hissOnly) continue;
+    // the voiced th of "the", "this", "that" (DH) has no quiet stretch of its own: looking for one put "The" on the
+    // silence before the voice and it opened twice (user review); it stays where it is stamped
+    if (LIPSYNC_PARTS.voicedTh && c.viseme === "TH" && /^DH\b/.test(c.text)) continue;
+    const before = hissOnly ? null : prev, needSyllable = !hissOnly && vowelSince && prev !== null && snapped.has(prev);
+    if (!hissOnly) {
+      prev = c;
+      vowelSince = false;
+    }
     // a p/b/m right after another with no vowel between is the same closure ("Bob bought", "I'm managing": the lips
     // close once), but each finds a quiet stretch of its own (the first one's is taken): one of the two is wrong
     const joinTo = c.viseme === "PP" && LIPSYNC_PARTS.joinClosures && !vowelSincePP && prevPP && fromAudio.has(prevPP) ? prevPP : null;
