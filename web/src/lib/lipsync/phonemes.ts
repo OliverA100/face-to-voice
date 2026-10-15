@@ -85,6 +85,13 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
     const p = PHONES[base];
     if (!p) continue;
     const len = p.len * (stress === "1" ? STRESSED : 1);
+    // an r after a vowel and not before one ("sharp", "storm", "porch") colours the vowel: no movement of its own
+    // (its rounding between the open "ah" and the "p" looked jumpy, user review 2026-10-15); its time goes to the vowel
+    if (base === "R" && k > 0 && /^[AEIOU]/.test(phones[k - 1]) && !(phones[k + 1] && /^[AEIOU]/.test(phones[k + 1]))) {
+      const last = items[items.length - 1];
+      if (last) last.len += len;
+      continue;
+    }
     if (base === "HH") {
       // the h takes the next vowel's shape
       const next = phones.slice(k + 1).map((x) => x.replace(/[012]$/, "")).find((x) => PHONES[x]?.shapes.length && /^[AEIOU]/.test(x));

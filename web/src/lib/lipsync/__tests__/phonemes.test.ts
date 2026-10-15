@@ -25,6 +25,8 @@ describe("phonemes", () => {
     expect(phonemesToVisemes("who", ["HH", "UW1"]).map((v) => v.viseme)).toEqual(["U", "U"]);
     expect(phonemesToVisemes("water", ["W", "AO1", "T", "ER0"]).map((v) => v.viseme)).toEqual(["U", "O", "DD", "UX"]); // a weak, rounded "er"
     expect(phonemesToVisemes("about", ["AH0", "B", "AW1", "T"]).map((v) => v.viseme)[0]).toBe("AX"); // a schwa: a weak "ah"
+    expect(phonemesToVisemes("sharp", ["SH", "AA1", "R", "P"]).map((v) => v.viseme)).toEqual(["CH", "aa", "PP"]); // the r colours the "ah"
+    expect(phonemesToVisemes("red", ["R", "EH1", "D"]).map((v) => v.viseme)).toEqual(["RR", "E", "DD"]); // before a vowel it rounds
     // shares of the word in spoken order, covering it exactly
     const v = phonemesToVisemes("five", ["F", "AY1", "V"]);
     expect(v[0].from).toBe(0);

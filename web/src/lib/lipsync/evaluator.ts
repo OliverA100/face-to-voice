@@ -270,6 +270,7 @@ export const LIPSYNC_PARTS = {
   offglide: true, // a diphthong's second half moves with its first instead of taking a loudness peak of its own (snapVowels)
   keepOrder: true, // an r, w or y spelled before a p/b/m in its word stays before its closure once it is placed (snapClosures)
   hissGate: true, // vowels fade where the treble outweighs the loudness: the jaw comes up for s, sh, f, th (LIPSYNC.hissClose)
+  sustainYield: true, // the held last vowel (sustainLoud) gives way to a th, f, s or sh being made
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -1274,7 +1275,9 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
     openSum += out[v];
     if (out[v] > out[mem.lastOpen] && out[v] > 0.25) mem.lastOpen = v;
   }
-  if (loudSmooth > LIPSYNC.sustainLoud && openSum < 0.25 && cg > 0.5) {
+  // … not over a consonant's own shape: a loud "th" brought the "a" of "passed" back between "passed" and "through"
+  const consonant = out.TH + out.FF + out.SS + out.CH;
+  if (loudSmooth > LIPSYNC.sustainLoud && openSum < 0.25 && cg > 0.5 && !(LIPSYNC_PARTS.sustainYield && consonant > 0.2)) {
     out[mem.lastOpen] = Math.max(out[mem.lastOpen], Math.min(1, LIPSYNC.sustainLevel * gate) * (1 - Math.max(out.PP, out.FF)));
   }
   if (shapes) {
