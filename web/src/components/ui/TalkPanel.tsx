@@ -15,7 +15,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
-import { outputOf, wakeOutput } from "@/lib/lipsync/output";
+import { outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { talkInvite } from "@/lib/talk/invite";
 import type { EndReason, TalkSession, TalkSnapshot } from "@/lib/talk/session";
@@ -96,7 +96,7 @@ export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "
     const over = () => s?.snapshot().state === "ended";
     try {
       const mod = await loadSession();
-      if (gone.current) return void ctx?.suspend();
+      if (gone.current) return void (ctx && restOutput(ctx).catch(() => {}));
       s = live.current = new mod.TalkSession(ctx);
       s.unlockAudio(); // still inside the tap on iOS when the module was already loaded on hover
       const mic = await mod.checkMicrophone(); // before the token: a refused mic costs nothing
@@ -117,7 +117,7 @@ export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "
       if (over()) return; // e.g. End while connecting: the connection is cancelled, which is no error
       if (!(e instanceof VoiceApiError)) console.error("[talk]", e);
       if (s) s.end("error");
-      else void ctx?.suspend();
+      else if (ctx) void restOutput(ctx).catch(() => {});
       setSession(null);
       setError(e instanceof VoiceApiError ? e.message : ENDED.error);
     } finally {

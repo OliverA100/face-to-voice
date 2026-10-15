@@ -61,6 +61,16 @@ export function wakeOutput(ctx: AudioContext): void {
   if (r?.el.paused) void r.el.play().catch(() => {});
 }
 
+/**
+ * Suspend the context, its element paused first. A suspended context's stream gets no new sound, and Safari's element
+ * then played the last few milliseconds it had over and over: after End chat (mid-word) a fast stutter until the next
+ * chat (user, 2026-10-15). wakeOutput plays it again.
+ */
+export function restOutput(ctx: AudioContext): Promise<void> {
+  routes.get(ctx)?.el.pause();
+  return ctx.suspend();
+}
+
 /** s the route adds to the context's reported output delay (the heard clock adds it). */
 export function routeDelay(ctx: AudioContext): number {
   return routes.has(ctx) ? ROUTE_EXTRA : 0;

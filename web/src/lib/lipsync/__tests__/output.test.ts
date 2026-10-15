@@ -15,13 +15,15 @@ function browser(ua: string, search = "", maxTouchPoints = 0) {
         this.played++;
         this.paused = false;
         return Promise.resolve();
+      }, pause() {
+        this.paused = true;
       } };
       els.push(el);
       return el;
     },
     body: { append: () => {} },
   });
-  const ctx = { destination: { kind: "destination" }, createMediaStreamDestination: () => ({ kind: "stream", stream: { id: "s" } }) } as unknown as AudioContext;
+  const ctx = { destination: { kind: "destination" }, createMediaStreamDestination: () => ({ kind: "stream", stream: { id: "s" } }), suspend: () => Promise.resolve() } as unknown as AudioContext;
   return { ctx, els };
 }
 
@@ -33,7 +35,7 @@ afterEach(() => {
 describe("output route", () => {
   it("desktop Safari: sound goes to a MediaStream an <audio> element plays (made once per context), 75 ms later", async () => {
     const { ctx, els } = browser(SAFARI);
-    const { outputOf, routeDelay, wakeOutput } = await import("../output");
+    const { outputOf, restOutput, routeDelay, wakeOutput } = await import("../output");
     const node = outputOf(ctx) as unknown as { kind: string };
     expect(node.kind).toBe("stream");
     expect(outputOf(ctx)).toBe(node);
@@ -44,6 +46,11 @@ describe("output route", () => {
     els[0].paused = true; // Safari paused it on its own
     wakeOutput(ctx);
     expect(els[0].played).toBe(2);
+    // resting: the element pauses with the context (else it loops its last few ms), and wakes in the next tap
+    await restOutput(ctx);
+    expect(els[0].paused).toBe(true);
+    wakeOutput(ctx);
+    expect(els[0].played).toBe(3);
   });
 
   it("Chrome and the iPhone keep the context's own destination; ?audioRoute= overrides", async () => {

@@ -22,6 +22,7 @@
 import { MediaDeviceFailure, type Participant, type RemoteTrack, Room, RoomEvent, Track } from "livekit-client";
 
 import { LIVE, LiveSpeech, type LiveWord } from "@/lib/lipsync/live";
+import { restOutput } from "@/lib/lipsync/output";
 import { setLiveSpeech } from "@/lib/lipsync/source";
 import { HeardLine } from "@/lib/talk/heard";
 import { chatFaceEnd, chatFaceStart, chatListening, chatMood, chatNod } from "@/lib/talk/face";
@@ -285,7 +286,7 @@ export class TalkSession {
     this.audio.splice(0).forEach((el) => el.remove());
     setLiveSpeech(null);
     this.live?.detach();
-    void this.ctx?.suspend().catch(() => {}); // kept for the next chat (TalkPanel audioContextNow)
+    if (this.ctx) void restOutput(this.ctx).catch(() => {}); // kept for the next chat (TalkPanel audioContextNow)
     chatFaceEnd();
     audioSession("auto");
   }

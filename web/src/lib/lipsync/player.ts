@@ -10,7 +10,7 @@ import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cu
 import { LIPSYNC_PARTS } from "./evaluator";
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
-import { outputOf, wakeOutput } from "./output";
+import { outputOf, restOutput, wakeOutput } from "./output";
 import { addPhonemes } from "./phonemes";
 import { takeLongHide } from "./staleTab";
 
@@ -374,7 +374,7 @@ class SpeechPlayer {
       // its sample rate (lines came 0.8 s late or silent, reported on time; a new context or a reload at that rate
       // inherited it, only a new tab didn't). Suspended while idle, the same 10 minutes left it on time
       // (qa/lipsync stale.mjs).
-      if (this.ctx?.state === "running") void this.ctx.suspend().catch(() => {});
+      if (this.ctx?.state === "running") void restOutput(this.ctx).catch(() => {});
     }
     for (const fn of this.listeners) fn();
   }
