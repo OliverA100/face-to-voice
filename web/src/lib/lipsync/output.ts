@@ -1,6 +1,6 @@
 /**
- * Where a context's sound goes: its own destination, or (desktop Safari) a live MediaStream played by an <audio>
- * element.
+ * Where a context's sound goes: its own destination, or (Safari: Mac, iPhone, iPad) a live MediaStream played by an
+ * <audio> element.
  *
  * Safari on a Mac, 2026-10-15: a tab's Web Audio output (one per sample rate, shared by every AudioContext in the tab)
  * could fall behind and stay behind: lines and chats ~0.8 s after the mouth, or silent, while Safari reported them on
@@ -27,11 +27,15 @@ export function isDesktopSafari(): boolean {
 }
 
 let choice: boolean | null = null;
-/** Whether sound takes the element route on this page. */
+/**
+ * Whether sound takes the element route on this page: Safari, on a Mac and on iPhones and iPads (the iPhone simulator's
+ * output stuck the same way, a looping tone, and the route played on; on an iPhone, 2026-10-15: loudspeaker, in sync,
+ * Stop silent, no lock-screen player, fine after another app).
+ */
 export function elementRoute(): boolean {
   if (choice === null) {
     const q = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("audioRoute");
-    choice = q === "element" ? true : q === "direct" ? false : isDesktopSafari();
+    choice = q === "element" ? true : q === "direct" ? false : isDesktopSafari() || isAppleTouch();
   }
   return choice;
 }
@@ -69,6 +73,16 @@ export function wakeOutput(ctx: AudioContext): void {
 export function restOutput(ctx: AudioContext): Promise<void> {
   routes.get(ctx)?.el.pause();
   return ctx.suspend();
+}
+
+/** Before a context is closed: its element stopped and gone (a closed context's stream plays nothing, for good). */
+export function dropOutput(ctx: AudioContext): void {
+  const r = routes.get(ctx);
+  if (!r) return;
+  r.el.pause();
+  r.el.srcObject = null;
+  r.el.remove();
+  routes.delete(ctx);
 }
 
 /** s the route adds to the context's reported output delay (the heard clock adds it). */

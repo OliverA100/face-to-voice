@@ -190,7 +190,7 @@ export class LiveSpeech implements SpeechSource {
       // evaluator's closure and vowel snapping need more look-ahead than this, so live they mostly settle after the fact)
       const hold = this.ctx.createDelay(1);
       hold.delayTime.value = delaySeconds;
-      this.source.connect(hold).connect(outputOf(this.ctx)); // desktop Safari: through an <audio> element (output.ts)
+      this.source.connect(hold).connect(outputOf(this.ctx)); // Safari: through an <audio> element (output.ts)
       this.delay = delaySeconds;
     } else if (playThrough) this.source.connect(outputOf(this.ctx));
   }

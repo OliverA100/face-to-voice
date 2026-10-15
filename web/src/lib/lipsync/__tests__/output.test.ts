@@ -6,7 +6,7 @@ const IPHONE = "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebK
 
 /** A browser at a user agent and query, with just enough DOM for the route's <audio> element. */
 function browser(ua: string, search = "", maxTouchPoints = 0) {
-  const els: { srcObject: unknown; played: number; paused: boolean; style: Record<string, string> }[] = [];
+  const els: { srcObject: unknown; played: number; paused: boolean; removed: boolean; style: Record<string, string> }[] = [];
   vi.stubGlobal("navigator", { userAgent: ua, maxTouchPoints });
   vi.stubGlobal("window", { location: { search } });
   vi.stubGlobal("document", {
@@ -17,6 +17,8 @@ function browser(ua: string, search = "", maxTouchPoints = 0) {
         return Promise.resolve();
       }, pause() {
         this.paused = true;
+      }, removed: false, remove() {
+        this.removed = true;
       } };
       els.push(el);
       return el;
@@ -35,7 +37,7 @@ afterEach(() => {
 describe("output route", () => {
   it("desktop Safari: sound goes to a MediaStream an <audio> element plays (made once per context), 75 ms later", async () => {
     const { ctx, els } = browser(SAFARI);
-    const { outputOf, restOutput, routeDelay, wakeOutput } = await import("../output");
+    const { dropOutput, outputOf, restOutput, routeDelay, wakeOutput } = await import("../output");
     const node = outputOf(ctx) as unknown as { kind: string };
     expect(node.kind).toBe("stream");
     expect(outputOf(ctx)).toBe(node);
@@ -51,10 +53,16 @@ describe("output route", () => {
     expect(els[0].paused).toBe(true);
     wakeOutput(ctx);
     expect(els[0].played).toBe(3);
+    // a context closed (the iPhone's start-over): its element stopped and gone, the next one made afresh
+    dropOutput(ctx);
+    expect(els[0].removed).toBe(true);
+    expect(routeDelay(ctx)).toBe(0);
+    outputOf(ctx);
+    expect(els).toHaveLength(2);
   });
 
-  it("Chrome and the iPhone keep the context's own destination; ?audioRoute= overrides", async () => {
-    for (const [ua, search, touch, want] of [[CHROME, "", 0, "destination"], [IPHONE, "", 5, "destination"], [SAFARI, "?audioRoute=direct", 0, "destination"], [CHROME, "?audioRoute=element", 0, "stream"]] as const) {
+  it("Chrome keeps the context's own destination, the iPhone takes the route too; ?audioRoute= overrides", async () => {
+    for (const [ua, search, touch, want] of [[CHROME, "", 0, "destination"], [IPHONE, "", 5, "stream"], [SAFARI, "?audioRoute=direct", 0, "destination"], [CHROME, "?audioRoute=element", 0, "stream"]] as const) {
       vi.resetModules();
       const { ctx } = browser(ua, search, touch);
       const { outputOf, routeDelay } = await import("../output");

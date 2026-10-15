@@ -197,7 +197,7 @@ PCM + aligned times ◄─────────── NDJSON with the aligned
   of their own, and every movement eases in. Because eleven_v4_turbo times letters from the text, the audio corrects
   it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds its syllable (a breath
   doesn't count), and a phrase's last vowel holds while the voice draws it out. The tongue tip rises for d/t/n/l on
-  a track of its own. In Safari on a computer the sound (lines and chats) plays through a hidden `<audio>` element as a
+  a track of its own. In Safari (Mac, iPhone, iPad) the sound (lines and chats) plays through a hidden `<audio>` element as a
   live MediaStream, not the context's own output (`lib/lipsync/output.ts`): that output, shared by every context in
   the tab, could fall behind and stay behind (0.8 s late or silent, reported on time, kept across a reload, until a new
   tab), and a stream has no queue to fall behind in. The heard clock adds the route's 75 ms. Chrome and Firefox, given

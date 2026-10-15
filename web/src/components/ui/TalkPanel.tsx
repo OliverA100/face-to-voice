@@ -15,7 +15,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
-import { outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
+import { dropOutput, outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { isAppleTouch } from "@/lib/lipsync/staleTab";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { talkInvite } from "@/lib/talk/invite";
@@ -59,12 +59,15 @@ function audioContextNow(): AudioContext | null {
     if (sessionFirst()) {
       const nav = navigator as Navigator & { audioSession?: { type: string } };
       if (nav.audioSession) nav.audioSession.type = "play-and-record";
-      if (chatCtx && chatCtx.state !== "closed") void chatCtx.close().catch(() => {});
+      if (chatCtx && chatCtx.state !== "closed") {
+        dropOutput(chatCtx);
+        void chatCtx.close().catch(() => {});
+      }
       chatCtx = null;
     }
     if (!chatCtx || chatCtx.state === "closed") chatCtx = new AudioContext();
     void chatCtx.resume();
-    // desktop Safari: the voice plays through an <audio> element (lib/lipsync/output.ts), made and played in this tap
+    // Safari: the voice plays through an <audio> element (lib/lipsync/output.ts), made and played in this tap
     outputOf(chatCtx);
     wakeOutput(chatCtx);
     return chatCtx;

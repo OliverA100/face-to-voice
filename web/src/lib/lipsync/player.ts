@@ -10,7 +10,7 @@ import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cu
 import { LIPSYNC_PARTS } from "./evaluator";
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
-import { outputOf, restOutput, wakeOutput } from "./output";
+import { dropOutput, outputOf, restOutput, wakeOutput } from "./output";
 import { addPhonemes } from "./phonemes";
 import { takeLongHide } from "./staleTab";
 
@@ -107,6 +107,7 @@ class SpeechPlayer {
   unlock(): void {
     // an iPhone tab back from a long time in the background can play silently (staleTab.ts): start the audio over
     if (takeLongHide() && this.ctx) {
+      dropOutput(this.ctx); // its <audio> element too (output.ts)
       void this.ctx.close().catch(() => {});
       this.ctx = null;
       audioSession("auto"); // asked for again below, so iOS sets the playback session up afresh
@@ -337,7 +338,7 @@ class SpeechPlayer {
     }
     const src = ctx.createBufferSource();
     src.buffer = buffer;
-    src.connect(outputOf(ctx)); // desktop Safari: an <audio> element plays it (output.ts)
+    src.connect(outputOf(ctx)); // Safari: an <audio> element plays it (output.ts)
     src.start(this.nextTime);
     src.onended = () => {
       this.sources.delete(src);
