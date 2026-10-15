@@ -296,6 +296,8 @@ export const LIPSYNC_PARTS = {
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
   squeezedFirst: true, // a first word squeezed after an audio tag is spread back to the voice's onset, alone (placeLine)
   forcedAlignment: true, // a spoken line's times from forced alignment on its audio when the speak route sends them (player.ts)
+  liveVoiceStart: true, // a chat's first word placed on the voice's start as the agent measured it, at once (live.ts voiceStart)
+  liveAcross: true, // a chat's word stamped across a pause starts where the voice comes back (live.ts findAnchors)
 };
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
@@ -810,15 +812,15 @@ function syllableBetween(loudness: (t: number) => number, from: number, t: numbe
 
 /** Move the cues by where the voice really starts vs the first word's stamp (LIPSYNC.lineOnsetDb). Run before the
  *  closure and vowel snapping, which wait for it. Returns true if anything moved. */
-export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number, enabled = LIPSYNC_PARTS.placeLine): boolean {
+export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number, enabled = LIPSYNC_PARTS.placeLine, voiceStart?: number): boolean {
   let first = Infinity;
   for (const c of cues) if (c.ws !== undefined && c.ws < first) first = c.ws;
   if (first === Infinity || !cues.some((c) => c.ws !== undefined && !lined.has(c))) return false;
   const until = first + LIPSYNC.lineMaxShift;
-  if (until > decodedSeconds) return false;
+  if (voiceStart === undefined && until > decodedSeconds) return false;
   const level = Math.pow(10, LIPSYNC.lineOnsetDb / 20);
-  let onset: number | null = null;
-  for (let t = 0, quiet = Infinity; t <= until; t += 0.01) {
+  let onset: number | null = voiceStart ?? null;
+  for (let t = 0, quiet = Infinity; voiceStart === undefined && t <= until; t += 0.01) {
     if (loudness(t) > level) {
       // the start of the stretch of voice the first word is in: a sound before it, apart from it by a silence
       // (lineOnsetGap: the voice sounding an audio tag, "[suspicious, low and guarded] Open…"), is not the line's start
@@ -1271,6 +1273,9 @@ export interface SpeechSource {
   readonly phrasesPlaced?: boolean;
   /** The gate's own look-ahead instead of LIPSYNC.gateLookahead (live.ts: LIPSYNC.liveGateLookahead). */
   readonly gateLookahead?: number;
+  /** Where the voice starts (line time), known before it is heard (live.ts: the agent measured it): placeLine uses it
+   *  at once instead of waiting to read the loudness. */
+  readonly voiceStart?: number;
   /** The cues come from forced alignment on this line's audio (player.ts), not the voice's own stamps: they are where
    *  the words are said, so only the closure and vowel snapping (vowels within LIPSYNC.alignedVowelSearch) move them. */
   readonly aligned?: boolean;
@@ -1292,7 +1297,7 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   // once the stream has ended the whole line is decoded: the last word's windows reach past the audio's end
   const decoded = src.streamDone ? Infinity : src.decodedSeconds();
   const loudnessOf = (x: number) => src.loudness(x);
-  placeLine(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placeLine && !src.aligned); // the stamps' offset at the start
+  placeLine(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placeLine && !src.aligned, src.voiceStart); // the stamps' offset at the start
   placePhrases(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placePhrases && !src.phrasesPlaced && !src.aligned); // … and after each pause, where they are far off
   // an "m" closure is found in the treble (its hum keeps the loudness up): LIPSYNC_PARTS.trebleM
   const treble = LIPSYNC_PARTS.trebleM ? (x: number) => src.trebleLoudness(x) : loudnessOf;

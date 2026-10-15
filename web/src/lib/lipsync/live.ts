@@ -30,7 +30,7 @@
 import { HeardClock } from "./clock";
 import { alignmentToCues, type Alignment, type Cue } from "./cues";
 import { queuePhonemes, spokenWords } from "./phonemes";
-import { LIPSYNC, type SpeechSource } from "./evaluator";
+import { LIPSYNC, LIPSYNC_PARTS, type SpeechSource } from "./evaluator";
 import { speechPlayer } from "./player";
 
 /** One word as the agent sends it: text, and seconds from the start of the reply's audio. */
@@ -50,6 +50,12 @@ const PAUSE_SECONDS = 0.1;
 const PHRASE_MIN = 0.15;
 /** A phrase start in the agent's audio takes the stamped word start nearest to it, within this (s). */
 const PHRASE_SEARCH = 0.4;
+/** A word stamped into the pause before it (the voice comes back after its stamped start, before ACROSS_LATE past its
+ *  stamped end) starts where the voice comes back, and lasts at least ACROSS_MIN (s). */
+const ACROSS_LATE = 0.1;
+const ACROSS_MIN = 0.08;
+/** A word ending like this is followed by a pause in the speech (a full stop, a comma, a dash). */
+const PAUSE_AFTER = /[.,!?;:…—–-]["')\]]*\s*$/;
 /** Matching what is heard against the agent's audio: the window (s), how far from the current fit it looks (s), the
  *  correlation it needs, and how far time 0 may move per match (s, so a correction eases in). */
 const FOLLOW = { window: 1.5, search: 0.3, corr: 0.85, step: 0.04, every: 25 };
@@ -125,7 +131,7 @@ export class LiveSpeech implements SpeechSource {
   private onsetAt = NaN; // context time its voice started
   private words: LiveWord[] = [];
   private wordsOnset = NaN; // where the voice starts on the words' clock, as the agent measured it
-  private anchors: { from: number; to: number; shift: number }[] = []; // words from..to-1 move by `shift` (s)
+  private anchors: { from: number; to: number; shift: number; start?: number }[] = []; // words from..to-1 move by `shift` (s); `start`: word `from` starts there
   private follow = 0; // s added to time 0: the voice as heard, matched against the agent's audio
   private sinceFollow = 0; // blocks measured since the last match
   private replying = false;
@@ -137,6 +143,19 @@ export class LiveSpeech implements SpeechSource {
 
   /** Phrases are placed here, on the agent's audio (anchors), not by the evaluator's placePhrases. */
   readonly phrasesPlaced = true;
+
+  /** Where the voice starts on the line's clock (the words'), as the agent measured it on its audio: placeLine needs
+   *  no look-ahead to put the first word there (it waited for ~0.5 s of heard audio, and "Honestly" stayed on its stamp
+   *  0.3 s after the voice had started: user review 10-15). */
+  get voiceStart(): number | undefined {
+    if (!LIPSYNC_PARTS.liveVoiceStart || !this.sent.length) return undefined;
+    // placeLine's own rule (LIPSYNC.lineOnsetDb under the loudest moment), on the agent's audio (the words' clock)
+    let peak = 0;
+    for (const v of this.sent) if (v > peak) peak = v;
+    const level = peak * Math.pow(10, LIPSYNC.lineOnsetDb / 20);
+    const k = this.sent.findIndex((v) => v > level);
+    return peak > 0 && k >= 0 ? k / 100 : undefined;
+  }
 
   constructor(ctx: AudioContext) {
     this.ctx = ctx;
@@ -281,9 +300,19 @@ export class LiveSpeech implements SpeechSource {
 
   /** Where the voice comes back in the agent's audio, the nearest stamped word start moves onto it (in order). */
   private findAnchors() {
-    const anchors: { from: number; to: number; shift: number }[] = [];
+    const anchors: { from: number; to: number; shift: number; start?: number }[] = [];
     let next = 1; // the first word is time 0's pin
     for (const at of this.sentPhrases()) {
+      // a word stamped across the voice's return, after a pause in the text, took the pause into its stamp ("hey. I":
+      // "I" stamped from 1.00 to 1.40 s, said from 1.36): it starts where the voice comes back, and the words after it
+      // keep their stamps (the nearest stamped start was "was", and the phrase moved 0.12 s early: user review 10-15)
+      const across = LIPSYNC_PARTS.liveAcross ? this.words.findIndex((w, i) => i >= next && w.s < at && at < w.e + ACROSS_LATE && PAUSE_AFTER.test(this.words[i - 1].w) && this.words[i - 1].e <= at) : -1;
+      if (across >= 0) {
+        if (anchors.length) anchors[anchors.length - 1].to = across;
+        anchors.push({ from: across, to: this.words.length, shift: 0, start: at });
+        next = across + 1;
+        continue;
+      }
       let best = -1;
       for (let i = next; i < this.words.length && this.words[i].s < at + PHRASE_SEARCH; i++) {
         const off = Math.abs(this.words[i].s - at);
@@ -294,7 +323,7 @@ export class LiveSpeech implements SpeechSource {
       anchors.push({ from: best, to: this.words.length, shift: at - this.words[best].s });
       next = best + 1;
     }
-    const changed = anchors.length !== this.anchors.length || anchors.some((a, k) => a.from !== this.anchors[k].from || a.to !== this.anchors[k].to || Math.abs(a.shift - this.anchors[k].shift) > 0.005);
+    const changed = anchors.length !== this.anchors.length || anchors.some((a, k) => a.from !== this.anchors[k].from || a.to !== this.anchors[k].to || Math.abs(a.shift - this.anchors[k].shift) > 0.005 || a.start !== this.anchors[k].start);
     this.anchors = anchors;
     return changed;
   }
@@ -392,7 +421,8 @@ export class LiveSpeech implements SpeechSource {
     const a: Alignment = { characters: [], character_start_times_seconds: [], character_end_times_seconds: [] };
     for (const [k, word] of this.words.entries()) {
       const shift = this.shiftOf(k);
-      const [w, s, e] = [word.w, word.s + shift, word.e + shift];
+      const start = this.anchors.find((a) => a.from === k)?.start;
+      const [w, s, e] = [word.w, start ?? word.s + shift, start === undefined ? word.e + shift : Math.max(word.e + shift, start + ACROSS_MIN)];
       const chars = [...w];
       const first = chars.findIndex((c) => LETTER.test(c));
       const last = chars.findLastIndex((c) => LETTER.test(c));

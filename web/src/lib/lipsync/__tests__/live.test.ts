@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { emptyActivations, frameMemory, frameTargets, LIPSYNC_PARTS } from "../evaluator";
 import { LiveSpeech, type LiveWord } from "../live";
 
 // A conversation's voice as the lip sync sees it, without Web Audio: meter blocks are fed in by hand (what the
@@ -97,6 +98,47 @@ describe("live speech (a reply as the evaluator's line)", () => {
     // a 60 ms breath at 0.95 s, then "Again." as stamped
     sendEnvelope(live, 1.6, (t) => ((t >= 0.1 && t < 0.8) || (t >= 0.95 && t < 1.01) || t >= 1.2 ? 0.2 : 0.001));
     expect(Math.min(...live.cues.filter((c) => c.start > 0.9).map((c) => c.start))).toBeCloseTo(1.2, 5);
+  });
+
+  it("starts a word stamped into the pause before it where the voice comes back; the words after keep their stamps", () => {
+    const words: LiveWord[] = [{ w: "Oh, ", s: 0.1, e: 0.28 }, { w: "hey. ", s: 0.36, e: 0.65 }, { w: "I ", s: 1.0, e: 1.4 }, { w: "was ", s: 1.48, e: 1.56 }];
+    const firstOf = (live: LiveSpeech, from: number, to: number) => Math.min(...live.cues.filter((c) => c.start >= from && c.start < to).map((c) => c.start));
+    const reply = () => {
+      const live = new LiveSpeech(ctx);
+      live.wordsStarted();
+      live.addWords(words);
+      live.voiceOnset(0.1);
+      live.replyStarted();
+      feed(live, 9, 0.5, () => 0.2);
+      // "I" was stamped from 1.00 s, through the pause after "hey.": the voice comes back at 1.36 s
+      sendEnvelope(live, 1.8, (t) => ((t >= 0.1 && t < 0.65) || t >= 1.36 ? 0.2 : 0.001));
+      return live;
+    };
+    let live = reply();
+    expect(firstOf(live, 0.9, 1.45)).toBeCloseTo(1.36, 5); // "I" with the voice
+    expect(firstOf(live, 1.45, 1.6)).toBeCloseTo(1.48, 5); // "was" where it was stamped
+    // before (user review 10-15): the nearest stamped start, "was", was pinned to the voice's return, the phrase early
+    LIPSYNC_PARTS.liveAcross = false;
+    live = reply();
+    LIPSYNC_PARTS.liveAcross = true;
+    expect(firstOf(live, 1.3, 1.45)).toBeCloseTo(1.36, 5);
+    expect(firstOf(live, 0.9, 1.3)).toBeCloseTo(1.0, 5); // "I" left in the pause
+  });
+
+  it("puts the first word on the voice's start in the agent's audio at once, without waiting to hear it", () => {
+    const live = new LiveSpeech(ctx);
+    live.wordsStarted();
+    live.addWords([{ w: "Honestly, ", s: 0.3, e: 0.8 }, { w: "yes.", s: 0.86, e: 1.1 }]);
+    live.voiceOnset(0.1);
+    live.replyStarted();
+    sendEnvelope(live, 1.2, (t) => (t >= 0.1 && t < 1.1 ? 0.2 : 0.001)); // the voice from 0.10 s, "Honestly" stamped at 0.30
+    expect(live.voiceStart).toBeCloseTo(0.1, 5);
+    feed(live, 10, 0.1, () => 0.2); // only 0.1 s heard yet
+    frameTargets(live, 0.05, 0, emptyActivations(), frameMemory());
+    expect(Math.min(...live.cues.map((c) => c.start))).toBeCloseTo(0.1, 5);
+    LIPSYNC_PARTS.liveVoiceStart = false;
+    expect(live.voiceStart).toBeUndefined();
+    LIPSYNC_PARTS.liveVoiceStart = true;
   });
 
   it("eases time 0 onto the voice when what is heard matches the agent's audio elsewhere", () => {
