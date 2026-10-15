@@ -11,12 +11,12 @@
 import { wordToVisemes, type WordViseme } from "./lipsync-en";
 import { phonemesOf, phonemesToVisemes } from "./phonemes";
 
-export type VisemeId = "PP" | "FF" | "TH" | "DD" | "SS" | "aa" | "E" | "I" | "O" | "U";
-export const VISEME_IDS: VisemeId[] = ["PP", "FF", "TH", "DD", "SS", "aa", "E", "I", "O", "U"];
+export type VisemeId = "PP" | "FF" | "TH" | "DD" | "SS" | "CH" | "aa" | "E" | "I" | "O" | "U";
+export const VISEME_IDS: VisemeId[] = ["PP", "FF", "TH", "DD", "SS", "CH", "aa", "E", "I", "O", "U"];
 
 /** Oculus / rule tokens → our compact set (null = silence). */
 export const FOLD: Record<string, VisemeId | null> = {
-  sil: null, PP: "PP", FF: "FF", TH: "TH", DD: "DD", kk: "DD", nn: "DD", CH: "SS", SS: "SS", RR: "U",
+  sil: null, PP: "PP", FF: "FF", TH: "TH", DD: "DD", kk: "DD", nn: "DD", CH: "CH", SS: "SS", RR: "U",
   aa: "aa", E: "E", I: "I", O: "O", U: "U", ih: "I", oh: "O", ou: "U", OO: "U", EE: "I",
   AX: "aa", // a schwa (lipsync-en.ts): an "aa" made weak (Cue.weak)
 };

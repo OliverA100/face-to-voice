@@ -136,7 +136,7 @@ export class Mouth {
     const kTongue = 1 - Math.exp(-step / (LIPSYNC.tau.DD ?? LIPSYNC.tau.default));
     this.tongue += ((t >= 0 && LIPSYNC_PARTS.tongue ? tongueAt(src.cues, t) : 0) - this.tongue) * kTongue;
     this.lateral += ((t >= 0 && LIPSYNC_PARTS.tongue && LIPSYNC_PARTS.lateral ? lateralAt(src.cues, t) : 0) - this.lateral) * kTongue;
-    const lat = this.tongue > 1e-3 ? Math.min(1, this.lateral / this.tongue) : 0; // the share of the raise that is an "l"
+    const lat = this.tongue > 1e-3 ? Math.min(1, this.lateral / this.tongue) * LIPSYNC.lateralShare : 0; // the share of the raise that is an "l", and how much of its pose shows
     const rounding = this.rounding;
     const ppCap = world.cap("pp") * (1 - rounding) + world.cap("ppr") * rounding;
     for (let ti = 0; ti < targets.length; ti++) {

@@ -160,7 +160,9 @@ describe("shapeShare", () => {
     const to = { ...emptyActivations(), U: 1 }; // "oo": rounded, corners in
     const k = shapeShare(from, to, 1, dt);
     const width = (LIPSYNC.shapeMm.width.U! - LIPSYNC.shapeMm.width.I!) * k;
-    expect(Math.abs(width) / dt).toBeCloseTo(LIPSYNC.widthSpeed, 6); // 21 mm of corners in one frame is far too fast
+    const round = LIPSYNC.shapeMm.round.U! * k;
+    // ~10 mm of corners and ~5 mm forward in one frame is far too fast: the stricter of the two top speeds holds
+    expect(Math.max(Math.abs(width) / dt / LIPSYNC.widthSpeed, Math.abs(round) / dt / LIPSYNC.roundSpeed)).toBeCloseTo(1, 6);
     expect(shapeShare(emptyActivations(), { ...emptyActivations(), aa: 1 }, 1, dt)).toBe(1); // "ah" neither spreads nor rounds
     expect(shapeShare(from, to, 0.001, dt)).toBe(0.001); // a smaller share so far stays
   });

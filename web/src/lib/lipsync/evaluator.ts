@@ -27,9 +27,18 @@ export const LIPSYNC = {
    *  follow quickly (default 0.06 → 0.04 on 2026-10-09: vowel peaks ~15 ms earlier, closures press better). */
   tau: { PP: 0.03, FF: 0.035, TH: 0.035, default: 0.04 } as Record<string, number>,
   /** Vowels and lip closures are what the eye reads; quick consonants stay subtle. */
-  peak: { PP: 1, FF: 1, TH: 0.85, DD: 0.35, SS: 0.5, default: 1 } as Record<string, number>,
-  /** An unstressed vowel (a schwa: "a", "the", "of", "-ably", Cue.weak) opens only this far, however long it is. */
-  weakPeak: 0.45,
+  peak: { PP: 1, FF: 1, TH: 0.85, DD: 0.35, SS: 0.5, CH: 0.8, default: 1 } as Record<string, number>,
+  /** An unstressed vowel (a schwa: "a", "the", "of", "-ably", Cue.weak) opens only this far, however long it is. 0.45
+   *  with the calmer 2026-10-15 shapes left "A king…", "A cup…" barely moving (user review). */
+  weakPeak: 0.6,
+  /** An "r" (a glide folded to the "oo" shape) rounds the lips only this much, however long: at full it puckered in
+   *  the middle of "grass" and "through" ("an extra movement", user review 2026-10-15). */
+  rPeak: 0.4,
+  /** How much of an "l"'s tongue pose (visemes.json "ll": the tip at the edge of the upper teeth) shows; the rest is the
+   *  "d"'s, behind the teeth. At 1 "soldiers" and "tool" showed "too much tongue" (user review 2026-10-15). */
+  lateralShare: 0.4,
+  /** s: an f/v or th lasts at most this long from where its hiss begins (a misplaced one took a whole word: "fast"). */
+  hissMaxDur: 0.2,
   /** How strongly the strongest shape suppresses the others (0 = plain additive, 1 = winner only). */
   emphasis: 0.45,
   maxGroupSum: 1.3,
@@ -222,11 +231,11 @@ export const LIPSYNC = {
   speedUp: 3,
   /** Top speeds (mm/s) for the mouth's width (corners spread or pulled in) and its rounding (lips pushed forward),
    *  like gapSpeed / jawSpeed: unlimited, they jumped between spread and rounded sounds ("we should": up to 420 mm/s at
-   *  the corners, 140 mm/s forward; "still jumpy" in testing). Per unit of each shape (mm), from visemes.json's note
-   *  ("ee" spreads ~6 mm, "oo" corners in 15 mm and lips +5 mm, "oh" +2.5 mm; "oh"'s corners taken as half of "oo"'s). */
+   *  the corners, 140 mm/s forward; "still jumpy" in testing). Per unit of each shape (mm), measured on the shapes
+   *  (pipeline viseme_solve: "ee" spreads 1.6 mm, "oo" corners in 8.7 and lips +4.8, "oh" 5.6 and +2.5, "sh" 6 and +3). */
   widthSpeed: 120,
   roundSpeed: 50,
-  shapeMm: { width: { I: 6, O: -7.5, U: -15 }, round: { O: 2.5, U: 5 } } as { width: Partial<Record<VisemeId, number>>; round: Partial<Record<VisemeId, number>> },
+  shapeMm: { width: { I: 1.6, O: -5.6, U: -8.7, CH: -6 }, round: { O: 2.5, U: 4.8, CH: 3 } } as { width: Partial<Record<VisemeId, number>>; round: Partial<Record<VisemeId, number>> },
   /** While the audio stays above this loudness (0..1 of the clip's peak) with no vowel cue active, the last vowel
    *  is held at sustainLevel. */
   sustainLoud: 0.45,
@@ -254,6 +263,7 @@ export const LIPSYNC_PARTS = {
   joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
   ppFirst: true, // p/b/m find their silences before f/v and th, which then keep off them (snapClosures)
   offglide: true, // a diphthong's second half moves with its first instead of taking a loudness peak of its own (snapVowels)
+  keepOrder: true, // an r, w or y spelled before a p/b/m in its word stays before its closure once it is placed (snapClosures)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -266,7 +276,7 @@ export function mouthLead(param: string | null): number {
   return ms / 1000;
 }
 
-export const OPEN_VISEMES: VisemeId[] = ["aa", "E", "I", "O", "U", "DD", "SS"];
+export const OPEN_VISEMES: VisemeId[] = ["aa", "E", "I", "O", "U", "DD", "SS", "CH"];
 /** Shapes made on quiet sounds (a closure, or the hiss of f/v/th): held back while the voice is loud, never scaled
  *  down by the loudness (that left a "th" at a fifth of its shape), and placed on their quiet stretch in the audio. */
 export const CLOSED_VISEMES: VisemeId[] = ["PP", "FF", "TH"];
@@ -327,8 +337,9 @@ function envelope(cue: Cue, t: number): number {
   const a = LIPSYNC.attackFor[cue.viseme] ?? LIPSYNC.attack;
   const r = LIPSYNC.releaseFor[cue.viseme] ?? LIPSYNC.release;
   if (t < cue.start - a || t > cue.end + r) return 0;
-  const peak = cue.weak ? LIPSYNC.weakPeak : (LIPSYNC.peak[cue.viseme] ?? LIPSYNC.peak.default);
-  const long = cue.end - cue.start > 0.12 && !cue.weak && !["DD", "SS", "TH"].includes(cue.viseme) ? 1 : peak;
+  const isR = cue.glide && cue.viseme === "U" && /^r/i.test(cue.text);
+  const peak = cue.weak ? LIPSYNC.weakPeak : isR ? LIPSYNC.rPeak : (LIPSYNC.peak[cue.viseme] ?? LIPSYNC.peak.default);
+  const long = cue.end - cue.start > 0.12 && !cue.weak && !isR && !["DD", "SS", "TH"].includes(cue.viseme) ? 1 : peak;
   if (t < cue.start) return long * (1 - (cue.start - t) / a);
   if (t <= cue.end) return long;
   return long * (1 - (t - cue.end) / r);
@@ -599,10 +610,21 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
       c.end = span[1] - LIPSYNC.closureOffShift + (c.nasal ? LIPSYNC.nasalRelease : 0);
       const onShift = LIPSYNC.closureOnShift + (c.viseme === "PP" ? 0 : LIPSYNC.hissOnShift);
       c.start = Math.max(0, Math.min(span[0] - onShift, c.end - LIPSYNC.closureMinDur));
+      if (c.viseme !== "PP" && LIPSYNC.hissMaxDur > 0) c.end = Math.min(c.end, span[0] + LIPSYNC.hissMaxDur);
       if (needSyllable && before) c.start = Math.max(c.start, Math.min(before.end + LIPSYNC.closureGapMin, c.end - LIPSYNC.closureKeep));
       fromAudio.add(c);
+      // a glide its word says before it stays before it ("storm": the m's closure, found early, had the r after it, and
+      // the lips rounded again once shut)
+      if (c.viseme === "PP" && LIPSYNC_PARTS.keepOrder)
+        for (let j = order.indexOf(c) - 1; j >= 0 && order[j].ws === c.ws; j--) {
+          const x = order[j];
+          if (!x.glide || x.end <= c.start) continue; // an r, w or y (vowels before it have vowelBounds)
+          const dur = x.end - x.start;
+          x.end = Math.max(x.start + 0.02, c.start);
+          if (x.end - x.start > dur || x.start > c.start - 0.02) x.start = Math.max(0, x.end - Math.min(dur, 0.06));
+        }
     } else {
-      const dur = c.end - c.start;
+      const dur = c.viseme !== "PP" && LIPSYNC.hissMaxDur > 0 ? Math.min(c.end - c.start, LIPSYNC.hissMaxDur) : c.end - c.start;
       c.start = Math.max(0, bestT - dur / 2);
       c.end = c.start + dur;
     }
