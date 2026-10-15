@@ -197,9 +197,9 @@ PCM + aligned times ◄─────────── NDJSON with the aligned
   of their own, and every movement eases in. Because eleven_v4_turbo times letters from the text, the audio corrects
   it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds its syllable (a breath
   doesn't count), and a phrase's last vowel holds while the voice draws it out. The tongue tip rises for d/t/n/l on
-  a track of its own. Safari on a
-  computer can play a tab's Web Audio late or not at all after it has sat in the background, while reporting it as on
-  time; the speak bar then offers a reload, and the face and the voice survive it.
+  a track of its own. The player's AudioContext rests (suspended) between lines: in Safari on a computer, one left
+  running with nothing to play in a tab nobody looked at stuck that tab's output (sound late or silent, reported on
+  time, until a new tab); a line's first audio waits until the context runs again.
 
 ## Live conversations
 

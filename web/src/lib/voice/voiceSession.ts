@@ -1,7 +1,6 @@
 /**
  * The voice step kept across reloads, like the face (lib/faceSession.ts): the design (its three takes) and the voice in
- * use, in sessionStorage, so a reload comes back ready to speak and a new tab starts at "Find my voice". The reload hint
- * (lib/lipsync/staleTab.ts) relies on it.
+ * use, in sessionStorage, so a reload comes back ready to speak and a new tab starts at "Find my voice".
  */
 import type { ProfileResult } from "@/lib/character/profile";
 import type { DesignResult, SelectResult } from "@/lib/voice/client";

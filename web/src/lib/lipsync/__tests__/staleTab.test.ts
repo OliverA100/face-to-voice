@@ -29,50 +29,11 @@ afterEach(() => {
 });
 
 describe("staleTab", () => {
-  it("knows Safari on a Mac from Chrome, an iPhone and an iPad (which says it is a Mac)", async () => {
-    const { isDesktopSafari } = await import("../staleTab");
-    page(SAFARI);
-    expect(isDesktopSafari()).toBe(true);
-    page(CHROME);
-    expect(isDesktopSafari()).toBe(false);
-    page(SAFARI, 5);
-    expect(isDesktopSafari()).toBe(false);
-  });
-
-  it("turns on after desktop Safari has hidden the tab for 2 minutes, not after a short look away", async () => {
-    vi.useFakeTimers();
-    const show = page(SAFARI);
-    const { staleTabSnapshot, subscribeStaleTab } = await import("../staleTab");
-    const seen = vi.fn();
-    subscribeStaleTab(seen);
-    show("hidden");
-    vi.advanceTimersByTime(30_000);
-    show("visible");
-    expect(staleTabSnapshot()).toBe(false);
-    show("hidden");
-    vi.advanceTimersByTime(2 * 60_000);
-    show("visible");
-    expect(staleTabSnapshot()).toBe(true);
-    expect(seen).toHaveBeenCalledTimes(1);
-  });
-
-  it("never turns on in Chrome", async () => {
-    vi.useFakeTimers();
-    const show = page(CHROME);
-    const { staleTabSnapshot, subscribeStaleTab } = await import("../staleTab");
-    subscribeStaleTab(() => {});
-    show("hidden");
-    vi.advanceTimersByTime(60 * 60_000);
-    show("visible");
-    expect(staleTabSnapshot()).toBe(false);
-  });
-
-  it("on an iPhone: turns on after 2 minutes hidden, and tells the player once per return to start its audio over", async () => {
+  it("on an iPhone: tells the player once per return from 2 minutes hidden to start its audio over", async () => {
     vi.useFakeTimers();
     const show = page(IPHONE, 5);
-    const { staleTabSnapshot, subscribeStaleTab, takeLongHide } = await import("../staleTab");
-    subscribeStaleTab(() => {});
-    expect(takeLongHide()).toBe(false);
+    const { takeLongHide } = await import("../staleTab");
+    expect(takeLongHide()).toBe(false); // watching from here
     show("hidden");
     vi.advanceTimersByTime(30_000);
     show("visible");
@@ -80,7 +41,6 @@ describe("staleTab", () => {
     show("hidden");
     vi.advanceTimersByTime(3 * 60_000);
     show("visible");
-    expect(staleTabSnapshot()).toBe(true);
     expect(takeLongHide()).toBe(true);
     expect(takeLongHide()).toBe(false); // once
     show("hidden");
@@ -89,14 +49,17 @@ describe("staleTab", () => {
     expect(takeLongHide()).toBe(true); // and again after the next long time away
   });
 
-  it("never asks a Mac's player to start over (a new AudioContext inherits Safari's late sound there)", async () => {
+  it("never on a computer: Safari on a Mac (its idle trouble is the player's resting context) or Chrome", async () => {
     vi.useFakeTimers();
-    const show = page(SAFARI);
-    const { takeLongHide, subscribeStaleTab } = await import("../staleTab");
-    subscribeStaleTab(() => {});
-    show("hidden");
-    vi.advanceTimersByTime(3 * 60_000);
-    show("visible");
-    expect(takeLongHide()).toBe(false);
+    for (const ua of [SAFARI, CHROME]) {
+      vi.resetModules();
+      const show = page(ua);
+      const { takeLongHide } = await import("../staleTab");
+      takeLongHide();
+      show("hidden");
+      vi.advanceTimersByTime(3 * 60_000);
+      show("visible");
+      expect(takeLongHide()).toBe(false);
+    }
   });
 });
