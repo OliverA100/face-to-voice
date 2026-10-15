@@ -21,6 +21,10 @@
 -->
 <canvas id="c"></canvas>
 <div id="ui"><button id="go">Start</button> <span id="info"></span></div>
+<!-- touch (the iPhone simulator, qa/lipsync simstale): one tap each -->
+<div id="touch" style="position:fixed;left:0;right:0;top:40px;z-index:3;display:flex;gap:8px;justify-content:center">
+  <button data-o='{"route":"direct"}'>Direct</button><button data-o='{"route":"element"}'>Element</button><button id="idle">Idle</button>
+</div>
 <script>
   const mode = new URLSearchParams(location.search).get("mode") || "heard";
   const canvas = document.getElementById("c");
@@ -72,6 +76,9 @@
    *  (latencyHint), route ("direct" | "element"), cycle (suspend then resume the context first). */
   // a click starts the next measurement with window.calNext's options (Safari starts audio only from a gesture)
   document.getElementById("go").onclick = () => { window.calInfo = null; window.calStart(window.calNext || {}).then((i) => (window.calInfo = i)); };
+  document.querySelectorAll("#touch [data-o]").forEach((b) => (b.onclick = () => window.calStart(JSON.parse(b.dataset.o)).then((i) => (info.dataset.last = JSON.stringify(i)))));
+  // the context left running with nothing to play (the old player's habit)
+  document.getElementById("idle").onclick = () => { ctx = ctx || new AudioContext(); ctx.resume(); quiet = true; };
   window.calStart = async (opts = {}) => {
     quiet = false;
     if (opts.fresh && ctx) { try { await ctx.close(); } catch {} ctx = null; }
