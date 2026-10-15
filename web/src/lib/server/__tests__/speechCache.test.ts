@@ -57,7 +57,8 @@ describe("generateSpeech caches only complete streams", () => {
   });
 
   const run = async () => {
-    await new Response(await generateSpeech("voice-1", LINE)).text().catch(() => "");
+    // read to its end on the server: a stream that broke off before anything arrived throws (the route refunds the cap)
+    await generateSpeech("voice-1", LINE).then((r) => new Response(r).text()).catch(() => "");
     await Promise.all(pending.splice(0));
     return cachedSpeech("voice-1", LINE);
   };

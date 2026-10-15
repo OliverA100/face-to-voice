@@ -195,6 +195,11 @@ export const LIPSYNC = {
    *  in "…what I sound like" 0.16 s after it was said, its nearest peak was a breath 31 dB down, and the mouth stayed
    *  shut while it was heard (2026-10-11). */
   vowelRescue: 0.35,
+  /** A line timed by forced alignment on its own audio (speech.ts: SpeechSource.aligned) has its vowels close to their
+   *  sound already: they look only this far (s) for their peak, and placeLine, placePhrases and alignLine stay out. The
+   *  line-test review (2026-10-14, 300 Harvard lines, six voices) passed every line this way. */
+  alignedVowelSearch: 0.06,
+  alignedVowelRescue: 0.06,
   vowelSilence: 0.08,
   /** fitPhrases: a pause is the voice quieter than pauseLevel (of the line's peak, 40 ms window) for at least pauseMin
    *  (s): lower than vowelSilence, which an f, th or s can fall under for as long. Longer than a stop's closure: at 0.15
@@ -290,6 +295,7 @@ export const LIPSYNC_PARTS = {
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
   squeezedFirst: true, // a first word squeezed after an audio tag is spread back to the voice's onset, alone (placeLine)
+  forcedAlignment: true, // a spoken line's times from forced alignment on its audio when the speak route sends them (player.ts)
 };
 
 /** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
@@ -804,7 +810,7 @@ function syllableBetween(loudness: (t: number) => number, from: number, t: numbe
 
 /** Move the cues by where the voice really starts vs the first word's stamp (LIPSYNC.lineOnsetDb). Run before the
  *  closure and vowel snapping, which wait for it. Returns true if anything moved. */
-export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number): boolean {
+export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number, enabled = LIPSYNC_PARTS.placeLine): boolean {
   let first = Infinity;
   for (const c of cues) if (c.ws !== undefined && c.ws < first) first = c.ws;
   if (first === Infinity || !cues.some((c) => c.ws !== undefined && !lined.has(c))) return false;
@@ -820,7 +826,7 @@ export function placeLine(cues: Cue[], loudness: (t: number) => number, decodedS
       quiet = 0;
     } else quiet += 0.01;
   }
-  const d0 = onset === null || !LIPSYNC_PARTS.placeLine ? 0 : Math.max(-LIPSYNC.lineMaxShift, Math.min(0, onset - first)); // late stamps only
+  const d0 = onset === null || !enabled ? 0 : Math.max(-LIPSYNC.lineMaxShift, Math.min(0, onset - first)); // late stamps only
   // A first word squeezed after an audio tag ("[happy, bright and bouncy] Peter Piper…": "Peter" stamped in 30 ms at
   // 0.37 s, said from 0 to 0.35): only that word is late. Spread it back over where the voice starts; the words after
   // it are stamped where they are said, and moving them by its lateness put "Piper" and "picked" ~270 ms early.
@@ -1091,8 +1097,10 @@ const spoken = (cues: Cue[]) => {
 const peakOf = new WeakMap<Cue, number>(); // the syllable peak a vowel cue took (snapVowels)
 
 /** Move each vowel cue onto its syllable's loudness peak (LIPSYNC.vowelSearch). Same contract as snapClosures. */
-export function snapVowels(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number, snapped: WeakSet<Cue>): boolean {
+export function snapVowels(cues: Cue[], loudness: (t: number) => number, decodedSeconds: number, snapped: WeakSet<Cue>, aligned = false): boolean {
   const L = LIPSYNC;
+  const search = aligned ? L.alignedVowelSearch : L.vowelSearch;
+  const rescue = aligned ? L.alignedVowelRescue : L.vowelRescue;
   const cache = new Map<number, number>();
   const lv = (t: number) => {
     const i = Math.round(t * 100);
@@ -1110,7 +1118,7 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
     // the "oo" of "go": the same syllable as the "o", it follows it (taking a peak of its own, "coat" was mouthed "co-t-oo")
     if (c.offglide && LIPSYNC_PARTS.offglide) continue;
     const centre = (c.start + c.end) / 2;
-    if (centre + L.vowelRescue + 0.1 > decodedSeconds) continue;
+    if (centre + rescue + 0.1 > decodedSeconds) continue;
     // A vowel is said between the closures spelled around it: its peak lies after the one before has let go and before
     // the next one's quiet stretch (both placed on the audio already: wait for the next one).
     let after = 0, before = Infinity, waiting = false;
@@ -1146,7 +1154,7 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
     };
     // stamped where nothing sounds, it is certainly misplaced: it may look further (a vowel on a flat stretch stays put)
     const quiet = 20 * Math.log10(Math.max(windowedLoudness(loudness, centre, 0.04), 1e-3)) < audible;
-    const best = nearest(L.vowelSearch) ?? (quiet ? nearest(L.vowelRescue) : null);
+    const best = nearest(search) ?? (quiet ? nearest(rescue) : null);
     snapped.add(c);
     if (best === null) continue;
     const half = (c.end - c.start) / 2;
@@ -1263,6 +1271,9 @@ export interface SpeechSource {
   readonly phrasesPlaced?: boolean;
   /** The gate's own look-ahead instead of LIPSYNC.gateLookahead (live.ts: LIPSYNC.liveGateLookahead). */
   readonly gateLookahead?: number;
+  /** The cues come from forced alignment on this line's audio (player.ts), not the voice's own stamps: they are where
+   *  the words are said, so only the closure and vowel snapping (vowels within LIPSYNC.alignedVowelSearch) move them. */
+  readonly aligned?: boolean;
 }
 
 /** What one source's frames keep between frames (LipSync.tsx keeps one per source). */
@@ -1281,15 +1292,15 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   // once the stream has ended the whole line is decoded: the last word's windows reach past the audio's end
   const decoded = src.streamDone ? Infinity : src.decodedSeconds();
   const loudnessOf = (x: number) => src.loudness(x);
-  placeLine(src.cues, loudnessOf, decoded); // the stamps' offset at the start
-  placePhrases(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placePhrases && !src.phrasesPlaced); // … and after each pause, where they are far off
+  placeLine(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placeLine && !src.aligned); // the stamps' offset at the start
+  placePhrases(src.cues, loudnessOf, decoded, LIPSYNC_PARTS.placePhrases && !src.phrasesPlaced && !src.aligned); // … and after each pause, where they are far off
   // an "m" closure is found in the treble (its hum keeps the loudness up): LIPSYNC_PARTS.trebleM
   const treble = LIPSYNC_PARTS.trebleM ? (x: number) => src.trebleLoudness(x) : loudnessOf;
-  alignLine(src.cues, loudnessOf, treble, decoded, LIPSYNC_PARTS.alignPhrases && !src.phrasesPlaced); // the words' sounds in order onto the audio
+  alignLine(src.cues, loudnessOf, treble, decoded, LIPSYNC_PARTS.alignPhrases && !src.phrasesPlaced && !src.aligned); // the words' sounds in order onto the audio
   if (LIPSYNC_PARTS.snapClosures) snapClosures(src.cues, loudnessOf, decoded, mem.snapped, treble);
   if (LIPSYNC_PARTS.snapClosures && LIPSYNC_PARTS.followRelease) followRelease(src.cues, loudnessOf, mem.snapped);
   if (LIPSYNC_PARTS.fitPhrases) fitPhrases(src.cues, loudnessOf, decoded);
-  if (LIPSYNC_PARTS.snapVowels) snapVowels(src.cues, loudnessOf, decoded, mem.snapped);
+  if (LIPSYNC_PARTS.snapVowels) snapVowels(src.cues, loudnessOf, decoded, mem.snapped, src.aligned);
   if (LIPSYNC_PARTS.bridgeVowels) bridgeVowels(src.cues);
   targetsAt(src.cues, t + lead, out);
   // The open shapes read a windowed loudness (no wobble on 10 ms dips); closures read the raw one.

@@ -142,7 +142,8 @@ screenshot, sliders, look ids ─► guards (same-origin, BotID) → visitor lim
                                  prompt.ts template → descKey cache hit? ────► ElevenLabs Voice Design (3 previews)
 choose a take ─────────────────► save as voice (pool LRU, slots, studio fallback) ► ElevenLabs voices
 speak a line ──────────────────► tts cache (Blob) hit? ──────────────────────► ElevenLabs TTS stream + timestamps
-PCM + character times ◄──────── NDJSON passed through, then written to Blob
+                                 whole line in → forced alignment on its audio ► ElevenLabs Forced Alignment
+PCM + aligned times ◄─────────── NDJSON with the aligned line in front, then written to Blob
 ```
 
 - **Casting.** The browser sends a 768 px screenshot of the character as styled, the Shape slider values and the look
@@ -154,6 +155,11 @@ PCM + character times ◄──────── NDJSON passed through, then wr
 - **Speaking.** Each line goes to `eleven_v4_turbo` with an audio tag for the expression at three strengths (e.g.
   `[cheerful]`, `[happy, bright and bouncy]`, `[overjoyed, laughing, bursting with energy]`), built on the server from
   the emotion id. On the recorded test lines every p/b/m closure seals and the lips release within ~15 ms of the burst.
+  The server reads the whole line (ElevenLabs streams it ~0.55 s after its first byte) and times it by forced alignment
+  on its own audio (~0.3 s, `lib/server/alignSpeech.ts`): eleven_v4_turbo's own stamps come from the text and can put a
+  word ~0.2 s off. The aligned times go to the browser as one NDJSON line before the audio, and into the cache, so a
+  replay is free; a line cached before alignment is aligned on its next play. If the alignment can't be had, the line
+  plays on its stamps.
 - **Caching is the cost model.** Voices are keyed by the normalised description (`descriptionKey`), so everyday faces
   with the same casting share a voice and only characterful ones get their own; lines by voice, model and text. The
   casting is keyed by the visitor and the quantised face and look: it is read from a screenshot, and the same face
@@ -176,7 +182,8 @@ PCM + character times ◄──────── NDJSON passed through, then wr
   their phonemes (the CMU Pronouncing Dictionary stays on the server: each spoken line arrives with its own words'
   phonemes as a first NDJSON line, `lib/server/pronounce.ts`; a live reply's words are looked up in one batched
   request to `/api/phonemes`), else from TalkingHead's letter rules (numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
-  unstressed "a/the/of/-ably" are weak); `evaluator.ts` places the line on the voice onset and each phrase after a pause where its stamps are far off,
+  unstressed "a/the/of/-ably" are weak); `evaluator.ts`, for a line on the voice's own stamps (a live reply, or a line the
+  alignment failed for), places it on the voice onset and each phrase after a pause where its stamps are far off,
   snaps closures (p/b/m, f/v,
   th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble; two p/b/m with no vowel between, "Bob
   bought", share one closure) and vowels to loudness peaks, keeping

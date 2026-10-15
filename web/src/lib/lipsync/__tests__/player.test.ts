@@ -149,6 +149,25 @@ describe("SpeechPlayer", () => {
     expect(played()).toEqual([...new Int16Array(full.buffer, full.byteOffset, 12000)].map((v) => v / 32768));
   });
 
+  it("times the line by its {aligned} line over the stamps, and by the stamps with ?lipsyncOff=forcedAlignment", async () => {
+    const { speechPlayer } = await import("../player");
+    const { LIPSYNC_PARTS } = await import("../evaluator");
+    const al = (start: number) => ({ characters: ["m", "a"], character_start_times_seconds: [start, start + 0.1], character_end_times_seconds: [start + 0.1, start + 0.3] });
+    const body = () => new Response([JSON.stringify({ aligned: al(0.7) }), JSON.stringify({ audio_base64: pcm(1), alignment: al(0.2), normalized_alignment: null })].join("\n") + "\n");
+    await speechPlayer.speak(async () => body());
+    expect(speechPlayer.aligned).toBe(true);
+    const aligned = speechPlayer.cues.find((c) => c.viseme === "PP")!.start;
+    LIPSYNC_PARTS.forcedAlignment = false;
+    await speechPlayer.speak(async () => body());
+    LIPSYNC_PARTS.forcedAlignment = true;
+    expect(speechPlayer.aligned).toBe(false);
+    expect(aligned - speechPlayer.cues.find((c) => c.viseme === "PP")!.start).toBeCloseTo(0.5, 3); // the "m" where aligned, not stamped
+    // {"aligned": null}: aligned, nothing came back: the stamps
+    await speechPlayer.speak(async () => new Response([JSON.stringify({ aligned: null }), JSON.stringify({ audio_base64: pcm(1), alignment: al(0), normalized_alignment: null })].join("\n") + "\n"));
+    expect(speechPlayer.aligned).toBe(false);
+    expect(speechPlayer.cues.length).toBeGreaterThan(0);
+  });
+
   it("ends on the last audio's own `ended`: a clock that stands still (iOS resuming, a call) keeps the mouth going", async () => {
     const { speechPlayer } = await import("../player");
     await speechPlayer.speak(async () => stream(1, 1)); // 2 s from 0.03 s; the context clock does not move

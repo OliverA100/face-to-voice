@@ -1,12 +1,14 @@
 /**
- * Spoken lines, cached. The ElevenLabs stream (elevenlabs.ts streamSpeech) is passed through untouched so the
- * browser can start playing the first chunk while the rest is still arriving, and teed into a cache write once
- * the response is done. A repeat of the same line in the same voice is served from the cache for free.
+ * Spoken lines, aligned and cached. A paid generation is read to its end (ElevenLabs streams a line ~0.55 s after its
+ * first byte, p90 0.87 s), timed by forced alignment on its audio (alignSpeech.ts, ~0.3 s) and sent with that alignment
+ * in front, so even a line's first play has the aligned mouth; the same text goes to the cache. A repeat of the same line
+ * in the same voice is served from the cache for free.
  */
 import "server-only";
 
 import { after } from "next/server";
 
+import { alignedLine, hasAligned } from "./alignSpeech";
 import { cacheGet, cacheSet, storeAudio } from "./cache";
 import { streamSpeech, TTS_MODEL } from "./elevenlabs";
 import { env } from "./env";
@@ -15,38 +17,68 @@ import { ttsKey } from "./keys";
 /** In dev without Blob the NDJSON text lives in process memory (small: ~300 KB per line). */
 const memClips = new Map<string, string>();
 
+const streamOf = (ndjson: string) => new Response(ndjson).body!;
+
 /** `text` is what ElevenLabs gets, emotion tag included (lib/server/emotion.ts spokenText). Null when this line was never spoken in this voice. */
 export async function cachedSpeech(voiceId: string, text: string): Promise<ReadableStream<Uint8Array> | null> {
   const key = ttsKey(voiceId, TTS_MODEL, text);
   const pointer = await cacheGet<{ url: string }>(`ftv:tts:${key}`);
   if (!pointer) return null;
   const cached = memClips.get(key) ?? (pointer.url.startsWith("data:") ? null : await fetch(pointer.url).then((r) => (r.ok ? r.text() : null)).catch(() => null));
-  return cached ? new Response(cached).body! : null;
+  if (!cached) return null;
+  if (hasAligned(cached)) return streamOf(cached);
+  // cached before lines were aligned (2026-10-14): aligned now, once, and cached again with it
+  const line = await alignedLine(cached, text);
+  if (line === undefined) return streamOf(cached);
+  after(() => store(key, line + cached));
+  return streamOf(line + cached);
 }
 
-/** A paid generation: the ElevenLabs stream for the browser, written to the cache once it is complete. */
+/** A paid generation: the whole ElevenLabs stream, with its aligned line in front, cached once it is complete. */
 export async function generateSpeech(voiceId: string, text: string): Promise<ReadableStream<Uint8Array>> {
   const key = ttsKey(voiceId, TTS_MODEL, text);
-  const [toClient, toStore] = (await streamSpeech(voiceId, text)).tee();
-  after(async () => {
-    try {
-      const ndjson = await new Response(toStore).text();
-      if (!completeClip(ndjson, text)) {
-        if (ndjson.trim()) console.warn("[speech] incomplete stream; not cached");
-        return;
-      }
-      if (env.hasBlob) {
-        const url = await storeAudio(`tts/${key}.ndjson`, new TextEncoder().encode(ndjson), "application/x-ndjson");
-        await cacheSet(`ftv:tts:${key}`, { url });
-      } else {
-        memClips.set(key, ndjson);
-        await cacheSet(`ftv:tts:${key}`, { url: "data:memory" });
-      }
-    } catch (e) {
-      console.warn("[speech] cache write failed:", e instanceof Error ? e.message : e);
+  const ndjson = await readAll(await streamSpeech(voiceId, text));
+  if (!completeClip(ndjson, text)) {
+    if (ndjson.trim()) console.warn("[speech] incomplete stream; not cached");
+    return streamOf(ndjson); // what arrived plays, on its stamps
+  }
+  const line = await alignedLine(ndjson, text);
+  const clip = (line ?? "") + ndjson;
+  after(() => store(key, clip));
+  return streamOf(clip);
+}
+
+/** The stream's text to its end, or as far as it got when it broke off (an error before anything arrived is thrown). */
+async function readAll(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let out = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      out += decoder.decode(value, { stream: true });
     }
-  });
-  return toClient;
+  } catch (e) {
+    if (!out) throw e;
+    console.warn("[speech] stream broke off:", e instanceof Error ? e.message : e);
+  }
+  return out + decoder.decode();
+}
+
+/** The clip in the cache: Blob (an aligned clip under its own name: a stored file is never overwritten) or memory. */
+async function store(key: string, clip: string): Promise<void> {
+  try {
+    if (env.hasBlob) {
+      const url = await storeAudio(`tts/${key}${hasAligned(clip) ? ".aligned" : ""}.ndjson`, new TextEncoder().encode(clip), "application/x-ndjson");
+      await cacheSet(`ftv:tts:${key}`, { url });
+    } else {
+      memClips.set(key, clip);
+      await cacheSet(`ftv:tts:${key}`, { url: "data:memory" });
+    }
+  } catch (e) {
+    console.warn("[speech] cache write failed:", e instanceof Error ? e.message : e);
+  }
 }
 
 type Line = { audio_base64?: unknown; alignment?: { characters?: unknown; character_end_times_seconds?: unknown } | null };

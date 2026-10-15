@@ -7,6 +7,7 @@
  * call `unlock()` synchronously in the click handler before any await.
  */
 import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cues";
+import { LIPSYNC_PARTS } from "./evaluator";
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
 import { addPhonemes } from "./phonemes";
@@ -43,6 +44,8 @@ class SpeechPlayer {
   private streamEnded = false;
   private sources = new Set<AudioBufferSourceNode>();
   private alignments: Alignment[] = [];
+  /** The line's times from forced alignment on its audio (the speak route's {"aligned"} line), used over the stamps. */
+  private forced: Alignment | null = null;
   private abort: AbortController | null = null;
   private endTimer: ReturnType<typeof setTimeout> | undefined; // watchEnd's: a later line must not be ended by it
   private gotAudio = false; // any audio in this line's stream
@@ -50,6 +53,10 @@ class SpeechPlayer {
   private lastSource: AudioBufferSourceNode | null = null; // the line's last scheduled audio
   private onLastEnded: (() => void) | null = null; // watchEnd's: runs when lastSource has played
   cues: Cue[] = [];
+  /** The cues are the forced alignment's (evaluator.ts SpeechSource.aligned). */
+  get aligned(): boolean {
+    return this.forced !== null;
+  }
   /** The line's loudness per 10 ms (and above 2 kHz), filled as chunks arrive (envelope.ts). */
   private envelope = new LoudnessEnvelope();
   state: PlayerState = "idle";
@@ -142,6 +149,7 @@ class SpeechPlayer {
     this.streamEnded = false;
     this.cues = [];
     this.alignments = [];
+    this.forced = null;
     this.envelope.reset();
     this.gotAudio = false;
     if (this.state === "playing" || this.state === "loading") this.setState("idle");
@@ -215,7 +223,7 @@ class SpeechPlayer {
 
   private handleLine(line: string): void {
     const ctx = this.ctx!;
-    let chunk: { audio_base64?: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null; phonemes?: Record<string, string> };
+    let chunk: { audio_base64?: string; alignment?: Alignment | null; normalized_alignment?: Alignment | null; phonemes?: Record<string, string>; aligned?: Alignment | null };
     try {
       chunk = JSON.parse(line);
     } catch {
@@ -224,13 +232,21 @@ class SpeechPlayer {
     // the line's words as they are said (the speak route's first line): the cues are built from them
     if (chunk.phonemes && typeof chunk.phonemes === "object") {
       addPhonemes(chunk.phonemes);
-      if (this.alignments.length) this.cues = alignmentToCues(mergeAlignments(this.alignments));
+      this.buildCues();
+      return;
+    }
+    // the whole line's times from forced alignment, before its audio (lib/server/speech.ts; null: it could not be aligned)
+    if ("aligned" in chunk) {
+      if (chunk.aligned?.characters?.length && LIPSYNC_PARTS.forcedAlignment) {
+        this.forced = chunk.aligned;
+        this.buildCues();
+      }
       return;
     }
     const align = chunk.normalized_alignment ?? chunk.alignment;
     if (align && align.characters?.length) {
       this.alignments.push(align);
-      this.cues = alignmentToCues(mergeAlignments(this.alignments));
+      if (!this.forced) this.buildCues();
     }
     if (!chunk.audio_base64) return;
     this.gotAudio = true;
@@ -255,6 +271,11 @@ class SpeechPlayer {
     } else {
       this.schedule(buffer);
     }
+  }
+
+  private buildCues(): void {
+    if (this.forced) this.cues = alignmentToCues(this.forced);
+    else if (this.alignments.length) this.cues = alignmentToCues(mergeAlignments(this.alignments));
   }
 
   private start(): void {

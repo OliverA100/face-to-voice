@@ -43,7 +43,8 @@ async function call(path: string, init: RequestInit & { query?: Record<string, s
   for (const [k, v] of Object.entries(init.query ?? {})) url.searchParams.set(k, v);
   const res = await fetch(url, {
     ...init,
-    headers: { "xi-api-key": key, "content-type": "application/json", ...(init.headers ?? {}) },
+    // a form (forcedAlignment) sets its own multipart content type
+    headers: { "xi-api-key": key, ...(init.body instanceof FormData ? {} : { "content-type": "application/json" }), ...(init.headers ?? {}) },
     signal: init.signal ?? AbortSignal.timeout(60_000),
   });
   if (!res.ok) {
@@ -161,6 +162,24 @@ export async function streamSpeech(voiceId: string, text: string): Promise<Reada
   });
   if (!res.body) throw new ApiError("upstream", MESSAGES.upstream, 502);
   return res.body;
+}
+
+/** Forced alignment's answer: each character of `text` with where it is said in the audio (s). */
+export interface ForcedAlignment {
+  characters: { text: string; start: number; end: number }[];
+  loss?: number;
+}
+
+/**
+ * Forced alignment (billed as speech to text): where each character of `text` is said in `wav`. ~0.2–0.35 s for lines of
+ * 2.5–13 s (2026-10-14). The speak route's lines are timed with it (speech.ts), not with the voice's own stamps.
+ */
+export async function forcedAlignment(wav: Uint8Array, text: string, timeoutMs = 8_000): Promise<ForcedAlignment> {
+  const form = new FormData();
+  form.set("text", text);
+  form.set("file", new Blob([wav as Uint8Array<ArrayBuffer>], { type: "audio/wav" }), "line.wav");
+  const res = await call("/forced-alignment", { method: "POST", body: form, signal: AbortSignal.timeout(timeoutMs) });
+  return (await res.json()) as ForcedAlignment;
 }
 
 // --- mock -----------------------------------------------------------------------------------

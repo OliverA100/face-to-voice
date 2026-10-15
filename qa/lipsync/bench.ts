@@ -57,13 +57,16 @@ class SavedLine implements SpeechSource {
   playing = true;
   streamDone = true;
   cues: Cue[];
+  aligned = false; // the speak route's {"aligned"} line timed it (player.ts)
   now = -1;
   private env = new LoudnessEnvelope();
   constructor(nd: string) {
     const aligns: Alignment[] = [];
+    let forced: Alignment | null = null;
     for (const line of nd.split("\n")) {
       if (!line.trim()) continue;
-      const j = JSON.parse(line) as { audio_base64?: string; alignment?: Alignment; normalized_alignment?: Alignment };
+      const j = JSON.parse(line) as { audio_base64?: string; alignment?: Alignment; normalized_alignment?: Alignment; aligned?: Alignment | null };
+      if (j.aligned?.characters?.length && LIPSYNC_PARTS.forcedAlignment) forced = j.aligned;
       const a = j.normalized_alignment ?? j.alignment;
       if (a && a.characters?.length) aligns.push(a);
       if (j.audio_base64) {
@@ -75,7 +78,8 @@ class SavedLine implements SpeechSource {
     // the line's phonemes, as the speak route sends them (lib/server/pronounce.ts)
     const text = aligns.flatMap((a) => a.characters).join("");
     addPhonemes(Object.fromEntries(spokenWords(text).filter((w) => DICT[w]).map((w) => [w, DICT[w]])));
-    this.cues = alignmentToCues(mergeAlignments(aligns));
+    this.aligned = forced !== null;
+    this.cues = alignmentToCues(forced ?? mergeAlignments(aligns));
   }
   time() {
     return this.now;

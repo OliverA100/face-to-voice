@@ -1,7 +1,8 @@
 /**
  * POST /api/voice/speak   body: { descKey, take?: 0..2, text, emotion?: "neutral"|"happy"|…, intensity?: 0..1 }
- * -> newline-delimited JSON stream: first {phonemes: {word: "HH AH0 L OW1"}} (lib/server/pronounce.ts), then
- *    {audio_base64 (pcm_24000), alignment|null, normalized_alignment|null}
+ * -> newline-delimited JSON stream: first {phonemes: {word: "HH AH0 L OW1"}} (lib/server/pronounce.ts), then the
+ *    line's times from forced alignment, {aligned: {characters, …}|null} (lib/server/alignSpeech.ts; missing when it
+ *    could not be asked), then {audio_base64 (pcm_24000), alignment|null, normalized_alignment|null}
  */
 import { after } from "next/server";
 import { z } from "zod";
