@@ -48,6 +48,7 @@ export interface Cue {
   weak?: boolean; // an unstressed vowel (a schwa): formed only to LIPSYNC.weakPeak
   glide?: boolean; // an "r" or "w" (folded to U): rounded like a vowel, but not a syllable: it takes no loudness peak (snapVowels) and rounds no closure (roundingAt)
   offglide?: boolean; // the second half of a diphthong (the "oo" of "go", the "ee" of "say"): moves with the first half (snapVowels)
+  peak?: number; // how far its shape opens (phonemes.ts PHONES `peak`: the "u" of "sun" less than the "a" of "father")
   nasal?: boolean; // a closure spelled with an "m": it hums on with the lips shut, so it is found in the treble (snapClosures)
   back?: boolean; // a "k", "g" or "ng" (folded to DD): made with the back of the tongue, out of sight, so the tongue tip stays down (tongueAt)
   lateral?: boolean; // an "l" (folded to DD): the tongue tip at the edge of the upper teeth, where it shows (visemes.json "ll", lateralAt)
@@ -212,7 +213,7 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
       if (!lateral) delete last.lateral;
       if (!offglide) delete last.offglide;
     } else {
-      out.push({ viseme: folded, start, end, text: letters, ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}), ...(lateral ? { lateral } : {}), ...(offglide ? { offglide } : {}) });
+      out.push({ viseme: folded, start, end, text: letters, ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}), ...(lateral ? { lateral } : {}), ...(offglide ? { offglide } : {}), ...(v.peak ? { peak: v.peak } : {}) });
     }
   }
   return out;

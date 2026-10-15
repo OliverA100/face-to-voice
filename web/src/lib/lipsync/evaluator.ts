@@ -39,6 +39,11 @@ export const LIPSYNC = {
   lateralShare: 0.4,
   /** s: an f/v or th lasts at most this long from where its hiss begins (a misplaced one took a whole word: "fast"). */
   hissMaxDur: 0.2,
+  /** A hiss (s, sh, f, th) is loud, and the loudness gate opened the vowel before it again ("grass": open, half shut,
+   *  open on the "s"; user review 2026-10-15). Where the treble outweighs the loudness (both over their own line peaks:
+   *  vowel peaks ~0.55, f/v/th ~2.1, s ~2.8 on the Harvard lines) from `from` to `to`, the vowels' opening fades by up to
+   *  `amount`: the jaw comes up for the hiss. The hiss shapes (s, sh, f, th) are left alone. */
+  hissClose: { from: 1.2, to: 2.5, amount: 0.6 },
   /** How strongly the strongest shape suppresses the others (0 = plain additive, 1 = winner only). */
   emphasis: 0.45,
   maxGroupSum: 1.3,
@@ -48,7 +53,7 @@ export const LIPSYNC = {
    *  each syllable opens and closes with the sound (was 0.2 / 0.3: open for whole words; mouth vs loudness correlation
    *  0.62 → 0.76 on real chat replies, and it looked more like speaking, 2026-10-11). openGain then opens the
    *  shapes wider (capped at 1): "too closed" at 1. */
-  gateFloor: 0.05,
+  gateFloor: 0.25, // 0.05 until 2026-10-15: with the calmer shapes a quiet "A" or "the" barely opened (user review); late releases 32 → 24 on the tuning lines
   gateLevel: 0.9,
   openGain: 1.5,
   /** The lips hold a vowel's shape while the loudness only takes the opening away, as in real speech (the jaw beats
@@ -264,6 +269,7 @@ export const LIPSYNC_PARTS = {
   ppFirst: true, // p/b/m find their silences before f/v and th, which then keep off them (snapClosures)
   offglide: true, // a diphthong's second half moves with its first instead of taking a loudness peak of its own (snapVowels)
   keepOrder: true, // an r, w or y spelled before a p/b/m in its word stays before its closure once it is placed (snapClosures)
+  hissGate: true, // vowels fade where the treble outweighs the loudness: the jaw comes up for s, sh, f, th (LIPSYNC.hissClose)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -338,8 +344,8 @@ function envelope(cue: Cue, t: number): number {
   const r = LIPSYNC.releaseFor[cue.viseme] ?? LIPSYNC.release;
   if (t < cue.start - a || t > cue.end + r) return 0;
   const isR = cue.glide && cue.viseme === "U" && /^r/i.test(cue.text);
-  const peak = cue.weak ? LIPSYNC.weakPeak : isR ? LIPSYNC.rPeak : (LIPSYNC.peak[cue.viseme] ?? LIPSYNC.peak.default);
-  const long = cue.end - cue.start > 0.12 && !cue.weak && !isR && !["DD", "SS", "TH"].includes(cue.viseme) ? 1 : peak;
+  const peak = cue.weak ? LIPSYNC.weakPeak : isR ? LIPSYNC.rPeak : (cue.peak ?? LIPSYNC.peak[cue.viseme] ?? LIPSYNC.peak.default);
+  const long = cue.end - cue.start > 0.12 && !cue.weak && !isR && cue.peak === undefined && !["DD", "SS", "TH"].includes(cue.viseme) ? 1 : peak;
   if (t < cue.start) return long * (1 - (cue.start - t) / a);
   if (t <= cue.end) return long;
   return long * (1 - (t - cue.end) / r);
@@ -348,10 +354,15 @@ function envelope(cue: Cue, t: number): number {
 /** Raw targets for time t (no smoothing). */
 export function targetsAt(cues: Cue[], t: number, out: Activations): Activations {
   for (const v of VISEME_IDS) out[v] = 0;
+  for (const v of VISEME_IDS) peakCap[v] = 1;
   for (const cue of cues) {
     if (cue.end + LIPSYNC.release < t) continue; // release is the longest fade, so this is safe
     if (cue.start - LIPSYNC.attack > t) break; // cues are sorted by start
-    out[cue.viseme] = Math.max(out[cue.viseme], envelope(cue, t));
+    const e = envelope(cue, t);
+    if (e > out[cue.viseme]) {
+      out[cue.viseme] = e;
+      peakCap[cue.viseme] = cue.peak ?? 1;
+    }
   }
   // Closure dominance: lips pressed / lip under teeth suppress open shapes.
   const closed = Math.max(out.PP, out.FF);
@@ -366,6 +377,10 @@ export function targetsAt(cues: Cue[], t: number, out: Activations): Activations
   if (sum > LIPSYNC.maxGroupSum) for (const v of VISEME_IDS) out[v] *= LIPSYNC.maxGroupSum / sum;
   return out;
 }
+
+/** Per shape, the `peak` of the cue that drew it in the last targetsAt (1 if none): frameTargets holds the shape there
+ *  after the loudness gate, whose openGain would otherwise take a "sun" as wide as a "father". */
+const peakCap = emptyActivations();
 
 /**
  * How far the tongue tip is up against the ridge behind the upper teeth at t (0..1): the d/t/n/l cues (DD, not a k or
@@ -1225,10 +1240,18 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
     // the lips' shapes: the same cues under the softer shape gate (LIPSYNC.shapeGate); the jaw keeps `out`
     const G = LIPSYNC.shapeGate;
     const sg = LIPSYNC_PARTS.gates ? Math.min(1, Math.max(0, (rel - G.from) / (G.full - G.from))) : 1;
-    for (const v of OPEN_VISEMES) shapes[v] = Math.min(1, out[v] * sg);
+    for (const v of OPEN_VISEMES) shapes[v] = Math.min(peakCap[v], out[v] * sg);
   }
   const [preE, preI, preO, preU] = [out.E, out.I, out.O, out.U];
-  for (const v of OPEN_VISEMES) out[v] = Math.min(1, out[v] * gate);
+  for (const v of OPEN_VISEMES) out[v] = Math.min(peakCap[v], out[v] * gate);
+  if (LIPSYNC_PARTS.gates && LIPSYNC_PARTS.hissGate) {
+    // the jaw comes up for a hiss (LIPSYNC.hissClose), read over the gate's own window
+    const H = LIPSYNC.hissClose;
+    const ratio = windowedLoudness((x) => src.trebleLoudness(x), at, LIPSYNC.gateWindow) / Math.max(loudSmooth, 1e-3);
+    const x = Math.min(1, Math.max(0, (ratio - H.from) / (H.to - H.from)));
+    const keep = 1 - H.amount * x * x * (3 - 2 * x);
+    for (const v of VOWELS) out[v] *= keep;
+  }
   if (LIPSYNC_PARTS.gates && LIPSYNC_PARTS.shapeHold) {
     // the lips keep the vowel's shape as the loudness takes the opening away (LIPSYNC.shapeHold)
     const quiet = 1 - Math.min(1, gate);

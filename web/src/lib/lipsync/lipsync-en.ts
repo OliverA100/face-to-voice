@@ -125,6 +125,8 @@ export interface WordViseme {
   phone?: string;
   /** The second half of a diphthong ("go": O then U): part of the same syllable, not one of its own. */
   offglide?: boolean;
+  /** How far its shape opens (1 = in full; phonemes.ts PHONES `peak`). */
+  peak?: number;
 }
 
 /** Visemes for one word (letters and apostrophes only), each with the letters it came from. */

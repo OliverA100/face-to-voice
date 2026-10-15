@@ -18,6 +18,8 @@ interface Phone {
   len: number;
   /** the share of `len` the first shape takes (diphthongs) */
   split?: number;
+  /** how far its shape opens (1 = in full) */
+  peak?: number;
 }
 
 /**
@@ -28,7 +30,7 @@ export const PHONES: Record<string, Phone> = {
   // vowels: stressed ones are longer (STRESSED), unstressed AH/IH/ER are schwas (WEAK_VOWELS)
   AA: { shapes: ["aa"], len: 1 }, // f-a-ther, h-o-t
   AE: { shapes: ["aa"], len: 1 }, // c-a-t
-  AH: { shapes: ["aa"], len: 0.8 }, // c-u-t (AH0 = a schwa: AX)
+  AH: { shapes: ["aa"], len: 0.8, peak: 0.7 }, // c-u-t (AH0 = a schwa: AX): ~0.7 of the "a" of "father" (GRID: "one" 7.6 mm, "r" 10.8)
   AO: { shapes: ["O"], len: 1 }, // th-ou-ght
   AW: { shapes: ["aa", "U"], len: 1.2, split: 0.6 }, // h-ow
   AY: { shapes: ["aa", "I"], len: 1.2, split: 0.6 }, // m-y
@@ -75,7 +77,7 @@ const STRESSED = 1.3;
 /** One word's phonemes (ARPAbet with stress digits, "HH AH0 L OW1") → shapes over the whole word (charStart 0 to the
  *  word's length), each a from/to share of it. */
 export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] {
-  const items: { token: string; len: number; phone: string; offglide?: boolean }[] = [];
+  const items: { token: string; len: number; phone: string; offglide?: boolean; peak?: number }[] = [];
   for (let k = 0; k < phones.length; k++) {
     const m = /^([A-Z]+)([012])?$/.exec(phones[k]);
     if (!m) continue;
@@ -102,13 +104,13 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
       items.push({ token: p.shapes[0], len: len * s, phone: base }, { token: p.shapes[1], len: len * (1 - s), phone: base, offglide: true });
       continue;
     }
-    items.push({ token: p.shapes[0], len, phone: base });
+    items.push({ token: p.shapes[0], len, phone: base, ...(p.peak ? { peak: p.peak } : {}) });
   }
   const total = items.reduce((a, b) => a + b.len, 0) || 1;
   const out: WordViseme[] = [];
   let at = 0;
   for (const it of items) {
-    out.push({ viseme: it.token, charStart: 0, charEnd: word.length, from: at / total, to: (at + it.len) / total, phone: it.phone, ...(it.offglide ? { offglide: true } : {}) });
+    out.push({ viseme: it.token, charStart: 0, charEnd: word.length, from: at / total, to: (at + it.len) / total, phone: it.phone, ...(it.offglide ? { offglide: true } : {}), ...(it.peak ? { peak: it.peak } : {}) });
     at += it.len;
   }
   return out;
