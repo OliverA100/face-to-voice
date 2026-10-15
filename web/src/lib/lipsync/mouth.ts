@@ -135,7 +135,7 @@ export class Mouth {
     this.rounding += ((t >= 0 && LIPSYNC_PARTS.rounding ? roundingAt(src.cues, t) : 0) - this.rounding) * (1 - Math.exp(-step / LIPSYNC.roundTau));
     const kTongue = 1 - Math.exp(-step / (LIPSYNC.tau.DD ?? LIPSYNC.tau.default));
     // while an open vowel still holds the mouth open the tongue rises only partway (LIPSYNC.tongueYield): it showed
-    // through the "or" of "Corn", whose hummed "n" keeps the line loud (user review 2026-10-15)
+    // through the "or" of "Corn", whose hummed "n" keeps the line loud (user review 2026-10-14)
     const yieldTo = LIPSYNC_PARTS.tongueYield ? 1 - LIPSYNC.tongueYield * Math.min(1, act.aa + act.E + act.O) : 1;
     this.tongue += ((t >= 0 && LIPSYNC_PARTS.tongue ? tongueAt(src.cues, t) * yieldTo : 0) - this.tongue) * kTongue;
     this.lateral += ((t >= 0 && LIPSYNC_PARTS.tongue && LIPSYNC_PARTS.lateral ? lateralAt(src.cues, t) : 0) - this.lateral) * kTongue;

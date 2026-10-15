@@ -86,7 +86,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
     if (!p) continue;
     const len = p.len * (stress === "1" ? STRESSED : 1);
     // an r after a vowel and not before one ("sharp", "storm", "porch") colours the vowel: no movement of its own
-    // (its rounding between the open "ah" and the "p" looked jumpy, user review 2026-10-15); its time goes to the vowel
+    // (its rounding between the open "ah" and the "p" looked jumpy, user review 2026-10-14); its time goes to the vowel
     if (base === "R" && k > 0 && /^[AEIOU]/.test(phones[k - 1]) && !(phones[k + 1] && /^[AEIOU]/.test(phones[k + 1]))) {
       const last = items[items.length - 1];
       if (last) last.len += len;
@@ -102,7 +102,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
     if (stress === "0" && WEAK_VOWELS.has(base)) {
       // unstressed: a schwa ("a", "the") is a weak "ah"; an unstressed "er" ("water", "shimmered") barely opens and
       // rounds a little, an unstressed "i" ("roses", "wanted") a little spread (as an "ah" the loud "-ered" of
-      // "shimmered" opened twice as wide as its stressed "shim": jumpy, user review 2026-10-15)
+      // "shimmered" opened twice as wide as its stressed "shim": jumpy, user review 2026-10-14)
       items.push({ token: base === "ER" ? "UX" : base === "IH" ? "IX" : "AX", len: len * 0.8, phone: base });
       continue;
     }

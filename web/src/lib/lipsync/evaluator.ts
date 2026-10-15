@@ -29,13 +29,13 @@ export const LIPSYNC = {
   /** Vowels and lip closures are what the eye reads; quick consonants stay subtle. */
   peak: { PP: 1, FF: 1, TH: 0.85, DD: 0.35, SS: 0.5, CH: 0.8, default: 1 } as Record<string, number>,
   /** An unstressed vowel (a schwa: "a", "the", "of", "-ably", Cue.weak) opens only this far, however long it is. 0.45
-   *  with the calmer 2026-10-15 shapes left "A king…", "A cup…" barely moving (user review). */
+   *  with the calmer 2026-10-14 shapes left "A king…", "A cup…" barely moving (user review). */
   weakPeak: 0.6,
   /** An "r" (a glide folded to the "oo" shape) rounds the lips only this much, however long: at full it puckered in
-   *  the middle of "grass" and "through" ("an extra movement", user review 2026-10-15). */
+   *  the middle of "grass" and "through" ("an extra movement", user review 2026-10-14). */
   rPeak: 0.4,
   /** How much of an "l"'s tongue pose (visemes.json "ll": the tip at the edge of the upper teeth) shows; the rest is the
-   *  "d"'s, behind the teeth. At 1 "soldiers" and "tool" showed "too much tongue" (user review 2026-10-15). */
+   *  "d"'s, behind the teeth. At 1 "soldiers" and "tool" showed "too much tongue" (user review 2026-10-14). */
   lateralShare: 0.4,
   /** s: an f/v or th lasts at most this long from where its hiss begins (a misplaced one took a whole word: "fast"). */
   hissMaxDur: 0.2,
@@ -47,7 +47,7 @@ export const LIPSYNC = {
   /** s: the longest t, d, n or k gap that bridgeVowels holds a vowel through */
   bridgeGap: 0.1,
   /** A hiss (s, sh, f, th) is loud, and the loudness gate opened the vowel before it again ("grass": open, half shut,
-   *  open on the "s"; user review 2026-10-15). Where the treble outweighs the loudness (both over their own line peaks:
+   *  open on the "s"; user review 2026-10-14). Where the treble outweighs the loudness (both over their own line peaks:
    *  vowel peaks ~0.55, f/v/th ~2.1, s ~2.8 on the Harvard lines) from `from` to `to`, the vowels' opening fades by up to
    *  `amount`: the jaw comes up for the hiss. The hiss shapes (s, sh, f, th) are left alone. */
   hissClose: { from: 1.2, to: 2.5, amount: 0.6 },
@@ -60,7 +60,7 @@ export const LIPSYNC = {
    *  each syllable opens and closes with the sound (was 0.2 / 0.3: open for whole words; mouth vs loudness correlation
    *  0.62 → 0.76 on real chat replies, and it looked more like speaking, 2026-10-11). openGain then opens the
    *  shapes wider (capped at 1): "too closed" at 1. */
-  gateFloor: 0.25, // 0.05 until 2026-10-15: with the calmer shapes a quiet "A" or "the" barely opened (user review); late releases 32 → 24 on the tuning lines
+  gateFloor: 0.25, // 0.05 until 2026-10-14: with the calmer shapes a quiet "A" or "the" barely opened (user review); late releases 32 → 24 on the tuning lines
   gateLevel: 0.9,
   openGain: 1.5,
   /** The lips hold a vowel's shape while the loudness only takes the opening away, as in real speech (the jaw beats
@@ -199,7 +199,7 @@ export const LIPSYNC = {
   /** fitPhrases: a pause is the voice quieter than pauseLevel (of the line's peak, 40 ms window) for at least pauseMin
    *  (s): lower than vowelSilence, which an f, th or s can fall under for as long. Longer than a stop's closure: at 0.15
    *  the 160 ms "b" of a stressed "best" was taken for a pause and placePhrases moved "the best pumpkin bread" 0.23 s
-   *  late (2026-10-15). */
+   *  late (2026-10-14). */
   pauseLevel: 0.03,
   pauseMin: 0.2,
   holdLevel: 0.2, // … and holds its last vowel while the voice is at least this loud (of the line's peak)
@@ -282,6 +282,9 @@ export const LIPSYNC_PARTS = {
   bridgeVowels: true, // two of the same vowel with only a t, d, n or k between are held as one (bridgeVowels)
   voicedTh: true, // the voiced th of "the" (DH) is not looked for in the audio's quiet stretches (snapClosures)
   tongueYield: true, // the tongue's raise gives way to an open vowel still being made (LIPSYNC.tongueYield, mouth.ts)
+  sustainNearest: true, // the voice sounding with no vowel stamped holds the nearer vowel, before or coming (frameTargets)
+  weakNoRound: true, // a weak vowel ("-er") does not round the p/b/m before it (roundingAt)
+  humEndsVowel: true, // a vowel an "m" ended is not held through the m's hum (frameTargets: sustainLoud)
   snapHiss: true, // an s or sh is placed on its hiss in the audio like an f/v or th (snapClosures): "the spot", aligned with the s after the p
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
@@ -315,7 +318,8 @@ export function roundingAt(cues: Cue[], t: number): number {
   let r = 0;
   for (const c of cues) {
     if (c.start - LIPSYNC.roundAhead > t) break; // sorted by start
-    if ((c.viseme !== "U" && c.viseme !== "O") || c.glide || t > c.end + LIPSYNC.roundAfter) continue; // an r or w rounds no closure
+    // an r or w rounds no closure, nor does a weak vowel (the "-er" of "snapper" puckered its p: an extra movement)
+    if ((c.viseme !== "U" && c.viseme !== "O") || c.glide || (c.weak && LIPSYNC_PARTS.weakNoRound) || t > c.end + LIPSYNC.roundAfter) continue;
     r = Math.max(r, c.viseme === "U" ? 1 : LIPSYNC.roundO);
   }
   return r;
@@ -389,6 +393,15 @@ export function targetsAt(cues: Cue[], t: number, out: Activations): Activations
   const sum = VISEME_IDS.reduce((s, v) => s + out[v], 0);
   if (sum > LIPSYNC.maxGroupSum) for (const v of VISEME_IDS) out[v] *= LIPSYNC.maxGroupSum / sum;
   return out;
+}
+
+/** Whether an "m" starts between the end of vowel `v` (a little before) and t: its hum, lips shut, ended the vowel. */
+function hummedAfter(cues: Cue[], v: Cue, t: number): boolean {
+  for (const c of cues) {
+    if (c.start > t) break; // sorted by start
+    if (c.viseme === "PP" && c.nasal && c.start >= v.end - 0.08 && c.start > v.start) return true;
+  }
+  return false;
 }
 
 /** Per shape, the `peak` of the cue that drew it in the last targetsAt (1 if none): frameTargets holds the shape there
@@ -644,7 +657,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     if (span) {
       c.end = span[1] - LIPSYNC.closureOffShift + (c.nasal ? LIPSYNC.nasalRelease : 0);
       // an f/v or th right after a t, d, k or g gets no head start: the stop is still being made ("weed found": the
-      // lips went to the teeth during the d, user review 2026-10-15)
+      // lips went to the teeth during the d, user review 2026-10-14)
       const prevCue = order[order.indexOf(c) - 1];
       const afterStop = LIPSYNC_PARTS.afterStop && c.viseme !== "PP" && prevCue?.viseme === "DD" && span[0] - prevCue.end < 0.1;
       const onShift = LIPSYNC.closureOnShift + (c.viseme === "PP" || afterStop ? 0 : LIPSYNC.hissOnShift);
@@ -984,7 +997,7 @@ export function alignLine(cues: Cue[], loudness: (t: number) => number, treble: 
 /**
  * Two of the same vowel with only a quick t, d, n or k between ("spot on", "got a", "but I") are held as one: the
  * tongue makes the consonant (tongueAt) while the jaw stays open. Apart, the mouth opened wide, half shut and opened
- * wide again ("The spot on…" looked very jumpy, user review 2026-10-15). Gaps up to LIPSYNC.bridgeGap; idempotent.
+ * wide again ("The spot on…" looked very jumpy, user review 2026-10-14). Gaps up to LIPSYNC.bridgeGap; idempotent.
  */
 export function bridgeVowels(cues: Cue[]): void {
   for (let i = 0; i < cues.length; i++) {
@@ -1333,11 +1346,34 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   }
   // … not over a consonant's own shape: a loud "th" brought the "a" of "passed" back between "passed" and "through"
   const consonant = out.TH + out.FF + out.SS + out.CH;
+  let hold: VisemeId | null = mem.lastOpen;
   if (loudSmooth > LIPSYNC.sustainLoud && openSum < 0.25 && cg > 0.5 && !(LIPSYNC_PARTS.sustainYield && consonant > 0.2)) {
-    out[mem.lastOpen] = Math.max(out[mem.lastOpen], Math.min(1, LIPSYNC.sustainLevel * gate) * (1 - Math.max(out.PP, out.FF)));
+    // the nearer vowel, the one before or the one coming: the voice ran on from "jam" into "or" before the "or" was
+    // stamped, and the "a" of "jam" opened again across the m (user review 2026-10-14: "opens twice at the word or")
+    if (LIPSYNC_PARTS.sustainNearest) {
+      const tc = t + lead;
+      let last: Cue | null = null, next: Cue | null = null;
+      for (const c of src.cues) {
+        if (!VOWELS.has(c.viseme) || c.glide) continue;
+        if (c.start > tc) {
+          next = c;
+          break;
+        }
+        if (!last || c.end > last.end) last = c;
+      }
+      // a vowel an "m" ended is not held after it: the loud voice there is the m's own hum, with the lips shut ("jam
+      // or": the "a" of "jam" opened again after the m, and the mouth opened twice for "or", user review 2026-10-14)
+      const lastOk = last && !(LIPSYNC_PARTS.humEndsVowel && hummedAfter(src.cues, last, tc));
+      // … the coming vowel is, close by: within its own word (the "o" of "promoter" stamped late after the m) from 0.3 s
+      // out, across a gap only from 0.1 s (the m of "jam" hums on until "or" starts)
+      const near = next && (next.ws ?? next.start) <= tc ? 0.3 : 0.1;
+      if (next && (!lastOk || next.start - tc < tc - last!.end)) hold = lastOk || next.start - tc < near ? next.viseme : null;
+      else if (!lastOk) hold = null;
+    }
+    if (hold) out[hold] = Math.max(out[hold], Math.min(1, LIPSYNC.sustainLevel * gate) * (1 - Math.max(out.PP, out.FF)));
   }
   if (shapes) {
     for (const v of CLOSED_VISEMES) shapes[v] = out[v];
-    shapes[mem.lastOpen] = Math.max(shapes[mem.lastOpen], out[mem.lastOpen]); // the held vowel holds its shape too
+    if (hold) shapes[hold] = Math.max(shapes[hold], out[hold]); // the held vowel holds its shape too
   }
 }
