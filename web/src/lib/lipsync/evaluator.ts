@@ -39,6 +39,9 @@ export const LIPSYNC = {
   lateralShare: 0.4,
   /** s: an f/v or th lasts at most this long from where its hiss begins (a misplaced one took a whole word: "fast"). */
   hissMaxDur: 0.2,
+  /** An f/v or th is a hiss: never on a stretch quieter than this (of the line's peak; ~−48 dB), where there is no
+   *  sound at all ("The tiny…": the th was put on the silence before the voice, and "The" opened twice). */
+  hissFloor: 0.004,
   /** A hiss (s, sh, f, th) is loud, and the loudness gate opened the vowel before it again ("grass": open, half shut,
    *  open on the "s"; user review 2026-10-15). Where the treble outweighs the loudness (both over their own line peaks:
    *  vowel peaks ~0.55, f/v/th ~2.1, s ~2.8 on the Harvard lines) from `from` to `to`, the vowels' opening fades by up to
@@ -271,6 +274,7 @@ export const LIPSYNC_PARTS = {
   keepOrder: true, // an r, w or y spelled before a p/b/m in its word stays before its closure once it is placed (snapClosures)
   hissGate: true, // vowels fade where the treble outweighs the loudness: the jaw comes up for s, sh, f, th (LIPSYNC.hissClose)
   sustainYield: true, // the held last vowel (sustainLoud) gives way to a th, f, s or sh being made
+  afterStop: true, // an f/v or th right after a t, d, k or g starts on its hiss, without hissOnShift's head start (snapClosures)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -593,7 +597,7 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     // Nearest dip wins over the deepest one: quiet + a small penalty for distance from the stamp.
     let bestT = centre, best = Infinity;
     for (let t = lo; t <= hi; t += 0.01) {
-      if ((blocked && taken(t)) || !allowed(t)) continue;
+      if ((blocked && taken(t)) || !allowed(t) || (c.viseme !== "PP" && env(t) < LIPSYNC.hissFloor)) continue;
       const score = LIPSYNC.snapDbPerS > 0 ? 20 * Math.log10(Math.max(env(t), 1e-3)) + LIPSYNC.snapDbPerS * Math.abs(t - centre) : env(t) + 0.5 * (Math.abs(t - centre) / LIPSYNC.snapAfter);
       if (score < best) {
         best = score;
@@ -624,7 +628,11 @@ export function snapClosures(cues: Cue[], loudness: (t: number) => number, decod
     }
     if (span) {
       c.end = span[1] - LIPSYNC.closureOffShift + (c.nasal ? LIPSYNC.nasalRelease : 0);
-      const onShift = LIPSYNC.closureOnShift + (c.viseme === "PP" ? 0 : LIPSYNC.hissOnShift);
+      // an f/v or th right after a t, d, k or g gets no head start: the stop is still being made ("weed found": the
+      // lips went to the teeth during the d, user review 2026-10-15)
+      const prevCue = order[order.indexOf(c) - 1];
+      const afterStop = LIPSYNC_PARTS.afterStop && c.viseme !== "PP" && prevCue?.viseme === "DD" && span[0] - prevCue.end < 0.1;
+      const onShift = LIPSYNC.closureOnShift + (c.viseme === "PP" || afterStop ? 0 : LIPSYNC.hissOnShift);
       c.start = Math.max(0, Math.min(span[0] - onShift, c.end - LIPSYNC.closureMinDur));
       if (c.viseme !== "PP" && LIPSYNC.hissMaxDur > 0) c.end = Math.min(c.end, span[0] + LIPSYNC.hissMaxDur);
       if (needSyllable && before) c.start = Math.max(c.start, Math.min(before.end + LIPSYNC.closureGapMin, c.end - LIPSYNC.closureKeep));

@@ -158,7 +158,7 @@ describe("closures from the audio", () => {
   });
   it("give a p/b/m its silence before a th stamped late can take it ('the best')", () => {
     // th .30–.32 (short dip), vowel, b .48–.58 (silence), vowel
-    const l = (t: number) => (t >= 0.295 && t < 0.325 ? 0.05 : t >= 0.475 && t < 0.575 ? 0.002 : 0.8);
+    const l = (t: number) => (t >= 0.295 && t < 0.325 ? 0.05 : t >= 0.475 && t < 0.575 ? 0.006 : 0.8); // the b just above hissFloor
     const th: Cue = { viseme: "TH", start: 0.4, end: 0.46, text: "th" };
     const b: Cue = { viseme: "PP", start: 0.58, end: 0.64, text: "b" };
     LIPSYNC_PARTS.ppFirst = false;

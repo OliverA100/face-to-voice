@@ -3,7 +3,7 @@
  * frame, with no browser, and writes the lips' and jaw's opening in mm per frame. bench.py scores it against the
  * line's audio truth (truth.py <clip>.ndjson), so timing changes can be tried in seconds before any browser check.
  *
- *   ./bench.sh [--fps 120] [--tag name] [--set lead=0.03,closureOffShift=0] [--off seal,shapeHold] clip.ndjson …
+ *   ./bench.sh [--fps 120] [--tag name] [--set lead=0.03,closureOffShift=0] [--off seal,shapeHold] [--on vowelInWord] clip.ndjson …
  *
  * The frame at sound time s shows the mouth at s + lead (what LipSync.tsx does), on a perfect clock: the browsers'
  * clock and output-delay errors are measured separately (room.mjs) and are not in here.
@@ -30,6 +30,7 @@ const fps = Number(opt("fps", "120"));
 const tag = opt("tag", "bench");
 const sets = opt("set", "");
 const off = opt("off", "");
+const on = opt("on", ""); // LIPSYNC_PARTS switched on (the ones off by default)
 const out = opt("out", path.join(path.dirname(new URL(import.meta.url).pathname), "out", "bench"));
 // mm per unit morph weight of the mouth's width, upper teeth shown and lips forward (pipeline rig shape_coefs.py), if made
 const coefsFile = path.join(path.dirname(new URL(import.meta.url).pathname), "out", "shape_coefs.json");
@@ -48,6 +49,8 @@ for (const p of off.split(",").filter(Boolean)) {
   if (p === "phonemes") PHONEMES.enabled = false; // the letter rules only
   else (LIPSYNC_PARTS as Record<string, boolean>)[p] = false;
 }
+for (const p of on.split(",").filter(Boolean)) (LIPSYNC_PARTS as Record<string, boolean>)[p] = true;
+
 const DICT = dictionary as Record<string, string>;
 
 class SavedLine implements SpeechSource {
