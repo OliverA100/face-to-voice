@@ -42,6 +42,8 @@ export const LIPSYNC = {
   /** An f/v or th is a hiss: never on a stretch quieter than this (of the line's peak; ~−48 dB), where there is no
    *  sound at all ("The tiny…": the th was put on the silence before the voice, and "The" opened twice). */
   hissFloor: 0.004,
+  /** How much of a t/d/n/l's tongue raise gives way while "ah", "eh" or "oh" is still formed (their sum, up to 1). */
+  tongueYield: 0.7,
   /** s: the longest t, d, n or k gap that bridgeVowels holds a vowel through */
   bridgeGap: 0.1,
   /** A hiss (s, sh, f, th) is loud, and the loudness gate opened the vowel before it again ("grass": open, half shut,
@@ -279,6 +281,7 @@ export const LIPSYNC_PARTS = {
   afterStop: true, // an f/v or th right after a t, d, k or g starts on its hiss, without hissOnShift's head start (snapClosures)
   bridgeVowels: true, // two of the same vowel with only a t, d, n or k between are held as one (bridgeVowels)
   voicedTh: true, // the voiced th of "the" (DH) is not looked for in the audio's quiet stretches (snapClosures)
+  tongueYield: true, // the tongue's raise gives way to an open vowel still being made (LIPSYNC.tongueYield, mouth.ts)
   snapHiss: true, // an s or sh is placed on its hiss in the audio like an f/v or th (snapClosures): "the spot", aligned with the s after the p
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)

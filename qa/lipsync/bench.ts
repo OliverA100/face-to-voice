@@ -107,6 +107,7 @@ for (const clip of args.map((a) => path.resolve(process.env.INIT_CWD ?? process.
     mouth.frame(src, s + lead, 1 / fps);
     const mm = mouth.openingMm();
     const f: (typeof frames)[number] = { t: s, gap: +mm.gap.toFixed(3), jaw: +mm.jaw.toFixed(3), act: Object.fromEntries(Object.entries(mouth.state.activations).map(([v, a]) => [v, +a.toFixed(3)])) };
+    (f as Record<string, unknown>).tongue = +((mouth as unknown as { tongue: number }).tongue ?? 0).toFixed(3);
     if (shapeCoefs)
       for (const k of ["width", "teeth", "protr"] as const) f[k] = +mouth.written.reduce((sum, w, ti) => sum + w * shapeCoefs[k][ti], 0).toFixed(3);
     frames.push(f);
