@@ -2,7 +2,7 @@
  * Character profiles, cached like voices.
  *
  *   casting (this visitor's, for this face) ──Claude──► profile ──► ftv:profile:<profileKey>             shared: one voice, one character
- *   "Reimagine" ───────────────────────────────────────────────► ftv:profile:<visitor>:<profileKey>   this visitor's own
+ *   "Recast" ──────────────────────────────────────────────────► ftv:profile:<visitor>:<profileKey>   this visitor's own
  *
  * Reading prefers the visitor's own profile, then the shared one. Only server data reaches the prompt: the cached
  * casting and the look it was made from; the browser only names which face and voice.
@@ -18,7 +18,7 @@ import type { CharacterProfile, ProfileResult } from "@/lib/character/profile";
 import { writeProfile } from "./profileClaude";
 import { descriptionIdentity, type DescriptionFields } from "./prompt";
 import { consumeDailyCap, refundDailyCap } from "./ratelimit";
-import { castingFor, castingLook, waitFor } from "./voice";
+import { castingFor, castingLook, keepIdentity, waitFor } from "./voice";
 
 export type { ProfileResult };
 
@@ -29,13 +29,16 @@ const ownKey = (visitor: string, pKey: string) => `ftv:profile:${visitor}:${pKey
 const WRITE_SECONDS = 55;
 const WAIT_MS = 45_000;
 
-const EXPIRED = "This character's casting has expired. Find the voice again to meet them.";
+/** No casting for this visitor (their IP changed, or it expired): the browser recasts the face for the same voice
+ *  (POST /api/voice/recast) and asks again, so this is only seen when it can't. */
+const MISSING = "This character needs casting again. Try again to recast them for the same voice.";
 
 /** The visitor's casting for this face, checked against the voice it was asked for. */
 async function castingOf(visitor: string, fKey: string, descKey: string): Promise<DescriptionFields> {
   const fields = await castingFor(visitor, fKey);
-  if (!fields) throw new ApiError("expired", EXPIRED, 410);
+  if (!fields) throw new ApiError("recast", MISSING, 410);
   if (descriptionKey(descriptionIdentity(fields)) !== descKey) throw new ApiError("bad_request", MESSAGES.bad_request, 400);
+  await keepIdentity(descKey, fields);
   return fields;
 }
 
@@ -72,7 +75,7 @@ export async function profileFor(input: {
     await input.chargeVisitor();
     await consumeDailyCap("profiles");
     try {
-      // Reimagine: a different person from the one they have now (profileClaude.ts reimagineBrief)
+      // Recast: a different person from the one they have now (profileClaude.ts reimagineBrief)
       const look = lookText(await castingLook(input.visitor, input.faceKey));
       return await writeProfile({ fields, look, previous: input.regenerate ? saved?.profile : undefined });
     } catch (e) {
@@ -89,7 +92,7 @@ export async function profileFor(input: {
   const token = await acquireLock(lock, WRITE_SECONDS);
   if (!token) {
     const shared = await waitFor(() => cacheGet<CharacterProfile>(sharedKey(pKey)), WAIT_MS);
-    if (!shared) throw new ApiError("busy", MESSAGES.busy, 409);
+    if (!shared) throw new ApiError("busy", MESSAGES.busy_profile, 409);
     return { profile: shared, own: false };
   }
   try {

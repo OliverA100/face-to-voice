@@ -21,5 +21,5 @@ export interface CharacterProfile {
 
 export interface ProfileResult {
   profile: CharacterProfile;
-  own: boolean; // this visitor's own version ("Reimagine"), not the shared one
+  own: boolean; // this visitor's own version ("Recast"), not the shared one
 }

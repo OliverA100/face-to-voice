@@ -22,7 +22,7 @@ describe("errorResponse", () => {
     const log = vi.spyOn(console, "error").mockImplementation(() => {});
     const res = errorResponse(new TypeError("secret upstream detail"));
     expect(res.status).toBe(502);
-    expect(await res.json()).toEqual({ error: "upstream", message: MESSAGES.upstream });
+    expect(await res.json()).toEqual({ error: "upstream", message: MESSAGES.unexpected });
     expect(log).toHaveBeenCalledWith("[api] unexpected:", "TypeError: secret upstream detail");
     log.mockRestore();
   });

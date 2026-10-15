@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // POST /api/character/profile with the real keys, limits (in memory) and cache (a Map); Claude and the visitor's cached
-// casting are fakes. A profile is written once and shared; "Reimagine" stays with the visitor who asked for it.
+// casting are fakes. A profile is written once and shared; "Recast" stays with the visitor who asked for it.
 const env = vi.hoisted(() => ({ hasRedis: false, hasBlob: false, isDeployed: false, rateLimitSalt: "test-salt", caps: { profilesPerDay: 3 } }));
 const store = vi.hoisted(() => new Map<string, unknown>());
 const casting = vi.hoisted(() => ({ value: null as unknown, look: {} as Record<string, string> }));
@@ -20,6 +20,7 @@ vi.mock("@/lib/server/cache", () => ({
 vi.mock("@/lib/server/voice", () => ({
   castingFor: vi.fn(async () => casting.value),
   castingLook: async () => casting.look,
+  keepIdentity: async () => {},
   waitFor: async <T,>(get: () => Promise<T | null>) => {
     for (let i = 0; i < 50; i++) {
       await new Promise((r) => setTimeout(r, 1));
@@ -73,15 +74,15 @@ describe("POST /api/character/profile", () => {
     expect(await used()).toBe(before + 1);
   });
 
-  it("refuses without this visitor's casting for the face (410), or for another voice (400)", async () => {
+  it("asks for a recast without this visitor's casting for the face (410), refuses another voice (400)", async () => {
     casting.value = null;
-    expect((await call(profile, {})).status).toBe(410);
+    expect(await json(await call(profile, {}))).toMatchObject({ status: 410, body: { error: "recast" } }); // the browser recasts and asks again
     casting.value = FIELDS;
     expect((await call(profile, { descKey: "a".repeat(64) })).status).toBe(400);
     expect(writeProfile).not.toHaveBeenCalled();
   });
 
-  it("'Reimagine' is kept as this visitor's own; others keep the shared one", async () => {
+  it("'Recast' is kept as this visitor's own; others keep the shared one", async () => {
     await call(profile, {});
     const another = { ...GENERATED, name: "Tamsin Rowe" };
     vi.mocked(writeProfile).mockResolvedValueOnce(another);

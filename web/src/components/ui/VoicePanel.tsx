@@ -28,6 +28,7 @@ import { Status } from "@/components/ui/Status";
 import { useHeightTransition } from "@/components/ui/useHeightTransition";
 import { VoiceBlob, VoiceBlobPlaceholder, usePrefetchVoiceBlobs } from "@/components/ui/VoiceBlob";
 import type { ProfileResult } from "@/lib/character/profile";
+import { isLimitError } from "@/lib/limits/open";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { talkInvite } from "@/lib/talk/invite";
 import { currentFaceSignature, requestDesign, requestSelect, VoiceApiError, type DesignResult, type Preview, type SelectResult } from "@/lib/voice/client";
@@ -226,8 +227,8 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
     }
   };
 
-  // The voice in use was retired while speaking (the pool made room for newer ones): back to the takes, where choosing
-  // it saves it again.
+  // The voice in use was retired while speaking or starting a chat (the pool made room for newer ones): back to the
+  // takes, where choosing it saves it again.
   const retired = (message: string) => {
     setSelection(null);
     setError({ code: "expired", message });
@@ -422,12 +423,14 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
               take={inUse}
               result={profile}
               onResult={(r, asked) => asked.faceKey === designNow.current?.faceKey && asked.descKey === designNow.current?.descKey && setProfile(r)}
+              onRetired={retired}
+              onStale={() => setDesignedFace(null)}
             />
             <ExportButton design={design} selection={selection} chosen={chosen} profile={profile?.profile ?? null} />
           </div>
         )}
 
-        {error && <Alert>{error.message}</Alert>}
+        {error && <Alert limits={isLimitError(error)}>{error.message}</Alert>}
         <Status message={said} />
 
         {firstRun && (

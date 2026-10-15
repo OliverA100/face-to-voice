@@ -9,11 +9,11 @@ import "server-only";
 import { checkBotId } from "botid/server";
 
 import { env } from "./env";
-import { ApiError } from "./errors";
+import { ApiError, MESSAGES } from "./errors";
 
 export function assertSameOrigin(request: Request): void {
   const site = request.headers.get("sec-fetch-site");
-  if (site && site !== "same-origin" && site !== "same-site") throw new ApiError("forbidden", "Forbidden", 403);
+  if (site && site !== "same-origin" && site !== "same-site") throw new ApiError("forbidden", MESSAGES.forbidden, 403);
   const origin = request.headers.get("origin");
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   if (origin && host) {
@@ -21,18 +21,18 @@ export function assertSameOrigin(request: Request): void {
     try {
       originHost = new URL(origin).host;
     } catch {
-      throw new ApiError("forbidden", "Forbidden", 403);
+      throw new ApiError("forbidden", MESSAGES.forbidden, 403);
     }
-    if (originHost !== host) throw new ApiError("forbidden", "Forbidden", 403);
+    if (originHost !== host) throw new ApiError("forbidden", MESSAGES.forbidden, 403);
   }
   // No browser headers at all (curl and friends): refuse on any deployment, allow in development for testing.
-  if (!site && !origin && env.isDeployed) throw new ApiError("forbidden", "Forbidden", 403);
+  if (!site && !origin && env.isDeployed) throw new ApiError("forbidden", MESSAGES.forbidden, 403);
 }
 
 export async function assertNotBot(): Promise<void> {
   try {
     const { isBot } = await checkBotId();
-    if (isBot) throw new ApiError("forbidden", "Forbidden", 403);
+    if (isBot) throw new ApiError("forbidden", MESSAGES.forbidden, 403);
   } catch (e) {
     if (e instanceof ApiError) throw e;
     // BotID unavailable (not on Vercel): rate limits and caps still apply.

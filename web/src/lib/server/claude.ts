@@ -51,13 +51,14 @@ export function getClient(): Anthropic {
 }
 
 export interface DescribeInput {
-  imageJpegBase64: string;
+  imageJpegBase64?: string; // none when a lost casting is redone after the face on screen changed (voice.ts recastFor)
   sliderSummary: string; // "Jaw width: +0.60, Smile ↔ frown: -0.20, …" (named sliders only)
   ageSlider?: number; // the Age slider (sem_age), from the validated weights
   expression: string; // expressionLine(): built server-side from the validated look
   look: string; // "hair style: crop; hair colour: natural" (built server-side from ids)
   pickKey: string; // picks one of Claude's three accents: the resting face's key, so expressions and poses keep it
   lookIds: Look; // the validated look itself: only the development mock reads it (Claude gets `look`)
+  voice?: string; // a recast (voice.ts recastFor): the voice is already chosen, and the casting must fit it
 }
 
 /** The cast for one face; `replaced` names the free-text fields the policy replaced with a default. */
@@ -71,7 +72,11 @@ export async function describeFace(input: DescribeInput): Promise<{ fields: Cast
 
 async function castWithClaude(input: DescribeInput): Promise<Casting> {
   const api = getClient();
-  const user = `${input.expression}\n${ageLine(input.ageSlider)}\nSlider values the user set (weight -1..1, name: value): ${input.sliderSummary || "all at rest"}.\nStyling the visitor chose (also visible in the image): ${input.look || "none"}.\nCast the voice for this character.`;
+  const pictured = !!input.imageJpegBase64;
+  const voice = input.voice
+    ? `This character's voice is already chosen; cast the character who has it. Use these values for those fields, and pick the persona, timbre, quirk and line to fit them: ${input.voice}.\n`
+    : "";
+  const user = `${voice}${pictured ? "" : "There is no image this time: picture the head from the slider values and styling below.\n"}${input.expression}\n${ageLine(input.ageSlider)}\nSlider values the user set (weight -1..1, name: value): ${input.sliderSummary || "all at rest"}.\nStyling the visitor chose${pictured ? " (also visible in the image)" : ""}: ${input.look || "none"}.\nCast the voice for this character.`;
   let response;
   try {
     response = await api.messages.create({
@@ -83,7 +88,7 @@ async function castWithClaude(input: DescribeInput): Promise<Casting> {
         {
           role: "user",
           content: [
-            { type: "image", source: { type: "base64", media_type: "image/jpeg", data: input.imageJpegBase64 } },
+            ...(input.imageJpegBase64 ? [{ type: "image" as const, source: { type: "base64" as const, media_type: "image/jpeg" as const, data: input.imageJpegBase64 } }] : []),
             { type: "text", text: user },
           ],
         },
@@ -92,14 +97,14 @@ async function castWithClaude(input: DescribeInput): Promise<Casting> {
     });
   } catch (e) {
     console.warn("[claude] describe failed:", e instanceof Error ? e.message.slice(0, 200) : e);
-    throw new ApiError("upstream", MESSAGES.upstream, 502);
+    throw new ApiError("upstream", MESSAGES.upstream_cast, 502);
   }
   // A refusal or a cut-off answer may not match the schema; anything else is held to it by constrained decoding.
   const text = response.content.find((b) => b.type === "text")?.text;
   const parsed = response.stop_reason === "end_turn" && text ? DescriptionSchema.safeParse(safeJson(text)) : null;
   if (!parsed?.success) {
     console.warn(`[claude] describe returned no casting (stop: ${response.stop_reason})`);
-    throw new ApiError("upstream", MESSAGES.upstream, 502);
+    throw new ApiError("upstream", MESSAGES.upstream_cast, 502);
   }
   return parsed.data;
 }

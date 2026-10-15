@@ -52,7 +52,7 @@ async function call(path: string, init: RequestInit & { query?: Record<string, s
     const body = (await res.json().catch(() => null)) as { detail?: { status?: string; code?: string } } | null;
     const code = body?.detail?.status ?? body?.detail?.code ?? "";
     console.warn(`[elevenlabs] ${init.method ?? "GET"} ${path} -> ${res.status} ${code}`);
-    if (res.status === 429) throw new ApiError("visitor_limit", MESSAGES.visitor_limit, 429);
+    if (res.status === 429) throw new ApiError("busy", MESSAGES.upstream_busy, 503); // ElevenLabs is rate-limiting the site, not this visitor
     throw new UpstreamError(res.status, code);
   }
   return res;

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LimitsButton } from "@/components/ui/LimitsDialog";
 import { LogoOrb } from "@/components/ui/LogoOrb";
 
 /** The source repository; the top bar links to it. */
@@ -8,7 +9,7 @@ const REPO_URL = "https://github.com/OliverA100/face-to-voice";
 const NAME = "flex items-center gap-2 whitespace-nowrap text-input font-medium tracking-[-0.01em]";
 
 /**
- * The top bar: the logo and name, the tagline (from lg), and the links. Shared by the builder and the 404 page.
+ * The top bar: the logo and name, the tagline (from lg), and the links (on the builder, Limits too: LimitsDialog.tsx). Shared by the builder and the 404 page.
  * `home`: on the builder the name is the page's h1; anywhere else it links home and the page has its own h1.
  * Below lg it sticks to the top (the builder's page scrolls under it, FaceBuilder.tsx). From lg it is static and has no
  * z-index: as a flex item its z-20 would still lift it over the cards below, hiding their 0.5px top ring.
@@ -34,6 +35,7 @@ export function SiteHeader({ home = false }: { home?: boolean }) {
         <p className="hidden text-label text-ink-3 lg:block">Every face suggests a voice. Shape one and hear it.</p>
       </div>
       <nav className="flex items-center gap-2" aria-label="Links">
+        {home && <LimitsButton />}
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="pill-secondary h-8 px-3 text-label sm:h-9 sm:px-4 sm:text-body">
           GitHub
           <span className="sr-only"> (opens in a new tab)</span>

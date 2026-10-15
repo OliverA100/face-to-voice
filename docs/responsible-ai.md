@@ -53,7 +53,7 @@ first words of a conversation) that a live conversation will play.
   JSON Schema enums; free text is cut to fixed lengths and cleaned of brackets and markup.
 - **Written from server data.** Claude reads the casting the server cached for this visitor and face, and the look the
   server kept with it (as ids); the browser only names which face and voice. A profile is shared by everyone who meets that voice, like the
-  voice itself; "Reimagine" writes another one for that visitor only. Visitors can't edit a profile.
+  voice itself; "Recast" writes another one for that visitor only. Visitors can't edit a profile.
 - **What they want stays in the story.** A character's want is a small goal from their own life ("to find whoever
   keeps moving my lobster pots"), never dangerous; asking the visitor's opinion or help with it is part of the game,
   and nothing they want needs anything from the visitor in real life (no money, details or meetings).
@@ -95,7 +95,7 @@ Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
   character says; for speech, the visitor's line (at most 300 characters) with an audio tag built on the server from
   the emotion id.
 - **Stored:** cached castings (per visitor), voice records and audio clips, keyed by hashes of the face and text;
-  character profiles (shared per voice, or the visitor's own "Reimagine"), 30 days. No accounts, no
+  character profiles (shared per voice, or the visitor's own "Recast"), 30 days. No accounts, no
   screenshots, no raw IP addresses: visitors are counted by a salted HMAC of the IP. A character's rebuild link lives in
   the URL hash, which browsers never send to a server.
 
@@ -106,8 +106,8 @@ Every paid route (`/api/voice/design`, `/select`, `/speak`, `/api/character/prof
 1. a same-origin check (`Sec-Fetch-Site` and `Origin` must match; requests with no browser headers are refused in
    production);
 2. Vercel BotID;
-3. a per-visitor sliding window in Upstash Redis: 20 designs, 10 new voices, 100 lines, 20 new profiles and 10
-   conversations a day;
+3. a per-visitor daily limit in Upstash Redis (reset at midnight UTC): 20 designs, 10 new voices, 100 lines, 20 new
+   profiles and 10 conversations a day. Visitors can see theirs, and the global caps, under Limits in the header;
 4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters, 100 profiles, 20 conversations
    (configurable);
 5. ElevenLabs' and Anthropic's own per-key quotas and spend limits, set in their dashboards.

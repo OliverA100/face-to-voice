@@ -7,11 +7,11 @@ vi.mock("botid/server", () => ({ checkBotId: vi.fn(async () => ({ isBot: false }
 
 import { checkBotId } from "botid/server";
 
-import { ApiError } from "../errors";
+import { ApiError, MESSAGES } from "../errors";
 import { assertNotBot, assertSameOrigin } from "../guards";
 
 const request = (headers: Record<string, string>) => new Request("https://face.example/api/voice/design", { method: "POST", headers });
-const forbidden = (fn: () => unknown) => expect(fn).toThrow(new ApiError("forbidden", "Forbidden", 403));
+const forbidden = (fn: () => unknown) => expect(fn).toThrow(new ApiError("forbidden", MESSAGES.forbidden, 403));
 
 beforeEach(() => {
   env.isDeployed = false;

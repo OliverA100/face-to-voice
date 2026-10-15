@@ -9,6 +9,7 @@ import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { paintRange, speakRange } from "@/components/ui/panel/rangeFill";
 import { currentEmotion } from "@/lib/emotion";
+import { isLimitError } from "@/lib/limits/open";
 import { speechPlayer, type PlayerState } from "@/lib/lipsync/player";
 import { perf } from "@/lib/perf";
 
@@ -27,7 +28,7 @@ const MAX_CHARS = 300;
 export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?: number | null; onRetired?: (message: string) => void }) {
   const [text, setText] = useState(PRESET_LINES[0]);
   const [state, setState] = useState<PlayerState>(speechPlayer.state);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; limits?: boolean } | null>(null);
   const [showSync, setShowSync] = useState(false);
   const lineIds = useId();
   const speakButton = useRef<HTMLButtonElement>(null);
@@ -53,7 +54,7 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
     if (busy) return;
     const line = text.trim().slice(0, MAX_CHARS);
     if (!line) {
-      setError("Type a line for the voice to say first.");
+      setError({ message: "Type a line for the voice to say first." });
       return;
     }
     // unlock() runs synchronously inside the tap (iOS autoplay rule) before the fetch.
@@ -62,14 +63,14 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
         const res = await fetch("/api/voice/speak", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ descKey, ...(take != null ? { take } : {}), text: line, ...currentEmotion() }) });
         if (res.status === 410 && onRetired) {
           const { message } = (await res.clone().json().catch(() => ({}))) as { message?: string };
-          setTimeout(() => onRetired(message ?? "This voice was retired. Choose it again under Voice."), 0); // after the player has settled
+          setTimeout(() => onRetired(message ?? "This voice was removed to make room for newer ones. Choose it again to bring it back."), 0); // after the player has settled
         }
         return res;
       })
       .then(() => {
         perf.speakFirstAudibleMs = speechPlayer.metrics.firstAudibleMs;
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : "Speech failed"));
+      .catch((e: unknown) => setError({ message: e instanceof Error ? e.message : "Speech failed", limits: isLimitError(e) }));
   };
 
   return (
@@ -138,7 +139,7 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
         </div>
       </div>
       {showSync && <SyncControl />}
-      {error && <Alert>{error}</Alert>}
+      {error && <Alert limits={error.limits}>{error.message}</Alert>}
       {/* The speaking state for screen readers (the counter above changes on every key, so it is not a live region). */}
       <Status message={state === "loading" ? "Generating the line…" : state === "playing" ? "Speaking." : state === "done" ? "Finished speaking." : ""} />
     </div>

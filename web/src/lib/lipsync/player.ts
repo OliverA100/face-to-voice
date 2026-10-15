@@ -194,8 +194,8 @@ class SpeechPlayer {
     try {
       const res = await fetchResponse();
       if (!res.ok || !res.body) {
-        const data = (await res.json().catch(() => ({}))) as { message?: string };
-        throw new Error(data.message ?? "Speech failed");
+        const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+        throw Object.assign(new Error(data.message ?? "Speech failed"), { code: data.error }); // the code: a limit links to the limits dialog
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();

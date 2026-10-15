@@ -43,7 +43,7 @@ Everything is family-friendly, contains no slurs, says nothing about the charact
 export interface ProfileInput {
   fields: DescriptionFields; // the visitor's casting for this face (voice.ts castingFor)
   look: string; // lookText(): built server-side from the validated look ids
-  /** Reimagine: the profile they have now. The new one is a different person for the same face and voice. */
+  /** Recast: the profile they have now. The new one is a different person for the same face and voice. */
   previous?: CharacterProfile;
 }
 
@@ -102,13 +102,13 @@ export async function writeProfile(input: ProfileInput): Promise<CharacterProfil
     }, PROFILE_REQUEST);
   } catch (e) {
     console.warn("[claude] profile failed:", e instanceof Error ? e.message.slice(0, 200) : e);
-    throw new ApiError("upstream", MESSAGES.upstream, 502);
+    throw new ApiError("upstream", MESSAGES.upstream_profile, 502);
   }
   const text = response.content.find((b) => b.type === "text")?.text;
   const parsed = response.stop_reason === "end_turn" && text ? ProfileSchema.safeParse(safeJson(text)) : null;
   if (!parsed?.success) {
     console.warn(`[claude] profile returned no profile (stop: ${response.stop_reason})`);
-    throw new ApiError("upstream", MESSAGES.upstream, 502);
+    throw new ApiError("upstream", MESSAGES.upstream_profile, 502);
   }
   return clampProfile(parsed.data);
 }

@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ after: vi.fn() }));
 vi.mock("../env", () => ({ env }));
 
-import { checkVisitorLimit, consumeDailyCap, dailyUsage, refundDailyCap, requireStore, visitorId } from "../ratelimit";
+import { checkVisitorLimit, consumeDailyCap, dailyUsage, nextResetMs, refundDailyCap, requireStore, visitorId, visitorUsage } from "../ratelimit";
 
 const from = (ip: string) => new Request("http://localhost/api/voice/select", { method: "POST", headers: { "x-forwarded-for": `${ip}, 10.0.0.1` } });
 
@@ -16,6 +16,21 @@ describe("visitor limits without Redis", () => {
     await expect(checkVisitorLimit(from("1.1.1.1"), "select")).rejects.toMatchObject({ code: "visitor_limit", status: 429 });
     await expect(checkVisitorLimit(from("2.2.2.2"), "select")).resolves.toBeUndefined();
     await expect(checkVisitorLimit(from("1.1.1.1"), "speak")).resolves.toBeUndefined();
+  });
+});
+
+describe("what a refusal says", () => {
+  it("names the visitor's own allowance, or the whole site's budget, and when it comes back", async () => {
+    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("3.3.3.3"), "talk"); // talk: 10 per day
+    await expect(checkVisitorLimit(from("3.3.3.3"), "talk")).rejects.toMatchObject({ message: "You've used all 10 of your live chats for today. They come back at midnight UTC." });
+    expect(await visitorUsage(from("3.3.3.3"))).toMatchObject({ talk: { used: 100, limit: 100 }, design: { used: 0, limit: 200 } });
+    await consumeDailyCap("talks", 20);
+    await expect(consumeDailyCap("talks")).rejects.toMatchObject({ message: expect.stringContaining("not your own limit") });
+    await refundDailyCap("talks", 20);
+  });
+
+  it("resets at the next midnight UTC", () => {
+    expect(new Date(nextResetMs(Date.parse("2026-10-15T17:40:00Z"))).toISOString()).toBe("2026-10-16T00:00:00.000Z");
   });
 });
 

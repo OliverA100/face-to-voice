@@ -15,12 +15,13 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Alert } from "@/components/ui/Alert";
 import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
+import { isLimitError } from "@/lib/limits/open";
 import { dropOutput, outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { isAppleTouch } from "@/lib/lipsync/staleTab";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { talkInvite } from "@/lib/talk/invite";
 import type { EndReason, TalkSession, TalkSnapshot } from "@/lib/talk/session";
-import { requestTalk, VoiceApiError, type DesignResult } from "@/lib/voice/client";
+import { requestTalk, VoiceApiError, withCasting, type DesignResult } from "@/lib/voice/client";
 
 type SessionModule = typeof import("@/lib/talk/session");
 let loading: Promise<SessionModule> | null = null;
@@ -82,11 +83,23 @@ let lastRoom: string | undefined;
 /** The time left is shown only in the last stretch: a clock running all along makes a chat feel like a test. */
 const SHOW_LEFT_SECONDS = 30;
 
-export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "faceKey" | "descKey">; take: number | null; name: string }) {
+export function TalkPanel({
+  design,
+  take,
+  name,
+  onRetired,
+  onStale,
+}: {
+  design: Pick<DesignResult, "faceKey" | "descKey" | "sent">;
+  take: number | null;
+  name: string;
+  onRetired: (message: string) => void; // code "expired": the voice was retired; the voice panel goes back to the takes
+  onStale: () => void; // code "stale": the character can't be recast; "New voices" may design for this face again
+}) {
   const [session, setSession] = useState<TalkSession | null>(null);
   const [maxSeconds, setMaxSeconds] = useState(180);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; limits?: boolean } | null>(null);
   const [chats, setChats] = useState(0); // a fresh panel for every chat
 
   // A conversation outlives nothing: leaving the step (or the page) hangs up, even one still starting.
@@ -119,10 +132,10 @@ export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "
       if (over()) return;
       if (mic) {
         s.end(mic); // lets go of the audio (and the iPhone's call audio)
-        setError(ENDED[mic]);
+        setError({ message: ENDED[mic] });
         return;
       }
-      const ticket = await requestTalk(design, take, talkInvite(), lastRoom);
+      const ticket = await withCasting(design, () => requestTalk(design, take, talkInvite(), lastRoom));
       lastRoom = ticket.room;
       if (over()) return;
       setMaxSeconds(ticket.maxSeconds);
@@ -135,7 +148,9 @@ export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "
       if (s) s.end("error");
       else if (ctx) void restOutput(ctx).catch(() => {});
       setSession(null);
-      setError(e instanceof VoiceApiError ? e.message : ENDED.error);
+      if (e instanceof VoiceApiError && e.code === "expired") return onRetired(e.message); // the voice panel says it, on the takes
+      if (e instanceof VoiceApiError && e.code === "stale") onStale();
+      setError({ message: e instanceof VoiceApiError ? e.message : ENDED.error, limits: isLimitError(e) });
     } finally {
       setBusy(false);
     }
@@ -176,14 +191,14 @@ export function TalkPanel({ design, take, name }: { design: Pick<DesignResult, "
           </a>
           . Not affiliated.
         </p>
-        {error && <Alert>{error}</Alert>}
+        {error && <Alert limits={error.limits}>{error.message}</Alert>}
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-2">
       <LiveTalk key={chats} session={session} name={name} maxSeconds={maxSeconds} starting={busy} onAgain={start} />
-      {error && <Alert>{error}</Alert>}
+      {error && <Alert limits={error.limits}>{error.message}</Alert>}
     </div>
   );
 }

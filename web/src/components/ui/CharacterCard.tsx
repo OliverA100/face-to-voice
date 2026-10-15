@@ -7,7 +7,7 @@
  * surprise until the conversation.
  *
  * Opening the step writes the profile the first time (one Claude call, then shared by everyone who meets this voice);
- * after that it is free. "Reimagine" writes a different one for the same voice, kept for this visitor only.
+ * after that it is free. "Recast" writes a different one for the same voice, kept for this visitor only.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -16,9 +16,10 @@ import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { TalkPanel } from "@/components/ui/TalkPanel";
 import type { ProfileResult } from "@/lib/character/profile";
+import { isLimitError } from "@/lib/limits/open";
 import { talkAvailable } from "@/lib/talk/invite";
 import { ProfileSkeleton } from "@/components/ui/ProfileSkeleton";
-import { requestProfile, VoiceApiError, type DesignResult } from "@/lib/voice/client";
+import { requestProfile, VoiceApiError, withCasting, type DesignResult } from "@/lib/voice/client";
 
 type Busy = null | "write" | "rewrite";
 
@@ -27,14 +28,18 @@ export function CharacterCard({
   take,
   result,
   onResult,
+  onRetired,
+  onStale,
 }: {
-  design: Pick<DesignResult, "faceKey" | "descKey">;
+  design: Pick<DesignResult, "faceKey" | "descKey" | "sent">;
   take: number | null; // the voice in use: the one the character talks with
   result: ProfileResult | null;
   onResult: (r: ProfileResult, forDesign: Pick<DesignResult, "faceKey" | "descKey">) => void; // the voice it was asked for
+  onRetired: (message: string) => void; // the voice was retired (a chat found out): back to the takes to choose it again
+  onStale: () => void; // the character can't be recast (code "stale"): "New voices" may design for this face again
 }) {
   const [busy, setBusy] = useState<Busy>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; limits: boolean } | null>(null);
   const [said, setSaid] = useState("");
 
   const write = async (kind: Exclude<Busy, null>) => {
@@ -42,11 +47,12 @@ export function CharacterCard({
     setBusy(kind);
     setError(null);
     try {
-      onResult(await requestProfile(design, kind === "rewrite"), design);
-      setSaid(kind === "rewrite" ? "They have been reimagined." : "The character's profile is ready.");
+      onResult(await withCasting(design, () => requestProfile(design, kind === "rewrite")), design);
+      setSaid(kind === "rewrite" ? "They have been recast." : "The character's profile is ready.");
     } catch (e) {
       if (!(e instanceof VoiceApiError)) console.error("[profile]", e);
-      setError(e instanceof VoiceApiError ? e.message : "Something went wrong. Please try again.");
+      if (e instanceof VoiceApiError && e.code === "stale") onStale();
+      setError({ message: e instanceof VoiceApiError ? e.message : "Something went wrong. Please try again.", limits: isLimitError(e) });
     } finally {
       setBusy(null);
     }
@@ -75,7 +81,7 @@ export function CharacterCard({
             </button>
           </div>
         )}
-        {error && <Alert>{error}</Alert>}
+        {error && <Alert limits={error.limits}>{error.message}</Alert>}
         <Status message={busy === "write" ? "Writing their profile…" : said} />
       </div>
     );
@@ -108,7 +114,7 @@ export function CharacterCard({
         </dl>
       </section>
       {/* The step's main action (when talking is invite-only, for invited visitors: lib/talk/invite.ts). */}
-      {talkAvailable() && <TalkPanel design={design} take={take} name={profile.name} />}
+      {talkAvailable() && <TalkPanel design={design} take={take} name={profile.name} onRetired={onRetired} onStale={onStale} />}
       {/* Its own row, like the download: what it does on the left, the action on the right. */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
@@ -120,15 +126,15 @@ export function CharacterCard({
           onClick={() => write("rewrite")}
           aria-disabled={!!busy}
           aria-busy={busy === "rewrite"}
-          aria-label={busy === "rewrite" ? "Reimagining the character…" : undefined}
+          aria-label={busy === "rewrite" ? "Recasting the character…" : undefined}
           data-step-focus={talkAvailable() ? undefined : ""} // else Chat is the step's first control
           className="pill-secondary grid h-8 px-3 text-label"
         >
-          <BusySwap busy={busy === "rewrite"}>Reimagine</BusySwap>
+          <BusySwap busy={busy === "rewrite"}>Recast</BusySwap>
         </button>
       </div>
-      {error && <Alert>{error}</Alert>}
-      <Status message={busy === "rewrite" ? "Reimagining the character…" : said} />
+      {error && <Alert limits={error.limits}>{error.message}</Alert>}
+      <Status message={busy === "rewrite" ? "Recasting the character…" : said} />
     </div>
   );
 }

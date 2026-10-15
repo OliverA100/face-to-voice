@@ -247,7 +247,7 @@ room.connect ──────────────────────�
   same moment get one profile), from the visitor's cached casting and the look the server kept with it, never the
   look the browser sends later. It (`profileSchema.ts`) gives them a title and something they want right now; the
   instructions put the want first ("What's on your mind"), and the agent's first answer to the visitor carries a note
-  to work it in (Haiku left it out otherwise). Reimagine sends Claude the current profile to share nothing with, and a
+  to work it in (Haiku left it out otherwise). Recast sends Claude the current profile to share nothing with, and a
   life to centre the new one on.
 - **What the visitor said, once.** LiveKit Inference's AssemblyAI stream sends each turn final twice, formatted and
   plain, and the session joins them: the agent drops the plain copy before Claude reads it

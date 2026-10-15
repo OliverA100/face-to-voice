@@ -36,10 +36,12 @@ Tuning lives in named objects at the top of each module: `LIMITS`, `RANDOM`, `MO
 | `POST /api/voice/design` | screenshot + slider values + look ids → Claude casting (`claude.ts`, cached per visitor and face) → prompt (`prompt.ts`) → Voice Design previews (cached per description, shared) |
 | `POST /api/voice/select` | saves the chosen take as a voice: daily cap, plan quota, LRU pool, studio fallback (`voice.ts`) |
 | `POST /api/voice/speak` | `eleven_v4_turbo` stream with timestamps (NDJSON passed through), cached in Blob per voice and line |
+| `POST /api/voice/recast` | casts the face again for a voice the visitor has but whose casting is missing (castings are per IP): the voice's identity is kept, so the voice is unchanged |
+| `GET /api/limits` | this visitor's daily limits, the global caps and the reset time, for the Limits dialog |
 | `GET /api/usage` | today's caps, the pool and plan quotas; `Authorization: Bearer $USAGE_ADMIN_TOKEN` |
 
-Every paid route runs `guards.ts` (same-origin, BotID) and `ratelimit.ts` (per-visitor sliding windows and global
-daily caps in Upstash Redis; in-memory in development, refused in production without Redis).
+Every paid route runs `guards.ts` (same-origin, BotID) and `ratelimit.ts` (per-visitor daily limits and global
+daily caps in Upstash Redis, both reset at midnight UTC; in-memory in development, refused in production without Redis).
 
 ## Lip sync
 

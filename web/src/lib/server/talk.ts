@@ -40,7 +40,7 @@ export const TALK_MESSAGES = {
   invite: "Talking to characters is invite-only for now.",
   busy: "All the characters are busy talking right now. Try again in a few minutes.",
   noProfile: "Meet the character first.",
-  retired: "This voice was retired to make room for newer ones. Find new voices to talk to this character.",
+  retired: "This voice was removed to make room for newer ones. Choose it again to bring it back.",
 };
 
 const digest = (s: string) => createHash("sha256").update(s).digest();

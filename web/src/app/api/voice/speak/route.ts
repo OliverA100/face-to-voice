@@ -27,7 +27,7 @@ const Body = SpeakEmotion.extend({
 });
 
 /** The take's voice was retired (the pool makes room for newer ones, or it was deleted): saved again on choosing it. */
-const RETIRED = "This voice was retired to make room for new ones. Choose it again under Voice.";
+const RETIRED = "This voice was removed to make room for newer ones. Choose it again to bring it back.";
 
 export async function POST(request: Request) {
   try {

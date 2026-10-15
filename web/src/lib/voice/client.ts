@@ -1,4 +1,5 @@
 /** Browser-side calls to our own API routes (never to ElevenLabs or Anthropic directly). */
+import { captureFace } from "@/components/scene/Capture";
 import type { ProfileResult } from "@/lib/character/profile";
 import { quantiseFace } from "@/lib/voice/faceSignature";
 import { currentLook } from "@/lib/look";
@@ -26,7 +27,12 @@ export interface DesignResult {
   studioFallback: boolean; // voiceId is a studio stand-in, not one of the previews
   recipe: VoiceRecipe;
   cached: { description: boolean; previews: boolean };
+  /** The face as it was sent (browser only, kept with the design in the tab): a lost casting is redone from it even
+   *  after the face on screen changed (withCasting). Missing on designs restored from before it was kept. */
+  sent?: SentFace;
 }
+/** The sliders and look a design was asked for, and the face signature they had (currentFaceSignature). */
+export interface SentFace { weights: Record<string, number>; look: Record<string, string>; signature: string }
 export interface SelectResult { voiceId: string; saved: boolean; chosenIndex?: number; message?: string }
 
 export class VoiceApiError extends Error {
@@ -68,8 +74,9 @@ export function currentFaceSignature(): string {
   return JSON.stringify(quantiseFace(sliderPositions(), currentLook(false)));
 }
 
-export function requestDesign(image: string): Promise<DesignResult> {
-  return post<DesignResult>("/api/voice/design", { image, weights: sliderPositions(), look: currentLook() });
+export async function requestDesign(image: string): Promise<DesignResult> {
+  const sent: SentFace = { weights: sliderPositions(), look: currentLook(), signature: currentFaceSignature() };
+  return { ...(await post<DesignResult>("/api/voice/design", { image, weights: sent.weights, look: sent.look })), sent };
 }
 
 /** `generatedVoiceId`: the preview the visitor heard (the server refuses it if the voices were designed again since). */
@@ -80,6 +87,25 @@ export function requestSelect(descKey: string, previewIndex: number, generatedVo
 /** The character's profile for a voice: the saved one, or a new one (`regenerate`: another, kept as this visitor's). */
 export function requestProfile(design: Pick<DesignResult, "faceKey" | "descKey">, regenerate = false): Promise<ProfileResult> {
   return post<ProfileResult>("/api/character/profile", { faceKey: design.faceKey, descKey: design.descKey, regenerate });
+}
+
+/**
+ * `call`, recasting the face first when the server has no casting for this visitor (code "recast": castings are kept
+ * per IP, so a phone that changed networks has none). The voice stays the same: the server locks everything that
+ * makes it (lib/server/voice.ts recastFor). It casts the face the voice was found for (`sent`), with a picture while
+ * the face on screen is still that face, from its sliders and look alone once it has changed. Used for the profile
+ * and the live chat.
+ */
+export async function withCasting<T>(design: Pick<DesignResult, "faceKey" | "descKey" | "sent">, call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (e) {
+    if (!(e instanceof VoiceApiError) || e.code !== "recast") throw e;
+  }
+  const face = design.sent ?? { weights: sliderPositions(), look: currentLook(), signature: currentFaceSignature() };
+  const image = face.signature === currentFaceSignature() ? captureFace() : undefined;
+  await post<{ ok: true }>("/api/voice/recast", { image, weights: face.weights, look: face.look, faceKey: design.faceKey, descKey: design.descKey });
+  return call();
 }
 
 export type { TalkTicket };

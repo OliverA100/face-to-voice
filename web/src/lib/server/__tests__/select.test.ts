@@ -95,7 +95,7 @@ describe("selectPreview when the voice slots are full", () => {
 
   it("says the slots are full (not 'tomorrow') when nothing can be freed", async () => {
     el.voices = [];
-    await expect(selectPreview(DESC, 0)).rejects.toThrow("There's no room for a new voice right now");
+    await expect(selectPreview(DESC, 0)).rejects.toThrow("no room for another new voice right now");
   });
 
   it("doesn't save over the limit when the voice it would free was pinned by a chat meanwhile", async () => {
@@ -103,7 +103,7 @@ describe("selectPreview when the voice slots are full", () => {
     el.voices = []; // nothing forgotten to delete
     store.set("evict", [{ descKey: "x#0", voiceId: "pool-a", lastUsed: 0 }]);
     store.set("pinned", ["pool-a"]);
-    await expect(selectPreview(DESC, 0)).rejects.toThrow("There's no room for a new voice right now");
+    await expect(selectPreview(DESC, 0)).rejects.toThrow("no room for another new voice right now");
     expect(el.deleted).toEqual([]);
     expect(el.created).toEqual([]);
     expect(refundDailyCap).toHaveBeenCalledWith("saves", 1);
@@ -112,13 +112,13 @@ describe("selectPreview when the voice slots are full", () => {
   it("names the month when the add/edit budget is spent", async () => {
     el.slots = 0;
     el.edits = 64;
-    await expect(selectPreview(DESC, 0)).rejects.toThrow("This month's new voices are used up");
+    await expect(selectPreview(DESC, 0)).rejects.toThrow("this month");
   });
 
   it("names the day when the daily save cap is hit", async () => {
     el.slots = 0;
     vi.mocked(consumeDailyCap).mockRejectedValueOnce(new ApiError("daily_cap", "cap", 429));
-    await expect(selectPreview(DESC, 0)).rejects.toThrow("Today's new voices are used up");
+    await expect(selectPreview(DESC, 0)).rejects.toThrow("for today");
   });
 });
 
