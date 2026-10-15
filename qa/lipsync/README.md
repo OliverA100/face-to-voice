@@ -31,6 +31,7 @@ cd qa/lipsync && pnpm install
 | `STALE_IDLE=1 STALE_TAB=1 node stale.mjs --hide 600` then `uv run calmark.py` | Safari's stuck output after an idle tab: calibrate.html left idle behind another tab, then measured in the same tab (same context, new ones, other sample rates, the `<audio>` route); `STALE_SUSPEND=1` suspends it while idle | free |
 | `uv run beeps.py`, `node appstale.mjs --cal --clip out/beeps.ndjson [--url2 …]`, then `uv run appcal.py` | The same in the app: a beep track through the app's player, a patch flashing on its clock, before and after the idle (`APP_IDLER=1`: a context left running, forcing the stuck output; `APP_RELOAD=1`: then reloaded; `APP_CUT=1`: a line cut, then the next) | free |
 | `node otherstale.mjs --browser chrome\|firefox` then `uv run appcal.py` | The same trigger in Chrome or Firefox (plain settings, no background-throttling switches) | free |
+| `node serve.mjs`, then in the iPhone simulator `xcrun simctl openurl booted http://localhost:3199/calibrate.html`; tap Direct / Element / Idle while `screencapture -v -V 15 -g -x -R <Simulator window>` records; `uv run simcal.py out/room/<name>.mov` | The same in iOS Safari (the Simulator in front; background Safari with `xcrun simctl launch booted com.apple.Preferences`, back with `com.apple.mobilesafari`) | free |
 | `node cal.mjs b raw` | The in-page recorder's self-check on `calibrate.html` | free |
 | `node perf.mjs [--cpu 4] clip.ndjson` | Frame rate and script time per frame, phone screen, slowed CPU | free |
 
