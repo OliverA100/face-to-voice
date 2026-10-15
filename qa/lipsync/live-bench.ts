@@ -104,7 +104,7 @@ for (const run of args) {
   sp.addEnvelope(0, (live.sent ?? []).map((v) => (v ?? 0) * 10_000));
   sp.replyStarted();
   const mouth = new Mouth({ cap: () => 1, userValue: () => 0, speechActivity: () => {}, write: () => {}, clear: () => {} });
-  const frames: { t: number; gap: number; jaw: number; act: Record<string, number> }[] = [];
+  const frames: { t: number; lt: number; gap: number; jaw: number; act: Record<string, number> }[] = [];
   let bi = 0;
   const end = w.startTime + w.seconds;
   const t0 = performance.now();
@@ -117,7 +117,7 @@ for (const run of args) {
     mouth.frame(sp, sp.playing ? heard + LIPSYNC.lead : -1, 1 / fps);
     const mm = mouth.openingMm();
     // the frame shows while the audio being heard is the tapped sample at tau − outLat (events.py's heard time)
-    frames.push({ t: tau - outLat, gap: +mm.gap.toFixed(3), jaw: +mm.jaw.toFixed(3), act: Object.fromEntries(Object.entries(mouth.state.activations).map(([k, a]) => [k, +a.toFixed(3)])) });
+    frames.push({ t: tau - outLat, lt: +heard.toFixed(4), gap: +mm.gap.toFixed(3), jaw: +mm.jaw.toFixed(3), act: Object.fromEntries(Object.entries(mouth.state.activations).map(([k, a]) => [k, +a.toFixed(3)])) });
   }
   const ms = (performance.now() - t0) / frames.length;
   const name = `${tag}-${run}`;
