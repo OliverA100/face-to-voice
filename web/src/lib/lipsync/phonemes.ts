@@ -75,7 +75,7 @@ const STRESSED = 1.3;
 /** One word's phonemes (ARPAbet with stress digits, "HH AH0 L OW1") → shapes over the whole word (charStart 0 to the
  *  word's length), each a from/to share of it. */
 export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] {
-  const items: { token: string; len: number; phone: string }[] = [];
+  const items: { token: string; len: number; phone: string; offglide?: boolean }[] = [];
   for (let k = 0; k < phones.length; k++) {
     const m = /^([A-Z]+)([012])?$/.exec(phones[k]);
     if (!m) continue;
@@ -96,7 +96,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
     }
     if (p.shapes.length === 2) {
       const s = p.split ?? 0.5;
-      items.push({ token: p.shapes[0], len: len * s, phone: base }, { token: p.shapes[1], len: len * (1 - s), phone: base });
+      items.push({ token: p.shapes[0], len: len * s, phone: base }, { token: p.shapes[1], len: len * (1 - s), phone: base, offglide: true });
       continue;
     }
     items.push({ token: p.shapes[0], len, phone: base });
@@ -105,7 +105,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
   const out: WordViseme[] = [];
   let at = 0;
   for (const it of items) {
-    out.push({ viseme: it.token, charStart: 0, charEnd: word.length, from: at / total, to: (at + it.len) / total, phone: it.phone });
+    out.push({ viseme: it.token, charStart: 0, charEnd: word.length, from: at / total, to: (at + it.len) / total, phone: it.phone, ...(it.offglide ? { offglide: true } : {}) });
     at += it.len;
   }
   return out;

@@ -211,6 +211,13 @@ describe("vowels from the audio", () => {
     expect((cues[0].start + cues[0].end) / 2).toBeCloseTo(0.4 + LIPSYNC.vowelShift, 2);
     expect((cues[1].start + cues[1].end) / 2).toBeCloseTo(0.7 + LIPSYNC.vowelShift, 2);
   });
+  it("keep a diphthong's second half with its first ('coat': not co-t-oo)", () => {
+    const o: Cue = { viseme: "O", start: 0.3, end: 0.4, text: "OW" };
+    const oo: Cue = { viseme: "U", start: 0.4, end: 0.46, text: "OW", offglide: true };
+    snapVowels([o, oo], loud, 2, new WeakSet());
+    expect((o.start + o.end) / 2).toBeCloseTo(0.4 + LIPSYNC.vowelShift, 2); // the "o" on the syllable's peak
+    expect(oo.start).toBeCloseTo(o.end, 2); // the "oo" right after it, not on the next peak (0.70)
+  });
 });
 
 describe("placing the line on the voice", () => {

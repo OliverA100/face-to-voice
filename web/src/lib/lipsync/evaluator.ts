@@ -253,6 +253,7 @@ export const LIPSYNC_PARTS = {
   lateral: true, // an "l" shows the tongue tip at the edge of the upper teeth (visemes.json "ll", lateralAt)
   joinClosures: true, // two p/b/m with no vowel between ("Bob bought", "I'm managing") share one closure (snapClosures)
   ppFirst: true, // p/b/m find their silences before f/v and th, which then keep off them (snapClosures)
+  offglide: true, // a diphthong's second half moves with its first instead of taking a loudness peak of its own (snapVowels)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -1007,6 +1008,8 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
   for (let k = 0; k < order.length; k++) {
     const c = order[k];
     if (snapped.has(c) || !VOWELS.has(c.viseme) || c.glide || !isPlaced(c)) continue;
+    // the "oo" of "go": the same syllable as the "o", it follows it (taking a peak of its own, "coat" was mouthed "co-t-oo")
+    if (c.offglide && LIPSYNC_PARTS.offglide) continue;
     const centre = (c.start + c.end) / 2;
     if (centre + L.vowelRescue + 0.1 > decodedSeconds) continue;
     // A vowel is said between the closures spelled around it: its peak lies after the one before has let go and before
@@ -1048,8 +1051,15 @@ export function snapVowels(cues: Cue[], loudness: (t: number) => number, decoded
     snapped.add(c);
     if (best === null) continue;
     const half = (c.end - c.start) / 2;
+    const was = c.start;
     c.start = Math.max(0, best + L.vowelShift - half);
     c.end = c.start + 2 * half;
+    const glide = order[k + 1];
+    if (LIPSYNC_PARTS.offglide && glide && glide.offglide && glide.ws === c.ws) {
+      glide.start = Math.max(0, glide.start + c.start - was);
+      glide.end += c.start - was;
+      snapped.add(glide);
+    }
     peakOf.set(c, best);
     claimed.push(best);
     moved = true;

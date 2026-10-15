@@ -111,7 +111,7 @@ for (const clip of args.map((a) => path.resolve(process.env.INIT_CWD ?? process.
   const ms = (performance.now() - t0) / frames.length;
   const name = `${tag}-${path.basename(clip, ".ndjson")}`;
   // the cues as the evaluator left them (snapped to the audio in place)
-  const cues = src.cues.map((c) => ({ v: c.viseme, s: +c.start.toFixed(3), e: +c.end.toFixed(3), x: c.text }));
+  const cues = src.cues.map((c) => ({ v: c.viseme, s: +c.start.toFixed(3), e: +c.end.toFixed(3), x: c.text, ws: c.ws, n: c.n }));
   fs.writeFileSync(path.join(out, name + ".json"), JSON.stringify({ clip: path.resolve(clip), fps, lead, sets, off, msPerFrame: ms, frames, cues }));
   console.log(`${name}: ${frames.length} frames, ${(ms * 1000).toFixed(1)} µs/frame`);
 }

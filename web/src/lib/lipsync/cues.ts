@@ -45,6 +45,7 @@ export interface Cue {
   ws?: number; // the stamped start of the word it came from (placeLine shifts by how far that word is from the voice)
   weak?: boolean; // an unstressed vowel (a schwa): formed only to LIPSYNC.weakPeak
   glide?: boolean; // an "r" or "w" (folded to U): rounded like a vowel, but not a syllable: it takes no loudness peak (snapVowels) and rounds no closure (roundingAt)
+  offglide?: boolean; // the second half of a diphthong (the "oo" of "go", the "ee" of "say"): moves with the first half (snapVowels)
   nasal?: boolean; // a closure spelled with an "m": it hums on with the lips shut, so it is found in the treble (snapClosures)
   back?: boolean; // a "k", "g" or "ng" (folded to DD): made with the back of the tongue, out of sight, so the tongue tip stays down (tongueAt)
   lateral?: boolean; // an "l" (folded to DD): the tongue tip at the edge of the upper teeth, where it shows (visemes.json "ll", lateralAt)
@@ -197,6 +198,7 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
     const nasal = folded === "PP" && (v.phone ? v.phone === "M" : /m/i.test(letters));
     const back = v.phone ? ["K", "G", "NG"].includes(v.phone) : v.viseme === "kk" || /^ng$/i.test(letters); // k, g, and the "ng" of "morning": the back of the tongue
     const lateral = folded === "DD" && (v.phone ? v.phone === "L" : /^l+$/i.test(letters));
+    const offglide = !!v.offglide;
     // Repeats inside a word ("pp" in peppers) merge; across words each closure stays its own cue.
     if (last && last.viseme === folded && start <= last.end + 0.04) {
       last.end = Math.max(last.end, end);
@@ -206,8 +208,9 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
       if (nasal) last.nasal = true;
       if (!back) delete last.back;
       if (!lateral) delete last.lateral;
+      if (!offglide) delete last.offglide;
     } else {
-      out.push({ viseme: folded, start, end, text: letters, ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}), ...(lateral ? { lateral } : {}) });
+      out.push({ viseme: folded, start, end, text: letters, ws, ...(weak ? { weak } : {}), ...(glide ? { glide } : {}), ...(nasal ? { nasal } : {}), ...(back ? { back } : {}), ...(lateral ? { lateral } : {}), ...(offglide ? { offglide } : {}) });
     }
   }
   return out;

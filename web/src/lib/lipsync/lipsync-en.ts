@@ -123,6 +123,8 @@ export interface WordViseme {
   to: number;
   /** From the pronouncing dictionary (phonemes.ts): the ARPAbet phoneme it came from; letter rules leave it out. */
   phone?: string;
+  /** The second half of a diphthong ("go": O then U): part of the same syllable, not one of its own. */
+  offglide?: boolean;
 }
 
 /** Visemes for one word (letters and apostrophes only), each with the letters it came from. */
