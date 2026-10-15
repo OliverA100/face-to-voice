@@ -35,7 +35,27 @@ class FakeContext {
   sampleRate = 48000;
   outputLatency = 0.01;
   destination = {};
-  resume = () => Promise.resolve();
+  resume = () => {
+    this.state = "running";
+    return Promise.resolve();
+  };
+  suspend = () => {
+    this.state = "suspended";
+    return Promise.resolve();
+  };
+  private handlers = new Set<() => void>();
+  addEventListener = (_: string, fn: () => void) => void this.handlers.add(fn);
+  removeEventListener = (_: string, fn: () => void) => void this.handlers.delete(fn);
+  /** The context starts running later (Safari resuming): its statechange then. */
+  runLater = (ms: number) => {
+    this.resume = () => {
+      setTimeout(() => {
+        this.state = "running";
+        for (const fn of [...this.handlers]) fn();
+      }, ms);
+      return Promise.resolve();
+    };
+  };
   closed = false;
   close = () => {
     this.closed = true;
@@ -166,6 +186,40 @@ describe("SpeechPlayer", () => {
     await speechPlayer.speak(async () => new Response([JSON.stringify({ aligned: null }), JSON.stringify({ audio_base64: pcm(1), alignment: al(0), normalized_alignment: null })].join("\n") + "\n"));
     expect(speechPlayer.aligned).toBe(false);
     expect(speechPlayer.cues.length).toBeGreaterThan(0);
+  });
+
+  it("rests its context between lines (a running idle one stuck Safari's output), and wakes it in the next tap", async () => {
+    const { speechPlayer } = await import("../player");
+    await speechPlayer.speak(async () => stream(1));
+    expect(ctx.state).toBe("running");
+    clock(1.1);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(speechPlayer.state).toBe("done");
+    expect(ctx.state).toBe("suspended");
+    speechPlayer.unlock(); // the next Speak's tap
+    expect(ctx.state).toBe("running");
+    await speechPlayer.speak(async () => stream(1));
+    speechPlayer.stop(); // stopped mid-line: rests too
+    expect(ctx.state).toBe("suspended");
+  });
+
+  it("waits for a resting context to run before it schedules a line's first audio (Safari played it ~1 s late)", async () => {
+    const { speechPlayer } = await import("../player");
+    await speechPlayer.speak(async () => stream(1));
+    clock(1.1);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(ctx.state).toBe("suspended");
+    ctx.runLater(100);
+    const before = sources.length;
+    const done = speechPlayer.speak(async () => stream(1)); // a cached line: all of it at once
+    await vi.advanceTimersByTimeAsync(50);
+    expect(speechPlayer.state).toBe("loading");
+    expect(sources.length).toBe(before); // nothing scheduled into the resting context
+    await vi.advanceTimersByTimeAsync(60);
+    await done;
+    expect(speechPlayer.state).toBe("playing");
+    expect(sources.length).toBe(before + 1);
+    expect(sources.at(-1)!.when).toBeCloseTo(ctx.currentTime + 0.03, 5);
   });
 
   it("ends on the last audio's own `ended`: a clock that stands still (iOS resuming, a call) keeps the mouth going", async () => {

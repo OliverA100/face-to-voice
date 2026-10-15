@@ -16,6 +16,7 @@ import { takeLongHide } from "./staleTab";
 const SAMPLE_RATE = ENVELOPE_RATE;
 const PRIME_SECONDS = 0.25; // audio buffered before playback starts (raised when chunks arrive slowly)
 const LEAD = 0.03; // s between "now" and the first scheduled sample
+const RESUME_WAIT_MS = 1000; // how long the first audio waits for a resting context to run (startWhenRunning)
 const SYNC_KEY = "ftv-sync-ms"; // localStorage: extra ms the listener's audio path delays the sound
 const syncSeconds = (ms: number) => Math.max(-300, Math.min(500, ms)) / 1000;
 
@@ -49,6 +50,7 @@ class SpeechPlayer {
   private abort: AbortController | null = null;
   private endTimer: ReturnType<typeof setTimeout> | undefined; // watchEnd's: a later line must not be ended by it
   private gotAudio = false; // any audio in this line's stream
+  private waiting: object | null = null; // startWhenRunning: the first audio waits for the context to run (this wait)
   private oddByte: number | null = null; // a chunk's last byte when it split a sample: the next chunk starts with it
   private lastSource: AudioBufferSourceNode | null = null; // the line's last scheduled audio
   private onLastEnded: (() => void) | null = null; // watchEnd's: runs when lastSource has played
@@ -146,6 +148,7 @@ class SpeechPlayer {
     this.pending = [];
     this.pendingSeconds = 0;
     this.started = false;
+    this.waiting = null;
     this.streamEnded = false;
     this.cues = [];
     this.alignments = [];
@@ -210,7 +213,7 @@ class SpeechPlayer {
       if (buffer.trim()) this.handleLine(buffer.trim());
       if (!this.gotAudio) throw new Error("Speech failed"); // a 200 that wasn't the stream (an empty body, a proxy's page)
       this.streamEnded = true;
-      if (!this.started) this.start();
+      if (!this.started) this.startWhenRunning();
       this.watchEnd();
     } catch (e) {
       if (signal.aborted) return;
@@ -267,7 +270,7 @@ class SpeechPlayer {
     if (!this.started) {
       this.pending.push(buffer);
       this.pendingSeconds += buffer.duration;
-      if (this.pendingSeconds >= PRIME_SECONDS) this.start();
+      if (this.pendingSeconds >= PRIME_SECONDS) this.startWhenRunning();
     } else {
       this.schedule(buffer);
     }
@@ -276,6 +279,35 @@ class SpeechPlayer {
   private buildCues(): void {
     if (this.forced) this.cues = alignmentToCues(this.forced);
     else if (this.alignments.length) this.cues = alignmentToCues(mergeAlignments(this.alignments));
+  }
+
+  /**
+   * Start once the context runs. It rests between lines (setState) and unlock() resumes it, but Safari played audio
+   * scheduled before the resume had finished ~1 s late (a cached line arrives that fast; qa/lipsync appstale.mjs,
+   * 2026-10-15). If it doesn't run within RESUME_WAIT_MS, start anyway.
+   */
+  private startWhenRunning(): void {
+    const ctx = this.ctx!;
+    if (ctx.state === "running") return this.start();
+    if (this.waiting) return;
+    const wait = (this.waiting = {});
+    const go = () => {
+      if (ctx.state !== "running" && !timedOut && this.waiting === wait) return;
+      ctx.removeEventListener("statechange", go);
+      clearTimeout(timer);
+      if (this.waiting !== wait) return; // stopped, or another line's wait
+      this.waiting = null;
+      if (this.started) return;
+      this.start();
+      if (this.streamEnded) this.watchEnd();
+    };
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      go();
+    }, RESUME_WAIT_MS);
+    ctx.addEventListener("statechange", go);
+    void ctx.resume().catch(() => {});
   }
 
   private start(): void {
@@ -331,7 +363,15 @@ class SpeechPlayer {
 
   private setState(s: PlayerState): void {
     this.state = s;
-    if (s !== "loading" && s !== "playing") audioSession("auto"); // the line is over: other apps' audio may come back
+    if (s !== "loading" && s !== "playing") {
+      audioSession("auto"); // the line is over: other apps' audio may come back
+      // and the context rests until the next Speak (unlock() resumes it in the tap). Safari on a Mac, 2026-10-15: a
+      // context left running with nothing to play, ~10 min in a tab nobody looks at, stuck that tab's audio output at
+      // its sample rate (lines came 0.8 s late or silent, reported on time; a new context or a reload at that rate
+      // inherited it, only a new tab didn't). Suspended while idle, the same 10 minutes left it on time
+      // (qa/lipsync stale.mjs).
+      if (this.ctx?.state === "running") void this.ctx.suspend().catch(() => {});
+    }
     for (const fn of this.listeners) fn();
   }
 }
