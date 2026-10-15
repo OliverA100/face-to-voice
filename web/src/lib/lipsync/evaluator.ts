@@ -42,6 +42,8 @@ export const LIPSYNC = {
   /** An f/v or th is a hiss: never on a stretch quieter than this (of the line's peak; ~−48 dB), where there is no
    *  sound at all ("The tiny…": the th was put on the silence before the voice, and "The" opened twice). */
   hissFloor: 0.004,
+  /** s: the longest t, d, n or k gap that bridgeVowels holds a vowel through */
+  bridgeGap: 0.1,
   /** A hiss (s, sh, f, th) is loud, and the loudness gate opened the vowel before it again ("grass": open, half shut,
    *  open on the "s"; user review 2026-10-15). Where the treble outweighs the loudness (both over their own line peaks:
    *  vowel peaks ~0.55, f/v/th ~2.1, s ~2.8 on the Harvard lines) from `from` to `to`, the vowels' opening fades by up to
@@ -275,6 +277,7 @@ export const LIPSYNC_PARTS = {
   hissGate: true, // vowels fade where the treble outweighs the loudness: the jaw comes up for s, sh, f, th (LIPSYNC.hissClose)
   sustainYield: true, // the held last vowel (sustainLoud) gives way to a th, f, s or sh being made
   afterStop: true, // an f/v or th right after a t, d, k or g starts on its hiss, without hissOnShift's head start (snapClosures)
+  bridgeVowels: true, // two of the same vowel with only a t, d, n or k between are held as one (bridgeVowels)
   vowelBounds: true, // a p/b/m's closure lies between the vowels around it, not on the next word's (snapClosures)
   onsetGap: true, // a sound apart from the first word by a silence doesn't count as the line's start (placeLine)
   alignPhrases: true, // the line's p/b/m and vowels matched in order to the audio's dips and syllable peaks (alignLine)
@@ -966,6 +969,31 @@ export function alignLine(cues: Cue[], loudness: (t: number) => number, treble: 
   return true;
 }
 
+/**
+ * Two of the same vowel with only a quick t, d, n or k between ("spot on", "got a", "but I") are held as one: the
+ * tongue makes the consonant (tongueAt) while the jaw stays open. Apart, the mouth opened wide, half shut and opened
+ * wide again ("The spot on…" looked very jumpy, user review 2026-10-15). Gaps up to LIPSYNC.bridgeGap; idempotent.
+ */
+export function bridgeVowels(cues: Cue[]): void {
+  for (let i = 0; i < cues.length; i++) {
+    const a = cues[i];
+    if (!VOWELS.has(a.viseme)) continue;
+    for (let j = i + 1; j < cues.length && cues[j].start <= a.end + LIPSYNC.bridgeGap; j++) {
+      const b = cues[j];
+      if (b.viseme === a.viseme) {
+        if (b.start > a.end) {
+          a.bridge = [a.end, b.start];
+          a.end = b.start;
+        }
+        break;
+      }
+      if (b.viseme !== "DD" || b.start < a.start) {
+        if (VOWELS.has(b.viseme) || CLOSED_VISEMES.includes(b.viseme) || b.viseme === "SS" || b.viseme === "CH") break;
+      }
+    }
+  }
+}
+
 /** How far placePhrases has read a line's loudness, and what it was reading (per cue list). */
 const phraseScan = new WeakMap<Cue[], { t: number; quiet: number; voiced: boolean }>();
 /**
@@ -1237,13 +1265,21 @@ export function frameTargets(src: SpeechSource, t: number, lead: number, out: Ac
   if (LIPSYNC_PARTS.snapClosures && LIPSYNC_PARTS.followRelease) followRelease(src.cues, loudnessOf, mem.snapped);
   if (LIPSYNC_PARTS.fitPhrases) fitPhrases(src.cues, loudnessOf, decoded);
   if (LIPSYNC_PARTS.snapVowels) snapVowels(src.cues, loudnessOf, decoded, mem.snapped);
+  if (LIPSYNC_PARTS.bridgeVowels) bridgeVowels(src.cues);
   targetsAt(src.cues, t + lead, out);
   // The open shapes read a windowed loudness (no wobble on 10 ms dips); closures read the raw one.
   const at = t + (src.gateLookahead ?? LIPSYNC.gateLookahead);
   const loud = src.loudness(at);
   const loudSmooth = windowedLoudness(loudnessOf, at, LIPSYNC.gateWindow);
   // measured against the loudest moment nearby, so a line that trails off still opens its last words (gateLocal)
-  const rel = Math.min(1, loudSmooth / localPeak(loudnessOf, at));
+  let rel = Math.min(1, loudSmooth / localPeak(loudnessOf, at));
+  // through a bridged t/d (bridgeVowels) the gate holds the level around it, not the stop's own dip
+  for (const c of src.cues) {
+    if (c.start > at) break;
+    if (!c.bridge || at < c.bridge[0] - 0.03 || at > c.bridge[1] + 0.03) continue;
+    const relOf = (x: number) => Math.min(1, windowedLoudness(loudnessOf, x, LIPSYNC.gateWindow) / localPeak(loudnessOf, x));
+    rel = Math.max(rel, Math.min(relOf(c.bridge[0] - 0.03), relOf(c.bridge[1] + 0.03)));
+  }
   const gate = LIPSYNC_PARTS.gates ? loudnessGate(rel) * LIPSYNC.openGain : 1;
   if (shapes) {
     // the lips' shapes: the same cues under the softer shape gate (LIPSYNC.shapeGate); the jaw keeps `out`

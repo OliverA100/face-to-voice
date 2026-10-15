@@ -4,7 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { alignmentToCues, mergeAlignments, numberToWords, VISEME_IDS, type Alignment, type Cue } from "../cues";
-import { audioClosureAt, closureSpan, LIPSYNC_PARTS, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, tongueAt, windowedLoudness } from "../evaluator";
+import { audioClosureAt, bridgeVowels, closureSpan, LIPSYNC_PARTS, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, tongueAt, windowedLoudness } from "../evaluator";
 import { wordToVisemes } from "../lipsync-en";
 import { visemePreset } from "@/lib/data";
 
@@ -210,6 +210,16 @@ describe("vowels from the audio", () => {
     snapVowels(cues, loud, 2, new WeakSet());
     expect((cues[0].start + cues[0].end) / 2).toBeCloseTo(0.4 + LIPSYNC.vowelShift, 2);
     expect((cues[1].start + cues[1].end) / 2).toBeCloseTo(0.7 + LIPSYNC.vowelShift, 2);
+  });
+  it("hold a vowel through a quick t to the same vowel ('spot on'), not across a p or another vowel", () => {
+    const spot: Cue = { viseme: "aa", start: 0.42, end: 0.51, text: "AA" };
+    const on: Cue = { viseme: "aa", start: 0.57, end: 0.65, text: "AA" };
+    bridgeVowels([spot, { viseme: "DD", start: 0.5, end: 0.56, text: "T" }, on]);
+    expect(spot.end).toBe(0.57);
+    expect(spot.bridge).toEqual([0.51, 0.57]);
+    const a: Cue = { viseme: "aa", start: 0.42, end: 0.51, text: "AA" };
+    bridgeVowels([a, { viseme: "PP", start: 0.5, end: 0.56, text: "P" }, { viseme: "aa", start: 0.57, end: 0.65, text: "AA" }]);
+    expect(a.end).toBe(0.51); // a p/b/m shuts the lips: no holding through it
   });
   it("keep a diphthong's second half with its first ('coat': not co-t-oo)", () => {
     const o: Cue = { viseme: "O", start: 0.3, end: 0.4, text: "OW" };
