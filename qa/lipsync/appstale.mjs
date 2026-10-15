@@ -106,6 +106,28 @@ async function line(t, step) {
 }
 
 for (const t of tabs) await line(t, "before");
+if (process.env.APP_IDLER) {
+  // the old player's habit, on purpose: a context left running with nothing to play (it stuck the tab's 48 kHz output
+  // after ~10 min unwatched): does the route still play on time?
+  for (const t of tabs) {
+    await wd("POST", "/window", { handle: t.handle });
+    await page.mouse.click(300, 300);
+    console.log("idler:", await page.evaluate(async () => { const c = (window.__idler = new AudioContext()); const o = c.createConstantSource(); o.offset.value = 0; o.connect(c.destination); o.start(); await Promise.race([c.resume(), new Promise((r) => setTimeout(r, 2000))]); return c.state + " " + c.sampleRate; }));
+  }
+}
+if (process.env.APP_CUT) {
+  // a line cut off half way (Stop), then the next straight after: its sound must not wait behind the cut one's
+  for (const t of tabs) {
+    await wd("POST", "/window", { handle: t.handle });
+    await page.mouse.click(300, 300);
+    await page.evaluate(() => window.__faceToVoice.speech.unlock());
+    await page.evaluate((nd) => window.__faceToVoice.speech.speak(() => Promise.resolve(new Response(nd))), nd);
+    await sleep(4300);
+    await page.evaluate(() => window.__faceToVoice.speech.stop());
+    await sleep(300);
+    await line(t, "aftercut");
+  }
+}
 await sleep(1500);
 const other = await wd("POST", "/window/new", { type: "tab" });
 await wd("POST", "/window", { handle: other.handle });
@@ -114,4 +136,13 @@ console.log(`behind another tab for ${hide} s`);
 await sleep(hide * 1000);
 await wd("DELETE", "/window");
 for (const t of tabs) await line(t, "after");
+if (process.env.APP_RELOAD) {
+  // a reload keeps a stuck output (the backlog even played on after one): each tab reloaded, then the line again
+  for (const t of tabs) {
+    await wd("POST", "/window", { handle: t.handle });
+    await page.goto(t.url);
+    await headReady(page);
+    await line(t, "reloaded");
+  }
+}
 await br.close();

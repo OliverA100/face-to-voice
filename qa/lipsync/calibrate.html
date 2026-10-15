@@ -95,6 +95,16 @@
     beeps = [];
     return { sampleRate: ctx.sampleRate, out: ctx.outputLatency, base: ctx.baseLatency };
   };
+  /** The microphone on (as a chat's: echo cancellation, noise suppression, gain control) or off. */
+  let mic = null;
+  window.calMic = async (on) => {
+    if (mic) { mic.getTracks().forEach((t) => t.stop()); mic = null; }
+    if (!on) return "off";
+    try {
+      mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      return "on " + mic.getAudioTracks()[0].label;
+    } catch (e) { return "mic failed: " + e.name; }
+  };
   /** A continuous murmur (the context kept busy), as speech playing when the tab goes to the background. */
   let fill = null;
   window.calFill = (on) => {

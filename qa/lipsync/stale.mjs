@@ -77,6 +77,24 @@ async function measure(step, opts) {
 // STALE_RATE: the context left idle runs at that rate (Hz), e.g. 44100
 const rate = Number(process.env.STALE_RATE) || 0;
 await measure("before", rate ? { fresh: true, sampleRate: rate } : {});
+if (process.env.STALE_MIC) {
+  // a chat: the mic on while the voice plays (the murmur), then off; then another app in front a moment (user,
+  // 2026-10-15: chat, click another app's window, back, another chat → the delay)
+  await page.evaluate(() => window.calFill(true));
+  console.log("mic:", await page.evaluate(() => window.calMic(true)));
+  await sleep(20_000);
+  console.log("mic:", await page.evaluate(() => window.calMic(false)));
+  await page.evaluate(() => window.calFill(false));
+  await measure("aftermic", {});
+  osa('tell application "Finder" to activate');
+  await sleep(Number(process.env.STALE_AWAY || 10) * 1000);
+  await measure("afterapp", {});
+  await measure("element", { route: "element" });
+  await measure("direct", { route: "direct" });
+  await measure("fresh44", { fresh: true, sampleRate: 44100 });
+  await br.close();
+  process.exit(0);
+}
 if (process.env.STALE_IDLE) {
   // nothing playing while it waits: the context idle, as the app's between lines (user: "an idle tab for a while")
   await page.evaluate(() => window.calQuiet(true));
