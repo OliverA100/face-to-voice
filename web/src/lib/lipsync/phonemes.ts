@@ -91,7 +91,10 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
       continue;
     }
     if (stress === "0" && WEAK_VOWELS.has(base)) {
-      items.push({ token: "AX", len: len * 0.8, phone: base });
+      // unstressed: a schwa ("a", "the") is a weak "ah"; an unstressed "er" ("water", "shimmered") barely opens and
+      // rounds a little, an unstressed "i" ("roses", "wanted") a little spread (as an "ah" the loud "-ered" of
+      // "shimmered" opened twice as wide as its stressed "shim": jumpy, user review 2026-10-15)
+      items.push({ token: base === "ER" ? "UX" : base === "IH" ? "IX" : "AX", len: len * 0.8, phone: base });
       continue;
     }
     if (p.shapes.length === 2) {

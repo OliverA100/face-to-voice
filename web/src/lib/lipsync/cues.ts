@@ -19,6 +19,8 @@ export const FOLD: Record<string, VisemeId | null> = {
   sil: null, PP: "PP", FF: "FF", TH: "TH", DD: "DD", kk: "DD", nn: "DD", CH: "CH", SS: "SS", RR: "U",
   aa: "aa", E: "E", I: "I", O: "O", U: "U", ih: "I", oh: "O", ou: "U", OO: "U", EE: "I",
   AX: "aa", // a schwa (lipsync-en.ts): an "aa" made weak (Cue.weak)
+  UX: "U", // an unstressed "er" (phonemes.ts): a weak "oo"
+  IX: "I", // an unstressed "i" (phonemes.ts): a weak "ee"
 };
 
 /**
@@ -191,7 +193,7 @@ function wordCues(word: string, charStart: (k: number) => number, charEnd: (k: n
       if (end - start < MIN_DURATION) end = start + MIN_DURATION;
     }
     const last = out[out.length - 1];
-    const weak = v.viseme === "AX";
+    const weak = v.viseme === "AX" || v.viseme === "UX" || v.viseme === "IX";
     const letters = v.phone ?? word.slice(v.charStart, v.charEnd);
     // from the dictionary the phoneme says it; from the letter rules, the letters do
     const glide = v.phone ? ["R", "W", "Y"].includes(v.phone) : v.viseme === "RR" || (v.viseme === "U" && v.from === 0 && /^w/i.test(letters));

@@ -23,7 +23,8 @@ describe("phonemes", () => {
   it("shape words as they are said: diphthongs end on their glide, an h takes its vowel, a schwa is weak", () => {
     expect(phonemesToVisemes("maybe", ["M", "EY1", "B", "IY0"]).map((v) => v.viseme)).toEqual(["PP", "E", "I", "PP", "I"]);
     expect(phonemesToVisemes("who", ["HH", "UW1"]).map((v) => v.viseme)).toEqual(["U", "U"]);
-    expect(phonemesToVisemes("water", ["W", "AO1", "T", "ER0"]).map((v) => v.viseme)).toEqual(["U", "O", "DD", "AX"]);
+    expect(phonemesToVisemes("water", ["W", "AO1", "T", "ER0"]).map((v) => v.viseme)).toEqual(["U", "O", "DD", "UX"]); // a weak, rounded "er"
+    expect(phonemesToVisemes("about", ["AH0", "B", "AW1", "T"]).map((v) => v.viseme)[0]).toBe("AX"); // a schwa: a weak "ah"
     // shares of the word in spoken order, covering it exactly
     const v = phonemesToVisemes("five", ["F", "AY1", "V"]);
     expect(v[0].from).toBe(0);
