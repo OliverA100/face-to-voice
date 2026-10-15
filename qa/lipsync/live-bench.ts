@@ -29,6 +29,7 @@ const fps = Number(opt("fps", "120"));
 const tag = opt("tag", "live");
 const sets = opt("set", "");
 const off = opt("off", "");
+const on = opt("on", "");
 const delay = opt("delay", ""); // seconds the voice is held back (LIVE.delay): how far the meter sees ahead
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const RUNS = path.join(HERE, "out", "runs");
@@ -45,6 +46,7 @@ for (const p of off.split(",").filter(Boolean)) {
   if (p === "phonemes") PHONEMES.enabled = false;
   else (LIPSYNC_PARTS as Record<string, boolean>)[p] = false;
 }
+for (const p of on.split(",").filter(Boolean)) (LIPSYNC_PARTS as Record<string, boolean>)[p] = true;
 if (delay) LIVE.delay = Number(delay);
 const DICT = dictionary as Record<string, string>;
 
