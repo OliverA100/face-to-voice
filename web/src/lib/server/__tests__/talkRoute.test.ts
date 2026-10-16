@@ -150,18 +150,14 @@ describe("POST /api/talk/token", () => {
     expect((await ticket({}, "9.9.9.9")).status).toBe(429); // the right one too
   });
 
-  it("gives the slot and the day's talk back when the visitor has no talks left", async () => {
-    for (let i = 0; i < 100; i++) {
-      const ok = await ticket({}, "7.7.7.7"); // 10 a day, ×10 without Redis
+  it("doesn't limit one visitor's chats: only the site's hidden ceiling does (2026-10-16)", async () => {
+    const before = await talks();
+    for (let i = 0; i < 105; i++) {
+      const ok = await ticket({}, "7.7.7.7"); // was 10 a day (×10 without Redis)
       expect(ok.status).toBe(200);
       await releaseSlot(ok.data.room);
     }
-    const before = await talks();
-    expect((await ticket({}, "7.7.7.7")).status).toBe(429);
-    expect(await talks()).toBe(before);
-    const other = await ticket({}, "6.6.6.6"); // the slot is free again
-    expect(other.status).toBe(200);
-    await releaseSlot(other.data.room);
+    expect(await talks()).toBe(before + 105);
   });
 
   it("charges the visitor's daily talks only once a slot is theirs", async () => {

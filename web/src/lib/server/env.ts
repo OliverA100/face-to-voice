@@ -33,12 +33,14 @@ export const env = {
   rateLimitSalt: process.env.RATE_LIMIT_SALT || (deployed ? "" : "dev-only-salt"),
   usageAdminToken: process.env.USAGE_ADMIN_TOKEN ?? "",
   caps: {
-    castingsPerDay: num(process.env.DAILY_CAP_CASTINGS, 200), // Claude castings (~1.1 ¢ each); cached faces are free
-    designsPerDay: num(process.env.DAILY_CAP_DESIGNS, 20),
-    savesPerDay: num(process.env.DAILY_CAP_SAVES, 10),
-    speakCharsPerDay: num(process.env.DAILY_CAP_SPEAK_CHARS, 20_000),
-    profilesPerDay: num(process.env.DAILY_CAP_PROFILES, 100), // character profiles Claude writes (~0.7 ¢ each); a saved one is free
-    talksPerDay: num(process.env.DAILY_CAP_TALKS, 20), // live conversations (~250 ElevenLabs credits each at 3 minutes)
+    // Hidden ceilings for a runaway day, far above normal use (2026-10-16: no visitor-facing limits but voices picked):
+    // speech and chats together stay near 25k ElevenLabs credits a day, under a fifth of the Creator plan's month
+    castingsPerDay: num(process.env.DAILY_CAP_CASTINGS, 2000), // Claude castings (~1.1 ¢ each); cached faces are free
+    designsPerDay: num(process.env.DAILY_CAP_DESIGNS, 100),
+    savesPerDay: num(process.env.DAILY_CAP_SAVES, 100),
+    speakCharsPerDay: num(process.env.DAILY_CAP_SPEAK_CHARS, 15_000), // ~1 credit each
+    profilesPerDay: num(process.env.DAILY_CAP_PROFILES, 1000), // character profiles Claude writes (~0.7 ¢ each); a saved one is free
+    talksPerDay: num(process.env.DAILY_CAP_TALKS, 40), // live conversations (~250 ElevenLabs credits each at 3 minutes)
   },
   /**
    * Pre-designed fallback voices used when the voice quota is spent: comma-separated "presentation-age:voiceId"

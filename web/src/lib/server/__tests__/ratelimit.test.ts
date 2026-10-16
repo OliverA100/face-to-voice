@@ -21,12 +21,16 @@ describe("visitor limits without Redis", () => {
 
 describe("what a refusal says", () => {
   it("names the visitor's own allowance, or the whole site's budget, and when it comes back", async () => {
-    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("3.3.3.3"), "talk"); // talk: 10 per day
-    await expect(checkVisitorLimit(from("3.3.3.3"), "talk")).rejects.toMatchObject({ message: "You've used all 10 of your live chats for today. They come back at midnight UTC." });
-    expect(await visitorUsage(from("3.3.3.3"))).toMatchObject({ talk: { used: 100, limit: 100 }, design: { used: 0, limit: 200 } });
+    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("3.3.3.3"), "select"); // voices picked: 10 per day
+    await expect(checkVisitorLimit(from("3.3.3.3"), "select")).rejects.toMatchObject({ message: "You've picked all 10 of your voices for today. More come back at midnight UTC." });
+    expect(await visitorUsage(from("3.3.3.3"))).toEqual({ select: { used: 100, limit: 100 }, invite: { used: 0, limit: 300 } });
     await consumeDailyCap("talks", 20);
-    await expect(consumeDailyCap("talks")).rejects.toMatchObject({ message: expect.stringContaining("not your own limit") });
+    await expect(consumeDailyCap("talks")).rejects.toMatchObject({ message: expect.stringContaining("paused for everyone") });
     await refundDailyCap("talks", 20);
+  });
+
+  it("limits nothing else per visitor: chats, lines, profiles, voice searches and switches (2026-10-16)", async () => {
+    for (const route of ["talk", "speak", "profile", "design", "switch"] as const) for (let i = 0; i < 1500; i++) await checkVisitorLimit(from("4.4.4.4"), route);
   });
 
   it("resets at the next midnight UTC", () => {

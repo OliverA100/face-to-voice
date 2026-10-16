@@ -1,12 +1,11 @@
-/** GET /api/limits: what this visitor and the whole site have used today. Everything resets at `resetAt` (midnight UTC). */
+/** GET /api/limits: what this visitor has used of their own limits today. They reset at `resetAt` (midnight UTC). */
 export interface LimitRow {
   id: string;
-  label: string; // "voice searches"
+  label: string; // "voices picked"
   used: number;
   limit: number;
 }
 export interface Limits {
   resetAt: string; // ISO time
   yours: LimitRow[]; // per visitor (lib/server/ratelimit.ts LIMITS)
-  site: LimitRow[]; // shared by every visitor (the daily caps)
 }

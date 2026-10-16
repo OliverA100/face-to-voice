@@ -18,25 +18,24 @@ import { ApiError, MESSAGES } from "./errors";
 
 export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk" | "invite";
 
-/** Per visitor, per UTC day: room to play, while one person (or a script) can't use up a day on their own. Tweak
- *  freely; the daily caps below are what protect the wallet. `label` names the allowance in messages and the limits
- *  dialog ("your 20 voice searches"). */
-export const LIMITS: Record<Route, { tokens: number; label: string }> = {
-  design: { tokens: 20, label: "voice searches" }, // Claude reads the face (also a recast: voice.ts recastFor)
-  select: { tokens: 10, label: "new voices saved" }, // saving a new voice (paid)
-  switch: { tokens: 100, label: "voice switches" }, // choosing a take that is already saved (free)
-  speak: { tokens: 100, label: "spoken lines" },
-  profile: { tokens: 20, label: "character profiles" }, // writing a character profile (Claude); reading a saved one is free
-  talk: { tokens: 10, label: "live chats" }, // live conversations
-  invite: { tokens: 30, label: "invite code tries" }, // tries with an invite code, right or wrong (talk.ts): no guessing at them
+/** Per visitor, per UTC day: only picking a voice (each one is a new voice saved at ElevenLabs, in a pool of 30
+ *  slots) and invite code tries (no guessing at them). Everything else has no limit per visitor (2026-10-16, the
+ *  owner's call): the daily caps below are hidden ceilings for a runaway day. `label` names the allowance in the limits
+ *  dialog, `message` the error when it runs out. */
+export const LIMITS: Partial<Record<Route, { tokens: number; label: string; message: (tokens: number) => string }>> = {
+  select: { tokens: 10, label: "voices picked", message: (n) => `You've picked all ${n} of your voices for today. More come back at midnight UTC.` },
+  invite: {
+    tokens: 30,
+    label: "invite code tries",
+    message: (n) => `You've used all ${n} of your invite code tries for today. They come back at midnight UTC.`,
+  },
 };
 
 const DAY_MS = 86_400_000;
 /** The next midnight UTC: when every limit and cap resets. */
 export const nextResetMs = (now = Date.now()) => (Math.floor(now / DAY_MS) + 1) * DAY_MS;
 
-const visitorLimitMessage = (route: Route) =>
-  `You've used all ${LIMITS[route].tokens} of your ${LIMITS[route].label} for today. They come back at midnight UTC.`;
+const visitorLimitMessage = (route: Route) => LIMITS[route]!.message(LIMITS[route]!.tokens);
 
 let redis: Redis | null | undefined;
 /** The shared Upstash client, or null without Redis (local dev). Also the store behind cache.ts. */
@@ -67,7 +66,7 @@ function limiterFor(route: Route, r: Redis): Ratelimit {
     l = new Ratelimit({
       redis: r,
       // A fixed 1-day window starts at midnight UTC (windows are counted from the epoch), like the daily caps
-      limiter: Ratelimit.fixedWindow(LIMITS[route].tokens, "1 d"),
+      limiter: Ratelimit.fixedWindow(LIMITS[route]!.tokens, "1 d"),
       prefix: `ftv:rl:${route}`,
       timeout: 2000, // treat a slow Redis as a deny (see below), never as a free pass
     });
@@ -86,13 +85,14 @@ const memCounters = new Map<string, number>();
 const memHitKey = (route: Route, id: string) => `${new Date().toISOString().slice(0, 10)}:${route}:${id}`;
 
 export async function checkVisitorLimit(request: Request, route: Route): Promise<void> {
+  if (!LIMITS[route]) return; // no limit per visitor on this step
   const id = visitorId(request);
   const r = getRedis();
   if (!r) {
     const key = memHitKey(route, id);
     const hits = (memHits.get(key) ?? 0) + 1;
     memHits.set(key, hits);
-    if (hits > LIMITS[route].tokens * DEV_MULTIPLIER) throw new ApiError("visitor_limit", visitorLimitMessage(route), 429, { resetAt: new Date(nextResetMs()).toISOString() });
+    if (hits > LIMITS[route]!.tokens * DEV_MULTIPLIER) throw new ApiError("visitor_limit", visitorLimitMessage(route), 429, { resetAt: new Date(nextResetMs()).toISOString() });
     return;
   }
   const res = await limiterFor(route, r).limit(id);
@@ -109,7 +109,7 @@ export async function visitorUsage(request: Request): Promise<Record<Route, { us
   const rows = await Promise.all(
     routes.map(async (route) => {
       if (!r) {
-        const limit = LIMITS[route].tokens * DEV_MULTIPLIER;
+        const limit = LIMITS[route]!.tokens * DEV_MULTIPLIER;
         return { used: Math.min(limit, memHits.get(memHitKey(route, id)) ?? 0), limit };
       }
       const { remaining, limit } = await limiterFor(route, r).getRemaining(id);
@@ -125,13 +125,13 @@ const CAP_KINDS: readonly CapKind[] = ["castings", "designs", "saves", "speakCha
 export const CAP_LABELS: Record<CapKind, { label: string; budget: string }> = {
   castings: { label: "faces read", budget: "reading faces" },
   designs: { label: "new voice designs", budget: "designing new voices" },
-  saves: { label: "new voices saved", budget: "saving new voices" },
+  saves: { label: "voices picked", budget: "picking voices" },
   speakChars: { label: "characters spoken", budget: "speech" },
   profiles: { label: "character profiles", budget: "character profiles" },
   talks: { label: "live chats", budget: "live chats" },
 };
 const capMessage = (kind: CapKind) =>
-  `The whole site has used today's budget for ${CAP_LABELS[kind].budget}. It's shared by every visitor, not your own limit, and resets at midnight UTC.`;
+  `The site is very busy today, so ${CAP_LABELS[kind].budget} is paused for everyone until midnight UTC. It isn't anything you did.`;
 const capLimit = (kind: CapKind) =>
   ({ castings: env.caps.castingsPerDay, designs: env.caps.designsPerDay, saves: env.caps.savesPerDay, speakChars: env.caps.speakCharsPerDay, profiles: env.caps.profilesPerDay, talks: env.caps.talksPerDay })[kind];
 const todayKey = (kind: CapKind) => `ftv:cap:${new Date().toISOString().slice(0, 10)}:${kind}`;

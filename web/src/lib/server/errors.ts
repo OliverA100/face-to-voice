@@ -21,7 +21,7 @@ export const MESSAGES = {
   bad_request: "Invalid request.",
   // ratelimit.ts words both for the step that was refused ("your 20 voice searches", "the whole site's live chats")
   visitor_limit: "You've used your own limit for this step today. It comes back at midnight UTC.",
-  daily_cap: "The whole site has used today's budget for this step. It's shared by every visitor, not your own limit, and resets at midnight UTC.",
+  daily_cap: "The site is very busy today, so this step is paused for everyone until midnight UTC. It isn't anything you did.",
   voice_quota: "The site couldn't save a new voice for this take, so it uses the closest ready-made voice instead.",
   upstream: "The voice service didn't answer this time. Please try again in a moment.", // ElevenLabs
   upstream_cast: "Couldn't read the face this time. Please try again in a moment.", // Claude's casting

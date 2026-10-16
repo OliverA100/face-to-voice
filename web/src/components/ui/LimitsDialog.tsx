@@ -1,8 +1,8 @@
 "use client";
 
 /**
- * "Today's limits": what this visitor has used of their own daily limits, what the whole site has used of its daily
- * budget, why both exist, and a countdown to midnight UTC, when both reset. Opened from the header's Limits button
+ * "Today's limits": what this visitor has used of their own daily limits (voices picked), why, and a countdown to
+ * midnight UTC, when they reset. Opened from the header's Limits button
  * and from any limit error's "See your limits" (lib/limits/open.ts). A native <dialog>: focus, Escape and the
  * backdrop come with it. Asks GET /api/limits each time it opens (asking counts nothing).
  */
@@ -105,9 +105,8 @@ export function LimitsDialog() {
         </div>
 
         <p className="text-label text-ink-2">
-          Every voice, line, profile and chat here calls paid services (Claude by Anthropic, and ElevenLabs). The demo is
-          free, so each visitor gets a daily allowance, and the whole site has a daily budget that everyone shares. They
-          keep it running, and fair for everyone.
+          Speaking, chatting and finding voices have no limits. Picking a voice makes a new voice at ElevenLabs, which
+          has room for only so many, so each visitor can pick a few a day.
         </p>
 
         <p className="rounded-tray bg-surface px-3 py-2 text-label text-ink" aria-live="off">
@@ -145,17 +144,6 @@ export function LimitsDialog() {
                 ))}
               </ul>
               <p className="text-meta text-ink-3">Counted per network connection, so people on the same Wi-Fi share them.</p>
-            </section>
-            <section aria-labelledby="limits-site" className="flex flex-col gap-2">
-              <h3 id="limits-site" className="text-label font-medium text-ink">
-                The whole site
-              </h3>
-              <ul className="flex flex-col gap-3">
-                {limits.site.map((row) => (
-                  <Row key={row.id} row={row} />
-                ))}
-              </ul>
-              <p className="text-meta text-ink-3">When one of these runs out, that step pauses for everyone until the reset.</p>
             </section>
           </>
         )}
