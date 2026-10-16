@@ -9,9 +9,6 @@
  * context (a chat). Found after a context left running with nothing to play in a tab nobody looked at, and after chats
  * with clicks into other apps. A MediaStream is live, so nothing waits in a queue behind anything: played by an element,
  * the same beeps stayed on time with the context's own output stuck (qa/lipsync stale.mjs), ROUTE_EXTRA later.
- *
- * `?audioRoute=direct` keeps the context's own destination (this page view); `?audioRoute=element` takes the element
- * route in any browser (for testing).
  */
 import { isAppleTouch } from "./staleTab";
 
@@ -26,18 +23,14 @@ export function isDesktopSafari(): boolean {
   return /Safari\//.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua) && !isAppleTouch();
 }
 
-let choice: boolean | null = null;
+
 /**
  * Whether sound takes the element route on this page: Safari, on a Mac and on iPhones and iPads (the iPhone simulator's
  * output stuck the same way, a looping tone, and the route played on; on an iPhone, 2026-10-15: loudspeaker, in sync,
  * Stop silent, no lock-screen player, fine after another app).
  */
 export function elementRoute(): boolean {
-  if (choice === null) {
-    const q = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("audioRoute");
-    choice = q === "element" ? true : q === "direct" ? false : isDesktopSafari() || isAppleTouch();
-  }
-  return choice;
+  return isDesktopSafari() || isAppleTouch();
 }
 
 const routes = new WeakMap<BaseAudioContext, { node: MediaStreamAudioDestinationNode; el: HTMLAudioElement }>();

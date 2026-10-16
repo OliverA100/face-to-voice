@@ -61,8 +61,8 @@ describe("output route", () => {
     expect(els).toHaveLength(2);
   });
 
-  it("Chrome keeps the context's own destination, the iPhone takes the route too; ?audioRoute= overrides", async () => {
-    for (const [ua, search, touch, want] of [[CHROME, "", 0, "destination"], [IPHONE, "", 5, "stream"], [SAFARI, "?audioRoute=direct", 0, "destination"], [CHROME, "?audioRoute=element", 0, "stream"]] as const) {
+  it("Chrome keeps the context's own destination, the iPhone takes the route too", async () => {
+    for (const [ua, search, touch, want] of [[CHROME, "", 0, "destination"], [IPHONE, "", 5, "stream"]] as const) {
       vi.resetModules();
       const { ctx } = browser(ua, search, touch);
       const { outputOf, routeDelay } = await import("../output");

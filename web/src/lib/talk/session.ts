@@ -85,26 +85,17 @@ function micFailure(e: unknown): EndReason {
  * character speaks. On an iPhone's loudspeaker the chats popped all through the character's speech, with headphones they
  * didn't (2026-10-16): iOS's echo canceller chops the call's playback. Without it the microphone would hear the
  * character, so it listens only between replies (no interrupting it mid-sentence). Checked on an iPhone: no pops, the
- * character never heard itself. `?talkEcho=on` keeps the echo canceller (as before), `?talkEcho=off` takes this mode
- * anywhere.
+ * character never heard itself.
  */
-const echoOff = () => {
-  if (typeof window === "undefined") return false;
-  const q = new URLSearchParams(window.location.search).get("talkEcho");
-  return q === "off" || (q !== "on" && isAppleTouch());
-};
+const echoOff = () => isAppleTouch();
 /** After the character stops (its state), the microphone waits this long (ms): the voice is held back and still heard. */
 const DUPLEX_TAIL_MS = 400;
 /**
  * Without the echo canceller iOS plays the voice much quieter on the loudspeaker (2026-10-16: a plain 10x gain into a
  * limiter "could be higher"; the voice already peaks at full scale, so gain alone only clips). It is compressed and
- * made up (live.ts: +5 dB of speech loudness at this make-up gain of 2, nothing clipped); `?talkBoost=` sets the
- * make-up gain (1–4).
+ * made up (live.ts: +5 dB of speech loudness at this make-up gain, nothing clipped; louder and it clips again).
  */
-const chatBoost = () => {
-  const q = Number(new URLSearchParams(window.location.search).get("talkBoost"));
-  return Number.isFinite(q) && q >= 1 ? Math.min(4, q) : 2;
-};
+const CHAT_MAKEUP = 2;
 
 export class TalkSession {
   private readonly halfDuplex = echoOff();
@@ -165,12 +156,9 @@ export class TalkSession {
       if (this.ctx && this.live && track.mediaStreamTrack) {
         const live = this.live;
         // The voice plays from the lip sync's own audio graph, so what the mouth measures is what is heard
-        // (lib/lipsync/live.ts). ?talkAudio=element keeps livekit-client's element instead (no lip-sync timing fix).
-        const params = new URLSearchParams(location.search);
-        const playThrough = params.get("talkAudio") !== "element";
-        // the captions wait for the voice, which is held back
-        if (playThrough) this.captionDelayMs = LIVE.delay * 1000;
-        live.attach(track.mediaStreamTrack, playThrough, LIVE.delay, this.halfDuplex ? chatBoost() : 1).then(
+        // (lib/lipsync/live.ts); the captions wait for the voice, which is held back
+        this.captionDelayMs = LIVE.delay * 1000;
+        live.attach(track.mediaStreamTrack, true, LIVE.delay, this.halfDuplex ? CHAT_MAKEUP : 1).then(
           () => {
             if (this.snap.state === "ended") return; // over while the meter was loading
             // the element stays the voice until the graph really plays (and becomes it again if Safari suspends it).
@@ -179,7 +167,7 @@ export class TalkSession {
             // copy would come first and the mouth look late.
             const ctx = this.ctx!;
             const route = () => {
-              const muted = playThrough && ctx.state === "running";
+              const muted = ctx.state === "running";
               if (el.muted !== muted) el.muted = muted;
             };
             route();
@@ -273,7 +261,7 @@ export class TalkSession {
     try {
       const pub = await room.localParticipant.setMicrophoneEnabled(true);
       this.micTrackSid = pub?.trackSid ?? null;
-      // ?talkEcho=off: the greeting can start before the microphone is published (duplex found nothing to mute, and the
+      // iPhones and iPads (halfDuplex): the greeting can start before the microphone is published (duplex found nothing to mute, and the
       // character heard itself on its first reply: 2026-10-16)
       if (this.halfDuplex && this.agentState === "speaking") this.duplex("speaking");
     } catch (e) {
@@ -295,7 +283,8 @@ export class TalkSession {
     this.set({ joinedAt: Date.now(), state: this.snap.state === "ended" ? "ended" : "listening" });
   }
 
-  /** ?talkEcho=off: the microphone off while the character speaks, back on just after (unless the visitor muted it). */
+  /** iPhones and iPads (halfDuplex): the microphone off while the character speaks, back on just after (unless the
+   *  visitor muted it). */
   private duplex(state: string) {
     const track = this.room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
     if (!track) return;
