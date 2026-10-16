@@ -39,6 +39,7 @@ import { clampProfile } from "@/lib/server/profileSchema";
 import { descriptionKey } from "@/lib/server/keys";
 import { descriptionIdentity, type DescriptionFields } from "@/lib/server/prompt";
 import { dailyUsage } from "@/lib/server/ratelimit";
+import { newVisitorCookie } from "@/lib/server/visitor";
 
 const FIELDS: DescriptionFields = {
   presentation: "feminine", ageRange: "70s", character: "distinct", build: "average", energy: "calm", pacing: "slow", pitch: "medium-low",
@@ -49,8 +50,14 @@ const DESC = descriptionKey(descriptionIdentity(FIELDS));
 const FACE = "f".repeat(64);
 const GENERATED = clampProfile(mockProfile(FIELDS));
 
-const call = (route: typeof profile, body: object, ip = "1.1.1.1") =>
-  route(new Request("http://localhost/api/character/profile", { method: "POST", headers: { "x-real-ip": ip }, body: JSON.stringify({ faceKey: FACE, descKey: DESC, ...body }) }));
+const call = (route: typeof profile, body: object, ip = "1.1.1.1", cookie?: string) =>
+  route(
+    new Request("http://localhost/api/character/profile", {
+      method: "POST",
+      headers: { "x-real-ip": ip, ...(cookie ? { cookie: `ftv_visitor=${cookie}` } : {}) },
+      body: JSON.stringify({ faceKey: FACE, descKey: DESC, ...body }),
+    }),
+  );
 const json = async (r: Response) => ({ status: r.status, body: await r.json() });
 const used = async () => (await dailyUsage()).profiles.used;
 
@@ -89,6 +96,17 @@ describe("POST /api/character/profile", () => {
     expect((await json(await call(profile, { regenerate: true }))).body).toEqual({ profile: another, own: true });
     expect((await json(await call(profile, {}))).body).toEqual({ profile: another, own: true });
     expect((await json(await call(profile, {}, "3.3.3.3"))).body).toEqual({ profile: GENERATED, own: false });
+  });
+
+  it("keeps a 'Recast' with the browser that asked: another browser on the same Wi-Fi meets the shared one", async () => {
+    const [mine, theirs] = [newVisitorCookie()!, newVisitorCookie()!];
+    await call(profile, {}, "1.1.1.1", mine);
+    const another = { ...GENERATED, name: "Tamsin Rowe" };
+    vi.mocked(writeProfile).mockResolvedValueOnce(another);
+    expect((await json(await call(profile, { regenerate: true }, "1.1.1.1", mine))).body).toEqual({ profile: another, own: true });
+    expect((await json(await call(profile, {}, "1.1.1.1", theirs))).body).toEqual({ profile: GENERATED, own: false });
+    expect((await json(await call(profile, {}, "1.1.1.1"))).body).toEqual({ profile: GENERATED, own: false }); // no cookie: the network's
+    expect((await json(await call(profile, {}, "9.9.9.9", mine))).body).toEqual({ profile: another, own: true }); // a new network: still theirs
   });
 
   it("gives the charge back when Claude fails", async () => {

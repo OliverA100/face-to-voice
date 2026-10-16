@@ -1,9 +1,10 @@
 "use client";
 
 /**
- * "Today's limits": what this visitor has used of their own daily limits (voices picked), why, and a countdown to
- * midnight UTC, when they reset. Opened from the header's Limits button
- * and from any limit error's "See your limits" (lib/limits/open.ts). A native <dialog>: Escape, the backdrop and the
+ * "Today's limits": what this browser has used of its own daily limits (voices picked), why, and a countdown to
+ * midnight UTC, when they reset. A browser without the visitor cookie is counted with its whole network
+ * (lib/server/visitor.ts), and a network that reached its ceiling shows as paused even with picks left. Opened from
+ * the header's Limits button and from any limit error's "See your limits" (lib/limits/open.ts). A native <dialog>: Escape, the backdrop and the
  * page behind made inert come with it. Asks GET /api/limits each time it opens (asking counts nothing).
  *
  * Focus: it opens on its title (mostly text to read: the title is announced, and nothing shows a ring; the native first
@@ -30,13 +31,14 @@ function left(ms: number): string {
 
 function Row({ row }: { row: LimitRow }) {
   const out = row.used >= row.limit;
+  const paused = !out && row.network.used >= row.network.limit; // picks left, but the network's ceiling is reached
   const share = row.limit ? Math.min(1, row.used / row.limit) : 0;
   return (
     <li className="flex flex-col gap-1">
       <div className="flex items-baseline justify-between gap-3 text-label">
         <span className="text-ink first-letter:uppercase">{row.label}</span>
-        <span className={out ? "text-danger" : "text-ink-3"}>
-          {out ? "used up · " : ""}
+        <span className={out || paused ? "text-danger" : "text-ink-3"}>
+          {out ? "used up · " : paused ? "paused on your network · " : ""}
           {row.used.toLocaleString()} of {row.limit.toLocaleString()}
         </span>
       </div>
@@ -101,6 +103,7 @@ export function LimitsDialog() {
 
   const close = () => ref.current?.close();
   const localTime = resetAt ? new Date(resetAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+  const picks = limits?.yours.find((row) => row.id === "select"); // the numbers in the note under the rows
 
   return (
     <dialog
@@ -139,7 +142,7 @@ export function LimitsDialog() {
 
         <p className="text-label text-ink-2">
           Speaking, chatting and finding voices have no limits. Picking a voice makes a new voice at ElevenLabs, which
-          has room for only so many, so each visitor can pick a few a day.
+          has room for only so many, so each browser can pick a few a day.
         </p>
 
         <p className="rounded-tray bg-surface px-3 py-2 text-label text-ink" aria-live="off">
@@ -176,7 +179,16 @@ export function LimitsDialog() {
                   <Row key={row.id} row={row} />
                 ))}
               </ul>
-              <p className="text-meta text-ink-3">Counted per network connection, so people on the same Wi-Fi share them.</p>
+              <p className="text-meta text-ink-3">
+                {limits.per === "browser" ? (
+                  <>
+                    {picks?.limit ?? 10} a day on this browser, counted with a cookie that holds only a random id. Each network can pick{" "}
+                    {picks?.network.limit ?? 30} a day in all, so a very busy Wi-Fi can run out sooner.
+                  </>
+                ) : (
+                  "This browser isn’t keeping cookies, so these are counted per network connection: people on the same Wi-Fi share them."
+                )}
+              </p>
             </section>
           </>
         )}

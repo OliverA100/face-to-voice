@@ -29,8 +29,8 @@ const ownKey = (visitor: string, pKey: string) => `ftv:profile:${visitor}:${pKey
 const WRITE_SECONDS = 55;
 const WAIT_MS = 45_000;
 
-/** No casting for this visitor (their IP changed, or it expired): the browser recasts the face for the same voice
- *  (POST /api/voice/recast) and asks again, so this is only seen when it can't. */
+/** No casting for this visitor (a new browser or cleared cookie, or it expired): the browser recasts the face for the
+ *  same voice (POST /api/voice/recast) and asks again, so this is only seen when it can't. */
 const MISSING = "This character needs casting again. Try again to recast them for the same voice.";
 
 /** The visitor's casting for this face, checked against the voice it was asked for. */

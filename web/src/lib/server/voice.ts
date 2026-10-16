@@ -477,7 +477,7 @@ const RECAST_GONE = "This character can't be recast here. Go to Voice and press 
 
 /**
  * A new casting for a voice this visitor already has, when theirs is missing (castings are kept per visitor, and a
- * visitor is their IP: a phone that changes networks or uses iCloud Private Relay is a new visitor). Claude reads the
+ * visitor is their browser's cookie: a cleared cookie, another browser or a cache expiry loses them). Claude reads the
  * face again; everything that makes the voice comes from the voice's identity, so the voice stays the same and only
  * the free text (persona of an everyday character, line) is new, written for that voice. Charged like a design. The sliders and look are the
  * ones the voice was found with (checked against its face key); the picture comes only while the face on screen is

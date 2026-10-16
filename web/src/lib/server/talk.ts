@@ -88,7 +88,7 @@ async function liveRooms(names: string[]): Promise<Set<string>> {
 /**
  * Take a conversation slot for `room`, or throw `busy`. A Redis failure counts as busy (fail closed). Under a lock, so two
  * requests at once can't both see a free slot. `replaces`: the room of this browser's previous conversation ("Have another
- * chat"), ended here if it is this visitor's; not every room of theirs (visitors are IP hashes: a shared network is one).
+ * chat"), ended here if it is this visitor's; not every room of theirs (a browser without cookies is its whole network).
  */
 export async function takeSlot(room: string, visitor: string, replaces?: string): Promise<void> {
   const lock = await acquireLock("ftv:lock:talk-slots", SLOTS_LOCK_SECONDS).catch(() => null);

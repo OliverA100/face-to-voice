@@ -57,7 +57,7 @@ first words of a conversation) that a live conversation will play.
 - **What they want stays in the story.** A character's want is a small goal from their own life ("to find whoever
   keeps moving my lobster pots"), never dangerous; asking the visitor's opinion or help with it is part of the game,
   and nothing they want needs anything from the visitor in real life (no money, details or meetings).
-- **Limits.** 20 new profiles per visitor a day; 100 a day in total (`DAILY_CAP_PROFILES`).
+- **Limits.** No limit per visitor; 1,000 new profiles a day in total (`DAILY_CAP_PROFILES`).
 
 ## Live conversations
 
@@ -75,10 +75,10 @@ Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
 - **The browser can't change the character.** The voice id, the instructions and the limits are read from the
   server's own records and signed into the LiveKit token; the browser only names which face and voice. The token lets
   it join one room with a microphone and nothing else (no data, no video), within 20 seconds.
-- **Limits, enforced by the server and the agent:** five conversations at a time; 10 a day per visitor and 20 a day in
-  total; at most three minutes (the agent says goodbye and ends it, and never runs past five minutes whatever it is
-  told); after 15 seconds of silence the character checks in once, and 15 more end it; the microphone is asked for
-  before anything is paid for. Talking can also be made invite-only (`TALK_INVITE_CODES`, with `TALK_PUBLIC` unset).
+- **Limits, enforced by the server and the agent:** five conversations at a time; no limit per visitor and 40 a day in
+  total (`DAILY_CAP_TALKS`); at most three minutes (the agent says goodbye and ends it, and never runs past five
+  minutes whatever it is told); after 15 seconds of silence the character checks in once, and 15 more end it; the
+  microphone is asked for before anything is paid for. Talking can also be made invite-only (`TALK_INVITE_CODES`, with `TALK_PUBLIC` unset).
 - **What is stored:** by Face to Voice, nothing of the conversation (no audio, no transcripts); the agent's logs hold
   timings and token counts, never words (the agent framework's own logs, which can quote them, are kept to fatal
   errors). LiveKit carries the audio between the browser and the agent; its session recording is turned off for every
@@ -96,8 +96,10 @@ Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
   the emotion id.
 - **Stored:** cached castings (per visitor), voice records and audio clips, keyed by hashes of the face and text;
   character profiles (shared per voice, or the visitor's own "Recast"), 30 days. No accounts, no
-  screenshots, no raw IP addresses: visitors are counted by a salted HMAC of the IP. A character's rebuild link lives in
-  the URL hash, which browsers never send to a server.
+  screenshots, no raw IP addresses. A visitor is their browser: one first-party cookie (`ftv_visitor`, HttpOnly, a
+  year) holds a random id signed by the server, nothing about the person, and is used only for the limits and to keep
+  each visitor's castings, "Recast" characters and conversations their own. Networks are counted by a salted HMAC of
+  the IP (IPv6 by its /64). A character's rebuild link lives in the URL hash, which browsers never send to a server.
 
 ## Abuse and cost protection
 
@@ -106,16 +108,17 @@ Every paid route (`/api/voice/design`, `/select`, `/speak`, `/api/character/prof
 1. a same-origin check (`Sec-Fetch-Site` and `Origin` must match; requests with no browser headers are refused in
    production);
 2. Vercel BotID;
-3. a per-visitor daily limit in Upstash Redis (reset at midnight UTC): 20 designs, 10 new voices, 100 lines, 20 new
-   profiles and 10 conversations a day. Visitors can see theirs, and the global caps, under Limits in the header;
-4. a global daily cap: 200 castings, 20 designs, 10 saves, 20,000 spoken characters, 100 profiles, 20 conversations
-   (configurable);
+3. a per-visitor daily limit in Upstash Redis (reset at midnight UTC) on picking a voice: 10 new voices a day per
+   browser, and 30 per network, so clearing cookies can't reset it (a browser without cookies counts as its network).
+   Visitors can see theirs under Limits in the header;
+4. a global daily cap, a hidden ceiling for a runaway day: 2,000 castings, 100 designs, 100 saves, 15,000 spoken
+   characters, 1,000 profiles, 40 conversations (configurable);
 5. ElevenLabs' and Anthropic's own per-key quotas and spend limits, set in their dashboards.
 
-Two routes charge only what they use. `/api/character/profile` spends the visitor's window and the cap only when it
-writes a profile (a saved one is free). `/api/talk/token` (when invite-only, it first counts every try with an invite
-code, 30 a day, so codes can't be guessed at) reserves the daily cap, and spends the visitor's conversation last, once a
-conversation slot is theirs and the token is made; anything that fails before that gives the cap back.
+Two routes charge only what they use. `/api/character/profile` spends the cap only when it writes a profile (a saved
+one is free). `/api/talk/token` (when invite-only, it first counts every try with an invite code, 30 a day per browser
+and 60 per network, so codes can't be guessed at) reserves the daily cap first and gives it back when anything fails
+before the token is made (a busy slot, a retired voice).
 
 Any Vercel deployment (production or preview) refuses the paid routes without Redis or without a rate-limit salt
 (fail closed), and a slow Redis counts as a refusal. Speech reserves its characters against the daily cap before the

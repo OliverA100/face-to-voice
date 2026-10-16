@@ -1,7 +1,7 @@
 /**
  * GET /api/limits  -> Limits (lib/limits/types.ts)
- * What this visitor has used of their own limits today (voices picked; invite code tries are counted but never shown)
- * and when they reset. The site-wide daily caps are hidden ceilings, not shown. Read-only: asking counts nothing.
+ * What this visitor has used of their own limits today (voices picked; invite code tries are counted but never shown),
+ * whether that is per browser or (without the visitor cookie) per network, the network's ceiling, and when they reset. The site-wide daily caps are hidden ceilings, not shown. Read-only: asking counts nothing.
  * Same-origin only (no BotID: nothing here costs money).
  */
 import { errorResponse } from "@/lib/server/errors";
@@ -15,11 +15,12 @@ export async function GET(request: Request) {
   try {
     assertSameOrigin(request);
     requireStore();
-    const yours = await visitorUsage(request);
+    const { per, usage } = await visitorUsage(request);
     const body: Limits = {
       resetAt: new Date(nextResetMs()).toISOString(),
+      per,
       // invite code tries are never shown (they stop guessing; visitors needn't know): only the voices picked
-      yours: (Object.keys(yours) as Route[]).filter((id) => id !== "invite").map((id) => ({ id, label: LIMITS[id]!.label, ...yours[id] })),
+      yours: (Object.keys(usage) as Route[]).filter((id) => id !== "invite").map((id) => ({ id, label: LIMITS[id]!.label, ...usage[id] })),
     };
     return Response.json(body, { headers: { "cache-control": "no-store" } });
   } catch (e) {

@@ -46,6 +46,7 @@ import type { TalkMetadata } from "@/lib/server/characterPrompt";
 import type { DescriptionFields } from "@/lib/server/prompt";
 import { dailyUsage } from "@/lib/server/ratelimit";
 import { releaseSlot } from "@/lib/server/talk";
+import { newVisitorCookie } from "@/lib/server/visitor";
 
 const FIELDS = {
   presentation: "masculine", ageRange: "70s", accent: "glaswegian", accentStrength: "thick", timbre: "gravelly", quirk: "chuckles",
@@ -58,8 +59,14 @@ const PROFILE: CharacterProfile = {
 };
 const KEY = "a".repeat(64);
 
-const ask = (body: object, ip = "1.1.1.1") =>
-  POST(new Request("http://localhost/api/talk/token", { method: "POST", headers: { "x-real-ip": ip }, body: JSON.stringify({ faceKey: KEY, descKey: KEY, invite: "sesame", ...body }) }));
+const ask = (body: object, ip = "1.1.1.1", cookie?: string) =>
+  POST(
+    new Request("http://localhost/api/talk/token", {
+      method: "POST",
+      headers: { "x-real-ip": ip, ...(cookie ? { cookie: `ftv_visitor=${cookie}` } : {}) },
+      body: JSON.stringify({ faceKey: KEY, descKey: KEY, invite: "sesame", ...body }),
+    }),
+  );
 const talks = async () => (await dailyUsage()).talks.used;
 
 beforeEach(async () => {
@@ -70,8 +77,8 @@ beforeEach(async () => {
 });
 
 /** Every test ends with its conversation over, so the next one finds the slot free. */
-async function ticket(body: object = {}, ip = "1.1.1.1") {
-  const res = await ask(body, ip);
+async function ticket(body: object = {}, ip = "1.1.1.1", cookie?: string) {
+  const res = await ask(body, ip, cookie);
   const data = await res.json();
   if (res.ok) await releaseSlot(data.room);
   return { status: res.status, data };
@@ -144,10 +151,19 @@ describe("POST /api/talk/token", () => {
   });
 
   it("counts every try with an invite code before comparing it: once they are spent, no code is checked at all", async () => {
-    const tries = await Promise.all(Array.from({ length: 300 }, () => ticket({ invite: "guess" }, "9.9.9.9"))); // 30 a day, ×10 without Redis; at once
+    const guesser = newVisitorCookie()!;
+    const tries = await Promise.all(Array.from({ length: 300 }, () => ticket({ invite: "guess" }, "9.9.9.9", guesser))); // 30 a day, ×10 without Redis; at once
     expect(tries.every((t) => t.status === 403)).toBe(true);
-    expect((await ticket({ invite: "guess" }, "9.9.9.9")).status).toBe(429);
-    expect((await ticket({}, "9.9.9.9")).status).toBe(429); // the right one too
+    expect((await ticket({ invite: "guess" }, "9.9.9.9", guesser)).status).toBe(429);
+    expect((await ticket({}, "9.9.9.9", guesser)).status).toBe(429); // the right one too
+    expect((await ticket({}, "9.9.9.9", newVisitorCookie()!)).status).toBe(200); // another browser on that network has its own
+  });
+
+  it("stops a guesser who clears cookies at the network's ceiling (60 tries a day, ×10 without Redis)", async () => {
+    const tries = await Promise.all(Array.from({ length: 600 }, () => ticket({ invite: "guess" }, "9.9.8.8", newVisitorCookie()!)));
+    expect(tries.every((t) => t.status === 403)).toBe(true);
+    expect((await ticket({}, "9.9.8.8", newVisitorCookie()!)).status).toBe(429);
+    expect((await ticket({}, "9.9.8.8")).status).toBe(429); // and without a cookie
   });
 
   it("doesn't limit one visitor's chats: only the site's hidden ceiling does (2026-10-16)", async () => {

@@ -91,7 +91,7 @@ export function requestProfile(design: Pick<DesignResult, "faceKey" | "descKey">
 
 /**
  * `call`, recasting the face first when the server has no casting for this visitor (code "recast": castings are kept
- * per IP, so a phone that changed networks has none). The voice stays the same: the server locks everything that
+ * per browser, so one with a cleared cookie has none). The voice stays the same: the server locks everything that
  * makes it (lib/server/voice.ts recastFor). It casts the face the voice was found for (`sent`), with a picture while
  * the face on screen is still that face, from its sliders and look alone once it has changed. Used for the profile
  * and the live chat.

@@ -7,23 +7,62 @@ vi.mock("next/server", () => ({ after: vi.fn() }));
 vi.mock("../env", () => ({ env }));
 
 import { checkVisitorLimit, consumeDailyCap, dailyUsage, nextResetMs, refundDailyCap, requireStore, visitorId, visitorUsage } from "../ratelimit";
+import { newVisitorCookie } from "../visitor";
 
-const from = (ip: string) => new Request("http://localhost/api/voice/select", { method: "POST", headers: { "x-forwarded-for": `${ip}, 10.0.0.1` } });
+/** A request from `ip`, from the browser holding `cookie` (a visitor cookie value), or from one without cookies. */
+const from = (ip: string, cookie?: string) =>
+  new Request("http://localhost/api/voice/select", { method: "POST", headers: { "x-forwarded-for": `${ip}, 10.0.0.1`, ...(cookie ? { cookie: `ftv_visitor=${cookie}` } : {}) } });
+const browser = () => newVisitorCookie()!;
+const NETWORK_MESSAGE = "So many voices were picked on your network today that picking is paused here until midnight UTC.";
 
 describe("visitor limits without Redis", () => {
-  it("allow 10× the per-visitor limit, per visitor", async () => {
-    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("1.1.1.1"), "select"); // select: 10 per day
-    await expect(checkVisitorLimit(from("1.1.1.1"), "select")).rejects.toMatchObject({ code: "visitor_limit", status: 429 });
-    await expect(checkVisitorLimit(from("2.2.2.2"), "select")).resolves.toBeUndefined();
-    await expect(checkVisitorLimit(from("1.1.1.1"), "speak")).resolves.toBeUndefined();
+  it("allow 10× the per-visitor limit, per browser: two browsers on one network have one each", async () => {
+    const [a, b] = [browser(), browser()];
+    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("1.1.1.1", a), "select"); // select: 10 per day
+    await expect(checkVisitorLimit(from("1.1.1.1", a), "select")).rejects.toMatchObject({ code: "visitor_limit", status: 429 });
+    await expect(checkVisitorLimit(from("2.2.2.2", a), "select")).rejects.toMatchObject({ code: "visitor_limit" }); // another network: still that browser
+    await expect(checkVisitorLimit(from("1.1.1.1", b), "select")).resolves.toBeUndefined();
+    await expect(checkVisitorLimit(from("1.1.1.1", a), "speak")).resolves.toBeUndefined();
+  });
+
+  it("stop a loop that clears its cookie at the network's ceiling (30 a day, 10× here)", async () => {
+    for (let i = 0; i < 300; i++) await checkVisitorLimit(from("5.5.5.5", browser()), "select");
+    await expect(checkVisitorLimit(from("5.5.5.5", browser()), "select")).rejects.toMatchObject({ code: "visitor_limit", status: 429, message: NETWORK_MESSAGE });
+    await expect(checkVisitorLimit(from("5.5.5.5"), "select")).rejects.toMatchObject({ message: NETWORK_MESSAGE });
+    await expect(checkVisitorLimit(from("5.5.5.6", browser()), "select")).resolves.toBeUndefined();
+  });
+
+  it("don't count a browser's refused picks against its network", async () => {
+    const spent = browser();
+    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("6.6.6.6", spent), "select");
+    for (let i = 0; i < 50; i++) await expect(checkVisitorLimit(from("6.6.6.6", spent), "select")).rejects.toMatchObject({ code: "visitor_limit" });
+    for (let i = 0; i < 200; i++) await checkVisitorLimit(from("6.6.6.6", browser()), "select"); // the network has 200 of its 300 left
+  });
+
+  it("count an IPv6 network by its /64: rotating addresses don't make a new one", async () => {
+    for (let i = 0; i < 300; i++) await checkVisitorLimit(from(`2001:db8:7:7::${i.toString(16)}`, browser()), "select");
+    await expect(checkVisitorLimit(from("2001:db8:7:7:abcd::1", browser()), "select")).rejects.toMatchObject({ message: NETWORK_MESSAGE });
+    await expect(checkVisitorLimit(from("2001:db8:7:8::1", browser()), "select")).resolves.toBeUndefined();
+  });
+
+  it("count only the network without a cookie", async () => {
+    for (let i = 0; i < 300; i++) await checkVisitorLimit(from("8.8.8.8"), "select"); // past one browser's 100
+    await expect(checkVisitorLimit(from("8.8.8.8"), "select")).rejects.toMatchObject({ message: NETWORK_MESSAGE });
+    const { per, usage } = await visitorUsage(from("8.8.8.8")); // the dialog shows the network's count
+    expect({ per, select: usage.select }).toEqual({ per: "network", select: { used: 300, limit: 300, network: { used: 300, limit: 300 } } });
   });
 });
 
 describe("what a refusal says", () => {
   it("names the visitor's own allowance, or the whole site's budget, and when it comes back", async () => {
-    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("3.3.3.3"), "select"); // voices picked: 10 per day
-    await expect(checkVisitorLimit(from("3.3.3.3"), "select")).rejects.toMatchObject({ message: "You've picked all 10 of your voices for today. More come back at midnight UTC." });
-    expect(await visitorUsage(from("3.3.3.3"))).toEqual({ select: { used: 100, limit: 100 }, invite: { used: 0, limit: 300 } });
+    const mine = browser();
+    for (let i = 0; i < 100; i++) await checkVisitorLimit(from("3.3.3.3", mine), "select"); // voices picked: 10 per day
+    await expect(checkVisitorLimit(from("3.3.3.3", mine), "select")).rejects.toMatchObject({ message: "You've picked all 10 of your voices for today. More come back at midnight UTC." });
+    expect(await visitorUsage(from("3.3.3.3", mine))).toEqual({
+      per: "browser",
+      usage: { select: { used: 100, limit: 100, network: { used: 100, limit: 300 } }, invite: { used: 0, limit: 300, network: { used: 0, limit: 600 } } },
+    });
+    expect((await visitorUsage(from("3.3.3.3", browser()))).usage.select).toEqual({ used: 0, limit: 100, network: { used: 100, limit: 300 } }); // another browser there
     await consumeDailyCap("talks", 20);
     await expect(consumeDailyCap("talks")).rejects.toMatchObject({ message: expect.stringContaining("paused for everyone") });
     await refundDailyCap("talks", 20);
@@ -68,11 +107,14 @@ describe("requireStore without Redis", () => {
 });
 
 describe("visitorId", () => {
-  it("is a stable, salted hash of the IP, and refuses without a salt", () => {
+  it("is the browser's id, or without a cookie a stable, salted hash of the network; refuses without a salt", async () => {
+    const mine = browser();
+    expect(visitorId(from("1.1.1.1", mine))).toBe(visitorId(from("2.2.2.2", mine)));
     expect(visitorId(from("1.1.1.1"))).toBe(visitorId(from("1.1.1.1")));
     expect(visitorId(from("1.1.1.1"))).not.toBe(visitorId(from("2.2.2.2")));
     env.rateLimitSalt = "";
     expect(() => visitorId(from("1.1.1.1"))).toThrow(expect.objectContaining({ code: "unavailable", status: 503 }));
+    await expect(checkVisitorLimit(from("1.1.1.1", mine), "select")).rejects.toMatchObject({ code: "unavailable", status: 503 });
     env.rateLimitSalt = "test-salt";
   });
 });
