@@ -1,7 +1,7 @@
 "use client";
 
 /** Preset lines + a short custom line; Speak streams the voice and drives the mouth. */
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { RadioGroup } from "@/components/ui/RadioGroup";
@@ -15,9 +15,9 @@ import { perf } from "@/lib/perf";
 
 const PRESET_LINES = [
   "Hello there. I'm the face you just made, and this is what I sound like.",
-  "Peter Piper picked a peck of pickled peppers, and honestly, good for him.",
-  "Every face has a voice. You just gave me mine.",
-  "Ask me anything. Well, almost anything.",
+  "Now give me a new expression and play this again. Happy, sad, terrified… I'll sound exactly how I look.",
+  "Type over this and I'll say whatever you like: a poem, a pun, or a perfectly preposterous tongue twister.",
+  "Want to know who I really am? Press Meet for my name and my story. Then we can have a proper chat.",
 ];
 const MAX_CHARS = 300;
 
@@ -33,6 +33,27 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
   const lineIds = useId();
   const speakButton = useRef<HTMLButtonElement>(null);
   const stopFocused = useRef(false);
+  const box = useRef<HTMLTextAreaElement>(null);
+
+  // The box grows with its line instead of scrolling: two rows at least, and refitted when its width changes (the
+  // window, or the card's scrollbar while the card eases to a new height). Only the width: its own height changes too.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    };
+    fit();
+    let width = el.clientWidth;
+    const watch = new ResizeObserver(() => {
+      if (el.clientWidth === width) return;
+      width = el.clientWidth;
+      fit();
+    });
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [text]);
 
   useEffect(() => {
     const fn = () => setState(speechPlayer.state);
@@ -97,13 +118,14 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
       </RadioGroup>
       {/* The textarea is its own tray: no border box, just the surface colour. */}
       <textarea
+        ref={box}
         value={text}
         maxLength={MAX_CHARS}
         onChange={(e) => setText(e.target.value)}
         rows={2}
         aria-label="Text to speak"
         placeholder="Type a line for the voice to say"
-        className="w-full resize-none rounded-tray bg-surface px-4 py-3 text-input text-ink placeholder:text-ink-4"
+        className="w-full resize-none overflow-hidden rounded-tray bg-surface px-4 py-3 text-input text-ink placeholder:text-ink-4"
       />
       <div className="flex items-center justify-between gap-2">
         <span className="text-label tabular-nums text-ink-3">
