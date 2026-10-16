@@ -16,7 +16,7 @@ import { preloadModule } from "react-dom";
 import type { ScreenCircle } from "@/lib/headMorph";
 
 import type { LoaderState } from "./engine";
-import type { ChromeFinish, ChromeFlowConfig, ChromeGl, ChromeLook, createChromeFlow } from "./chromeGl";
+import type { ChromeFinish, ChromeFlowConfig, ChromeGl, ChromeLook, ChromeVoice, ChromeVoiceStyle, createChromeFlow } from "./chromeGl";
 import type { FromChromeWorker, ToChromeWorker } from "./chromeWorker";
 import { centred } from "./wave";
 
@@ -28,6 +28,8 @@ export const CHROME = {
   turn: 0.15, // radians the sphere turns per second (the reference's rotation)
   period: 3, // s for one swing blob → finish → blob (it sits ~0.43 s at each end; 4 s with a pendulum swing sits 0.9 s)
   dwell: 0.25, // how much it slows into each end (0 = turns at constant speed, 1 = pendulum; 1 reads as long pauses)
+  colourFloor: 0.25, // the lumpy blob end keeps a little of the finish's colour (the polish its colour and gloss never
+  // drop below; 0 = fully white). The poster (./orbPoster.css) and the reveal's bubble (lib/morphShader.ts) follow it
   settleSpeed: 1.2, // once the head is ready it heads for the finish at this × the swing's pace (0.25–1.4 s; it peaks at
   // ~1.5× the swing's own speed; a fixed 0.5 s settle rushes at 3–4× and reads as skipping ahead)
   hold: null as number | null, // the style lab: pin the polish (0..1) instead of swinging
@@ -45,6 +47,59 @@ export const CHROME = {
  */
 export const SOAP_BUBBLE: ChromeFinish = { rest: 0.03, restSpeed: 0.3, rough: 0.06, metal: 0.7, halo: 1, irid: 1, base: [1, 1, 1], filmBody: 0 };
 
+/**
+ * How the sphere can answer a voice (a live chat's: components/ui/TalkPanel.tsx), compared side by side in the voice
+ * lab (/dev/voice-sphere). Each number is "at full loudness" (./chromeGl.ts ChromeVoiceStyle says what each does).
+ * Tweak here; VOICE_STYLE picks the one the chat uses.
+ */
+export const VOICE_STYLES = {
+  swell: {
+    label: "A · Swell",
+    blurb: "Holds the soap bubble; its bumps grow and roll as the voice gets louder.",
+    style: { swing: false, dip: 0, swell: 0.22, flow: 0.8, pulse: 0, curve: 0.8, attack: 0.04, release: 0.2, ease: 0.4 },
+  },
+  swellCalm: {
+    label: "A2 · Swell, calm",
+    blurb: "Swell, calmer: the bumps rise a little slower, fall back gently between words and roll at an easy pace.",
+    style: { swing: false, dip: 0, swell: 0.16, flow: 0.3, pulse: 0, curve: 0.9, attack: 0.08, release: 0.4, ease: 0.6 },
+  },
+  breathe: {
+    label: "B · Breathe",
+    blurb: "The loader's own change, driven by the voice: loud turns it towards the lumpy white blob, quiet back to the bubble.",
+    style: { swing: false, dip: 0.75, swell: 0, flow: 0.3, pulse: 0, curve: 1, attack: 0.05, release: 0.25, ease: 0.4 },
+  },
+  shimmer: {
+    label: "C · Shimmer",
+    blurb: "Small bumps that roll fast while it talks and calm down in the pauses.",
+    style: { swing: false, dip: 0.1, swell: 0.07, flow: 3, pulse: 0, curve: 0.6, attack: 0.03, release: 0.3, ease: 0.4 },
+  },
+  pulse: {
+    label: "D · Pulse",
+    blurb: "Grows a little with each syllable, with a little swell. New movement for the sphere.",
+    style: { swing: false, dip: 0, swell: 0.08, flow: 0.5, pulse: 0.08, curve: 0.8, attack: 0.03, release: 0.15, ease: 0.4 },
+  },
+  swing: {
+    label: "E · Swing + swell",
+    blurb: "Keeps the loader's blob ↔ bubble swing all the time; the voice adds bumps on top.",
+    style: { swing: true, dip: 0, swell: 0.18, flow: 0.8, pulse: 0, curve: 0.8, attack: 0.04, release: 0.2, ease: 0.4 },
+  },
+  swingColour: {
+    label: "E2 · Swing + swell, in colour",
+    blurb: "E's motion exactly (the loader's whole swing, the voice's bumps on top), but the colour holds: white for the character, the rainbow for you.",
+    style: { swing: true, holdColour: true, dip: 0, swell: 0.18, flow: 0.8, pulse: 0, curve: 0.8, attack: 0.04, release: 0.2, ease: 0.4 },
+  },
+  swellColour: {
+    label: "F · Swell in colour",
+    blurb: "E2 without the swing: a smooth sphere in silence, the voice's bumps when it sounds, as bumpy for the character as for you; only the colour differs.",
+    style: { swing: false, holdColour: true, dip: 0, swell: 0.18, flow: 0.8, pulse: 0, curve: 0.8, attack: 0.04, release: 0.2, ease: 0.4 },
+  },
+} satisfies Record<string, { label: string; blurb: string; style: ChromeVoiceStyle }>;
+export type VoiceStyleId = keyof typeof VOICE_STYLES;
+export const VOICE_STYLE: { id: VoiceStyleId } = { id: "swellColour" }; // the chat's (the voice lab switches it)
+
+/** The polish a sphere's colour and gloss are drawn at for a swing polish `p`: lifted at the blob end by CHROME.colourFloor. */
+export const colourPolish = (p: number) => CHROME.colourFloor + (1 - CHROME.colourFloor) * p;
+
 /** Production: the worker as one file at a fixed URL (next.config.ts chromeWorkerSource); empty in dev, where
  *  the bundler's worker (three files fetched one after another) rebuilds on every edit. */
 const WORKER_FILE = process.env.FTV_CHROME_WORKER;
@@ -58,9 +113,11 @@ const FALLBACK = "radial-gradient(circle at 42% 30%, #ffffff 0, #eef0f3 22%, #a7
 /** The canvas's width for a ball `size` wide: the ball plus room for the bumps. */
 export const chromeBox = (size: string) => `calc(${size} * ${+(CHROME.ball / BALL_IN_FRAME).toFixed(4)})`;
 
-/** The sphere, its ball `size` wide (any CSS length), centred on the loader's focal point. `boot`: the head loader's,
- *  with a server-rendered canvas the sphere can start on before the app hydrates (bootChrome, ChromeBootScript). */
-export function Chrome({ size, boot }: { size: string; boot?: boolean }) {
+/** The sphere, its ball `size` wide (any CSS length), centred on the loader's focal point. `poster`: a still of its own
+ *  opening frame instead of the loader's (./orbPoster.css; a voice orb's, components/ui/VoiceSphere.tsx). `boot`: the
+ *  head loader's, with a server-rendered canvas the sphere can start on before the app hydrates (bootChrome,
+ *  ChromeBootScript). */
+export function Chrome({ size, poster, boot }: { size: string; poster?: string; boot?: boolean }) {
   const box = chromeBox(size);
   // the worker file downloads with the page's head, so the early start finds it cached (a <link rel="modulepreload">)
   if (boot && WORKER_FILE) preloadModule(WORKER_FILE);
@@ -70,7 +127,7 @@ export function Chrome({ size, boot }: { size: string; boot?: boolean }) {
         {/* Shown only without a poster (./orbPoster.css sets --chrome-fallback: none): under the poster it would peek
             through the poster's antialiased rim. */}
         <div className="absolute rounded-full" style={{ inset: `${+((1 - BALL_IN_FRAME) * 50).toFixed(3)}%`, background: FALLBACK, display: "var(--chrome-fallback, block)" }} />
-        <div className="absolute inset-0" style={{ backgroundImage: "var(--chrome-poster-image, none)", backgroundSize: "cover" }} />
+        <div className="absolute inset-0" style={{ backgroundImage: poster ? `url(${poster})` : "var(--chrome-poster-image, none)", backgroundSize: "cover" }} />
       </div>
       {/* The WebGL canvas goes here (chromeMotion creates a fresh one per run: a canvas handed to a worker can't be reused).
           The boot canvas is the exception: it is in the server's HTML so a script can draw on it before React hydrates
@@ -90,7 +147,7 @@ export const chromeLook = (finish = CHROME.finish ?? SOAP_BUBBLE): ChromeLook =>
   distance: CHROME.distance,
   dprMax: CHROME.dprMax,
 });
-const flowConfig = (look: ChromeLook): ChromeFlowConfig => ({ start: CHROME.start, speed: look.speed, restSpeed: look.finish.restSpeed, period: CHROME.period, dwell: CHROME.dwell, settleSpeed: CHROME.settleSpeed, maxStep: CHROME.maxStep });
+const flowConfig = (look: ChromeLook, voice?: ChromeVoiceStyle, start = CHROME.start, startPolish?: number): ChromeFlowConfig => ({ start, startPolish, speed: look.speed, restSpeed: look.finish.restSpeed, period: CHROME.period, dwell: CHROME.dwell, settleSpeed: CHROME.settleSpeed, maxStep: CHROME.maxStep, voice, bumps: [look.amp, look.finish.rest], colourFloor: CHROME.colourFloor });
 
 /** The browser can draw the sphere in a worker (else the page draws it itself). */
 const workersDraw = () => typeof Worker !== "undefined" && "transferControlToOffscreen" in HTMLCanvasElement.prototype;
@@ -244,12 +301,12 @@ export function bootChrome(): void {
 }
 
 /** The booted sphere, if it is in `box` and drawn as `look` (else it stops: the caller starts its own, from the poster). */
-function adoptBooted(box: HTMLElement, look: ChromeLook): WorkerSphere | null {
+function adoptBooted(box: HTMLElement, look: ChromeLook, other: boolean): WorkerSphere | null {
   const s = boot.sphere;
   if (!s || boot.box !== box) return null;
   boot.sphere = null;
   clearTimeout(boot.release);
-  if (boot.look === JSON.stringify(look)) return s;
+  if (!other && boot.look === JSON.stringify(look)) return s;
   s.stop();
   boot.still?.getAnimations().forEach((a) => a.cancel()); // the poster back
   return null;
@@ -273,12 +330,25 @@ function releaseBooted(s: WorkerSphere): void {
  * The sphere's motion. Drawn in a worker on an OffscreenCanvas where possible, else by the page; without WebGL the
  * poster stays. Either way it opens on the poster's frame, holds there until it is on screen, then cross-fades in
  * over the poster. An ancestor with [data-chrome-still-only] forces the still poster; `finish` overrides CHROME.finish
- * (both the style lab).
+ * (both the style lab). With `voice`, voice() lets a voice's loudness drive it (./LoaderSphere.tsx `voice`); `start`:
+ * another clock to open at than CHROME.start (other bumps and rainbow: one per voice preview), `startPolish` another
+ * polish than the blob's. The loader's poster is CHROME.start's blob: a sphere opening elsewhere brings its own
+ * (Chrome `poster`), or cross-fades from a different shape.
  */
 export function chromeMotion(
   root: HTMLElement,
   finish?: ChromeFinish,
-): { frame(s: LoaderState): void; settle(): Promise<void>; focus(): ScreenCircle | null; dispose(): void } {
+  { voice: voiceStyle, start, startPolish }: { voice?: ChromeVoiceStyle; start?: number; startPolish?: number } = {},
+): {
+  frame(s: LoaderState): void;
+  /** Each frame while a voice drives it (null: the loader's own swing). */
+  voice(v: ChromeVoice | null): void;
+  /** Answer the voice this way from now on (the voice lab). */
+  tune(style: ChromeVoiceStyle): void;
+  settle(): Promise<void>;
+  focus(): ScreenCircle | null;
+  dispose(): void;
+} {
   const box = root.querySelector<HTMLElement>("[data-chrome]");
   const still = root.querySelector<HTMLElement>("[data-chrome-still]");
   let canvas: HTMLCanvasElement | null = null; // the page's own (main-thread renderer)
@@ -289,7 +359,9 @@ export function chromeMotion(
   let shown = false;
   let failed = !box || !!root.closest("[data-chrome-still-only]");
   const look = chromeLook(finish);
-  const config = flowConfig(look);
+  const config = flowConfig(look, voiceStyle ? { ...voiceStyle } : undefined, start, startPolish); // the main-thread flow's (tune() changes it)
+  let voiceNow: ChromeVoice | null = null;
+  let sentVoice = "off"; // the voice last posted to the worker
   let sent = ""; // the drive last posted to the worker
   let drawn = ""; // reduced motion, main thread: the polish and width last drawn
   let last = 0;
@@ -362,7 +434,7 @@ export function chromeMotion(
   boot.closed = true; // the app is up: too late for bootChrome to start one
   if (!failed) {
     // the head loader's sphere may already be up, started before the app hydrated: carry on with it as it is
-    sphere = adoptBooted(box!, look);
+    sphere = adoptBooted(box!, look, !!voiceStyle || start !== undefined || startPolish !== undefined);
     adopted = !!sphere;
     if (sphere) {
       sphere.on = onWorker;
@@ -391,7 +463,7 @@ export function chromeMotion(
       const t = performance.now(); // its own clock: the engine's dt is 0 with reduced motion (a lab hold still applies)
       const dt = last ? (t - last) / 1000 : 0;
       last = t;
-      flow.step(dt, { ...drive, moving: t >= startAt && !s.reduced }); // hold on the poster's frame until it has replaced it
+      flow.step(dt, { ...drive, voice: voiceNow, moving: t >= startAt && !s.reduced }); // hold on the poster's frame until it has replaced it
       const key = `${flow.frame.polish.toFixed(3)} ${gl.width()}`;
       if (s.reduced && key === drawn) return;
       if (gl.draw(flow.frame)) {
@@ -405,6 +477,18 @@ export function chromeMotion(
           settledNow();
         }
       }
+    },
+    voice(v) {
+      voiceNow = v;
+      if (!sphere) return;
+      const key = v ? `${v.polish.toFixed(3)} ${v.level.toFixed(3)} ${v.swing ?? ""} ${v.pace ?? ""} ${v.rainbow ?? ""} ${v.evenBumps ?? ""} ${v.colourFloor ?? ""}` : "off";
+      if (key === sentVoice) return;
+      sentVoice = key;
+      sphere.worker.postMessage({ type: "voice", voice: v && { polish: v.polish, level: v.level, swing: v.swing, pace: v.pace, rainbow: v.rainbow, evenBumps: v.evenBumps, colourFloor: v.colourFloor } } satisfies ToChromeWorker);
+    },
+    tune(style) {
+      config.voice = { ...style };
+      sphere?.worker.postMessage({ type: "tune", style: config.voice } satisfies ToChromeWorker);
     },
     /**
      * The ball on screen (viewport px): its centre and radius (the canvas box also holds room for the bumps), and where

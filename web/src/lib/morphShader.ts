@@ -19,7 +19,7 @@
  */
 import { type Material, type ShaderMaterial, Vector3 } from "three";
 
-import { CHROME, SOAP_BUBBLE } from "@/components/ui/loader/chrome";
+import { CHROME, SOAP_BUBBLE, colourPolish } from "@/components/ui/loader/chrome";
 import { CHROME_GL, NOISE, bubbleGlsl, polishUniforms, swingBack } from "@/components/ui/loader/chromeGl";
 import { REVEALS } from "@/components/ui/loader/engine";
 import { type MorphStyle, headMorph } from "@/lib/headMorph";
@@ -153,7 +153,7 @@ export function morphFrame(style: MorphStyle, t: number, dt: number): void {
   if (style === "pieces") {
     u.uMorphNeck.value = 0;
     u.uMorphStagger.value = MORPH.stagger;
-    u.uMorphPolish.value = 1 - smooth(MORPH.unpolish[0], MORPH.unpolish[1], t);
+    u.uMorphPolish.value = colourPolish(1 - smooth(MORPH.unpolish[0], MORPH.unpolish[1], t)); // its colour keeps the loader's floor
     u.uMorphSkin.value = smooth(MORPH.look[0], MORPH.look[1], t);
     u.uMorphBumps.value = 0;
     u.uMorphMid.value = MORPH.spikes;
@@ -168,7 +168,7 @@ export function morphFrame(style: MorphStyle, t: number, dt: number): void {
   const ease = (1 + Math.cos(p * Math.PI)) / 2;
   u.uMorphStagger.value = SWING.stagger;
   u.uMorphNeck.value = NECK.on ? 1 : 0;
-  u.uMorphPolish.value = p;
+  u.uMorphPolish.value = colourPolish(p); // the colour and gloss as the loader draws them (its colour floor); the bumps from p
   u.uMorphSkin.value = smooth(SWING.look[0], SWING.look[1], t);
   u.uMorphBumps.value = polishUniforms(p, CHROME.amp, fin).amp;
   u.uMorphMid.value = 0;

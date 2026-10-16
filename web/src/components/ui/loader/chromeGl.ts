@@ -32,6 +32,10 @@ export interface ChromeFrame {
   time: number; // clock (s): turns the sphere, cycles the halo's colours
   drift: number; // how far the noise has moved (its speed eases with the polish, so it is integrated: createChromeFlow)
   polish: number; // 0 = lumpy matte blob … 1 = the finish
+  swell?: number; // extra bump height on top of the polish's (sphere radii): a voice's loudness (createChromeFlow `voice`)
+  scale?: number; // the whole sphere's size (1 = as framed; the voice lab's "pulse")
+  rainbow?: number; // × the finish's film and halo (1 = as the finish has them; 0.3 = the busy spinner's)
+  material?: number; // the polish the colour and gloss are drawn at (default `polish`): the bumps can swing while it holds
 }
 
 type Rgb = [number, number, number];
@@ -190,7 +194,7 @@ const SHAPES: Record<ShapeKind | "none", string> = {
 
 const vert = (o: ChromeLook, proj = 1 / Math.tan(((o.fov / 2) * Math.PI) / 180)) => `
 attribute vec3 aP;
-uniform float uT,uDrift,uAmp,uShape,uTurn,uAspect;
+uniform float uT,uDrift,uAmp,uShape,uTurn,uAspect,uScale;
 varying vec3 vN,vP;
 ${NOISE}
 float shape(vec3 q,out vec3 g){${SHAPES[o.finish.shape?.kind ?? "none"]}}
@@ -202,7 +206,7 @@ float n=snoise(aP*${f(CHROME_GL.frequency)}+vec3(uDrift,0.,0.),g),sh=shape(Z*(R*
 vec3 G=uAmp*${f(CHROME_GL.frequency)}*g+uShape*((gs*Z)*R);
 vec3 N=normalize(aP-(G-dot(G,aP)*aP)/r);
 vN=R*N;vP=R*(aP*r);
-vec3 e=vP-vec3(0.,0.,${f(o.distance)});
+vec3 e=vP*uScale-vec3(0.,0.,${f(o.distance)});
 gl_Position=vec4(e.x*${f(proj)}/uAspect,e.y*${f(proj)},e.z*${f(-100.1 / 99.9)}-${f((2 * 100 * 0.1) / 99.9)},-e.z);
 }`;
 
@@ -420,7 +424,7 @@ export function createChromeGl(canvas: HTMLCanvasElement | OffscreenCanvas, o: C
       return false;
     }
     gl.useProgram(prog);
-    for (const k of ["uT", "uDrift", "uHue", "uAmp", "uShape", "uAspect", "uRough", "uMetal", "uHalo", "uIrid", "uFin"]) loc[k] = gl.getUniformLocation(prog, k);
+    for (const k of ["uT", "uDrift", "uHue", "uAmp", "uShape", "uAspect", "uScale", "uRough", "uMetal", "uHalo", "uIrid", "uFin"]) loc[k] = gl.getUniformLocation(prog, k);
     gl.uniform1f(gl.getUniformLocation(prog, "uTurn"), o.turn);
     state = "ready";
     return true;
@@ -448,19 +452,22 @@ export function createChromeGl(canvas: HTMLCanvasElement | OffscreenCanvas, o: C
     finish: () => gl.finish(),
     draw(fr) {
       if (lost || !w || !ready()) return false;
-      const u = polishUniforms(fr.polish, o.amp, o.finish);
+      // the bumps from the polish, the colour and gloss from the material (the same unless a voice holds the colour)
+      const shapeU = polishUniforms(fr.polish, o.amp, o.finish), rainbow = fr.rainbow ?? 1;
+      const u = fr.material === undefined ? shapeU : { ...polishUniforms(fr.material, o.amp, o.finish), amp: shapeU.amp, shape: shapeU.shape };
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.uniform1f(loc.uT, fr.time);
       gl.uniform1f(loc.uHue, fr.time);
       gl.uniform1f(loc.uDrift, fr.drift);
-      gl.uniform1f(loc.uAmp, u.amp);
+      gl.uniform1f(loc.uAmp, u.amp + (fr.swell ?? 0));
+      gl.uniform1f(loc.uScale, fr.scale ?? 1);
       gl.uniform1f(loc.uShape, u.shape);
-      gl.uniform1f(loc.uIrid, u.irid);
+      gl.uniform1f(loc.uIrid, u.irid * rainbow);
       gl.uniform1f(loc.uFin, u.fin);
       gl.uniform1f(loc.uRough, u.rough);
       gl.uniform1f(loc.uMetal, u.metal);
-      gl.uniform1f(loc.uHalo, u.halo);
+      gl.uniform1f(loc.uHalo, u.halo * rainbow);
       gl.uniform1f(loc.uAspect, canvas.width / canvas.height);
       gl.drawElements(gl.TRIANGLES, mesh.idx.length, gl.UNSIGNED_SHORT, 0);
       return true;
@@ -490,6 +497,59 @@ export interface ChromeFlowConfig {
   dwell: number; // 0..1, how much it slows into each end: 0 = turns at constant speed, 1 = a pendulum (cosine)
   settleSpeed: number; // the final approach's average speed, × the swing's (a faster one read as skipping ahead)
   maxStep: number; // s, the most the clock advances in one frame (after a stall it carries on instead of jumping)
+  voice?: ChromeVoiceStyle; // how it answers a voice (chrome.tsx CHROME_VOICE); without it, ChromeDrive.voice is ignored
+  evenBumps?: number; // 0..1, see evenBumped (0 = the swing as it always was; the loader's own swing leaves it at 0)
+  bumps?: [number, number]; // the bump height at the blob and at the finish (ChromeLook.amp, its finish's rest): evenBumps needs them
+  startPolish?: number; // the polish it opens on (default 0, the loader's blob; a voice orb opens on its finish, 1)
+  colourFloor?: number; // 0..1: the colour and gloss never drop below this polish's, so the lumpy blob keeps a little
+  // rainbow (ChromeFrame.material; 0 = the blob fully white). A voice's swing may set its own (ChromeVoice.colourFloor)
+}
+
+/**
+ * Even bumps: the swing's s (0..1, blob → bubble) → polish, so the bumps change at a steady rate to the eye (their
+ * log), blended in by `b` (0 = s). With the swing's own polish, the bumps near the smooth bubble are tiny and their first
+ * growth (0.03 → 0.1: three times as big) read as the sphere suddenly expanding, while the same swing time at the
+ * lumpy end (0.4 → 0.33) hardly showed. Fully even, the expansion is ~43 % gentler and the bubble shows ~45 % longer
+ * per swing; the lumpy end is shorter. `amp`, `rest`: the bump height at the blob and at the finish.
+ */
+export function evenBumped(s: number, b: number, amp: number, rest: number): number {
+  if (!b) return s;
+  rest = Math.max(rest, 0.005); // (a perfectly smooth finish has no log)
+  const a = amp * (rest / amp) ** s, e = (a - rest) / (amp - rest); // polishUniforms' bump height, inverted
+  return (1 - b) * s + (b * Math.acos(Math.min(1, Math.max(-1, 2 * e - 1)))) / Math.PI;
+}
+
+/**
+ * How the sphere answers a voice: the loudness (0..1, ChromeVoice.level) is smoothed into an envelope, which can grow
+ * the bumps, pull the polish back towards the lumpy blob, roll the noise faster and grow the sphere. Each is "at full
+ * loudness"; 0 turns it off. The styles compared in the voice lab are chrome.tsx VOICE_STYLES.
+ */
+export interface ChromeVoiceStyle {
+  swing: boolean; // keep the loader's blob ↔ finish swing going underneath; false: hold ChromeVoice.polish
+  holdColour?: boolean; // the colour and gloss stay at ChromeVoice.polish; the shape swings as the loader's (swing) or
+  // rests on the smooth finish (no swing), so the bumps come from the voice alone, the same for every talker
+  dip: number; // polish lost (towards the blob's lumps, matte and white)
+  swell: number; // extra bump height (sphere radii; the blob's own bumps are 0.4)
+  flow: number; // extra noise drift per second (the bumps roll faster)
+  pulse: number; // size gained (0.06 = 6 % bigger)
+  curve: number; // envelope = loudness^curve (< 1 lifts quiet sounds, > 1 keeps only the loud ones)
+  attack: number; // s, how fast the envelope rises …
+  release: number; // … and falls back
+  ease: number; // s, how long the polish takes to reach a new ChromeVoice.polish (a spring, no overshoot)
+}
+
+/**
+ * Each frame while a voice drives the sphere: the polish to hold and how loud it is now. `swing`: swing as the loader
+ * does instead of holding (a chat's "thinking"), `pace` × as fast; `rainbow`: × the finish's film and halo, eased to.
+ */
+export interface ChromeVoice {
+  polish: number;
+  level: number;
+  swing?: boolean;
+  pace?: number;
+  rainbow?: number;
+  evenBumps?: number; // instead of the flow's (ChromeFlowConfig.evenBumps), while it swings
+  colourFloor?: number; // while it swings: the colour never drops below this polish's (the blob keeps some rainbow)
 }
 
 /** What drives the flow each frame. */
@@ -499,6 +559,7 @@ export interface ChromeDrive {
   through: number | null; // …or, for the morph reveal, s the polish then takes to run back to the blob: it reaches the
   // finish at that run's starting speed and turns straight round onto it (swingBack), like the swing's own turns
   hold: number | null; // the style lab: pin the polish here
+  voice?: ChromeVoice | null; // a voice drives it (ChromeFlowConfig.voice says how); null: the loader's own motion
 }
 
 /**
@@ -516,11 +577,35 @@ export const swingBack = (x: number, dwell: number) => 1 - (x + (0.5 - 0.5 * Mat
  * pace (a quick settle rushed at 3–4× the swing and read as skipping ahead), and stays there.
  */
 export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; step(dt: number, d: ChromeDrive): void; settled(): boolean } {
-  const frame: ChromeFrame = { time: c.start, drift: c.start * c.speed, polish: 0 };
+  // (its colour floor from the first frame: the page's poster is that frame, and it holds on it until it moves)
+  const p0 = c.startPolish ?? 0;
+  const frame: ChromeFrame = { time: c.start, drift: c.start * c.speed, polish: p0, material: c.colourFloor ? c.colourFloor + (1 - c.colourFloor) * p0 : undefined };
   let wave = 0; // s into the swing
   let velocity = 0; // polish per second
   let from: { p: number; v: number; u: number; T: number } | null = null; // the settle, once started
   let past = 0; // s since it reached the finish (a morph reveal's run back: ChromeDrive.through)
+  let env = 0; // the voice's loudness, smoothed (ChromeVoiceStyle attack / release)
+  let held = false; // the voice held the polish (not swinging): the swing picks up from there when it lets go
+  let colour = 0; // holdColour: the polish the colour is held at, eased to the voice's …
+  let colourHold = 0; // … and how much it holds (0 = the colour follows the swing, 1 = held), eased in and out
+  let floor = c.colourFloor ?? 0; // the colour floor now: the flow's, or a swinging voice's, eased (no jump between them)
+  const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
+  const swingAt = (ph: number) => {
+    const tri = ph < 0.5 ? 2 * ph : 2 - 2 * ph, cs = 0.5 - 0.5 * Math.cos(2 * Math.PI * ph);
+    return tri + (cs - tri) * c.dwell;
+  };
+  /** Where in the swing the polish is p, heading up (v ≥ 0) or back down: the swing carries on from a held polish. */
+  const [amp, rest] = c.bumps ?? [0.4, 0.03];
+  const even = (s: number, b: number) => evenBumped(s, b, amp, rest);
+  const phaseOf = (p: number, v: number, k: number) => {
+    let lo = 0, hi = 0.5;
+    for (let i = 0; i < 20; i++) {
+      const mid = (lo + hi) / 2;
+      if (even(swingAt(mid), k) < p) lo = mid;
+      else hi = mid;
+    }
+    return v >= 0 ? lo : 1 - lo;
+  };
   return {
     frame,
     settled: () => from?.u === 1,
@@ -528,7 +613,23 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
       if (d.hold !== null) frame.polish = d.hold;
       if (!d.moving) return;
       const step = Math.min(dt, c.maxStep);
-      if (d.hold === null && d.settling) {
+      const vs = c.voice, voice = vs && d.voice && d.hold === null && !d.settling ? d.voice : null;
+      if (vs) {
+        const target = voice ? clamp01(voice.level) ** vs.curve : 0;
+        env += (target - env) * (1 - Math.exp(-step / Math.max(1e-3, target > env ? vs.attack : vs.release)));
+      }
+      if (vs) {
+        // the rainbow eases to the voice's (or back to the finish's own): ~0.3 s, as the polish's own changes
+        const r = frame.rainbow ?? 1;
+        frame.rainbow = r + ((voice?.rainbow ?? 1) - r) * (1 - Math.exp(-step / 0.3));
+      }
+      if (voice && !vs!.swing && !voice.swing) {
+        // a critically damped spring onto the voice's polish: it turns round smoothly from wherever the swing was
+        held = true;
+        const w = 4 / Math.max(0.05, vs!.ease), target = clamp01((vs!.holdColour ? 1 : voice.polish) - env * vs!.dip);
+        velocity += (w * w * (target - frame.polish) - 2 * w * velocity) * step;
+        frame.polish = clamp01(frame.polish + velocity * step);
+      } else if (d.hold === null && d.settling) {
         if (!from) {
           const vs = (c.settleSpeed * 2) / c.period; // the swing covers blob → finish in half a period
           const turn = velocity < 0 ? (-velocity / vs) * 0.6 : 0; // heading back to the blob: time to turn around
@@ -542,16 +643,40 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
           frame.polish = Math.min(1, Math.max(0, h00 * from.p + h10 * T * from.v + h01 + h11 * T * arrive));
         }
       } else if (d.hold === null) {
-        wave += step;
+        const k = voice?.evenBumps ?? c.evenBumps ?? 0;
+        if (held) {
+          wave = phaseOf(frame.polish, velocity, k) * c.period;
+          held = false;
+        }
+        const pace = voice?.pace ?? 1;
+        wave += step * pace;
         const ph = (wave / c.period) % 1, w = 2 * Math.PI * ph;
         const tri = ph < 0.5 ? 2 * ph : 2 - 2 * ph, triV = (ph < 0.5 ? 2 : -2) / c.period;
         const cs = 0.5 - 0.5 * Math.cos(w), csV = (Math.PI / c.period) * Math.sin(w);
-        frame.polish = tri + (cs - tri) * c.dwell;
-        velocity = triV + (csV - triV) * c.dwell;
+        const sw = tri + (cs - tri) * c.dwell;
+        frame.polish = even(sw, k);
+        const slope = k ? (even(Math.min(1, sw + 1e-4), k) - even(Math.max(0, sw - 1e-4), k)) / (Math.min(1, sw + 1e-4) - Math.max(0, sw - 1e-4)) : 1;
+        velocity = (triV + (csV - triV) * c.dwell) * pace * slope;
+        if (voice && !voice.swing) frame.polish = clamp01(frame.polish - env * vs!.dip); // swinging under a voice (recomputed each frame)
       }
       const ease = (1 + Math.cos(frame.polish * Math.PI)) / 2;
       frame.time += step;
-      frame.drift += step * (c.speed * ease + c.restSpeed * (1 - ease));
+      frame.drift += step * (c.speed * ease + c.restSpeed * (1 - ease) + env * (vs?.flow ?? 0));
+      // The polish the colour and gloss are drawn at: the swing's, lifted at the blob end by the colour floor (the
+      // flow's, or a swinging voice's; none while a voice talks), eased between them
+      const floorNow = voice ? (voice.swing ? (voice.colourFloor ?? c.colourFloor ?? 0) : 0) : (c.colourFloor ?? 0);
+      floor += (floorNow - floor) * (1 - Math.exp(-step / 0.3));
+      const base = floor + (1 - floor) * frame.polish;
+      if (vs) {
+        frame.swell = env * vs.swell;
+        frame.scale = 1 + env * vs.pulse;
+        // holdColour: the colour and gloss stay at the talker's polish while the bumps swing (eased in and out: no jump)
+        const holding = !!(vs.holdColour && voice && !voice.swing), k = 1 - Math.exp(-step / Math.max(0.05, vs.ease));
+        if (holding && colourHold < 1e-3) colour = base; // from the colour on show
+        if (holding) colour += (voice!.polish - colour) * k;
+        colourHold += ((holding ? 1 : 0) - colourHold) * k;
+        frame.material = base + (colour - base) * colourHold;
+      } else if (floor) frame.material = base;
     },
   };
 }
