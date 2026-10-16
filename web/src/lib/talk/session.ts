@@ -91,11 +91,12 @@ const echoOff = () => typeof window !== "undefined" && new URLSearchParams(windo
 const DUPLEX_TAIL_MS = 400;
 /**
  * ?talkEcho=off: the character's voice this many times louder (a limiter keeps loud words from clipping). Without the
- * echo canceller iOS played it much quieter on the loudspeaker (2026-10-16). `?talkBoost=` tunes it (1–6).
+ * echo canceller iOS played it much quieter on the loudspeaker (2026-10-16; 6 still too quiet). `?talkBoost=` tunes
+ * it (1–16).
  */
 const chatBoost = () => {
   const q = Number(new URLSearchParams(window.location.search).get("talkBoost"));
-  return Number.isFinite(q) && q >= 1 ? Math.min(6, q) : 2.5;
+  return Number.isFinite(q) && q >= 1 ? Math.min(16, q) : 2.5;
 };
 
 export class TalkSession {
@@ -265,6 +266,9 @@ export class TalkSession {
     try {
       const pub = await room.localParticipant.setMicrophoneEnabled(true);
       this.micTrackSid = pub?.trackSid ?? null;
+      // ?talkEcho=off: the greeting can start before the microphone is published (duplex found nothing to mute, and the
+      // character heard itself on its first reply: 2026-10-16)
+      if (this.halfDuplex && this.agentState === "speaking") this.duplex("speaking");
     } catch (e) {
       this.finish(micFailure(e));
       return;

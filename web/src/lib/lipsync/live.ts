@@ -209,7 +209,7 @@ export class LiveSpeech implements SpeechSource {
       const boost = this.ctx.createGain();
       boost.gain.value = gain;
       const limit = this.ctx.createDynamicsCompressor();
-      limit.threshold.value = -6;
+      limit.threshold.value = -1; // just under full scale: as loud as it can go without clipping
       limit.knee.value = 3;
       limit.ratio.value = 20;
       limit.attack.value = 0.002;
