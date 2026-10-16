@@ -59,6 +59,7 @@ export interface DescribeInput {
   pickKey: string; // picks one of Claude's three accents: the resting face's key, so expressions and poses keep it
   lookIds: Look; // the validated look itself: only the development mock reads it (Claude gets `look`)
   voice?: string; // a recast (voice.ts recastFor): the voice is already chosen, and the casting must fit it
+  world?: string; // fantasyWorld(): the face rolled a fantasy world (used only if it reads as striking); "" for the rest
 }
 
 /** The cast for one face; `replaced` names the free-text fields the policy replaced with a default. */
@@ -76,7 +77,7 @@ async function castWithClaude(input: DescribeInput): Promise<Casting> {
   const voice = input.voice
     ? `This character's voice is already chosen; cast the character who has it. Use these values for those fields, and pick the persona, timbre, quirk and line to fit them: ${input.voice}.\n`
     : "";
-  const user = `${voice}${pictured ? "" : "There is no image this time: picture the head from the slider values and styling below.\n"}${input.expression}\n${ageLine(input.ageSlider)}\nSlider values the user set (weight -1..1, name: value): ${input.sliderSummary || "all at rest"}.\nStyling the visitor chose${pictured ? " (also visible in the image)" : ""}: ${input.look || "none"}.\nCast the voice for this character.`;
+  const user = `${input.world ? `${input.world}\n` : ""}${voice}${pictured ? "" : "There is no image this time: picture the head from the slider values and styling below.\n"}${input.expression}\n${ageLine(input.ageSlider)}\nSlider values the user set (weight -1..1, name: value): ${input.sliderSummary || "all at rest"}.\nStyling the visitor chose${pictured ? " (also visible in the image)" : ""}: ${input.look || "none"}.\nCast the voice for this character.`;
   let response;
   try {
     response = await api.messages.create({

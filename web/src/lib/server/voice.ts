@@ -16,7 +16,7 @@ import { ApiError, MESSAGES } from "./errors";
 import { descriptionKey, faceKey } from "./keys";
 import { lookText, restingLook, type Look } from "./look";
 import { quantiseIntensity } from "./emotion";
-import { AGE_RANGES, buildVoiceDescription, descriptionIdentity, expressionLine, previewText, type DescriptionFields, type Presentation } from "./prompt";
+import { AGE_RANGES, buildVoiceDescription, descriptionIdentity, expressionLine, fantasyWorld, previewText, type DescriptionFields, type Presentation } from "./prompt";
 import { consumeDailyCap, refundDailyCap } from "./ratelimit";
 
 export interface PreviewRecord {
@@ -201,6 +201,7 @@ async function castFace(input: { weights: Record<string, number>; imageJpegBase6
       pickKey: restKey,
       lookIds: input.look,
       voice: input.voice,
+      world: fantasyWorld(restKey),
     });
   } catch (e) {
     await refundDailyCap("castings", 1);

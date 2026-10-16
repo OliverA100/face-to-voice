@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { descriptionKey, faceKey } from "../keys";
 import { LookSchema, lookText } from "../look";
 import { HAIR_COLOURS, SKIN_TONES } from "../../swatches";
-import { AGE_RANGES, ageLine, LINE_MAX, pickAccent, buildVoiceDescription, expressionLine, descriptionIdentity, previewText, sanitiseFields, violatesPolicy, type DescriptionFields } from "../prompt";
+import { AGE_RANGES, ageLine, FANTASY_ARCHETYPES, FANTASY_ODDS, FANTASY_YOUNG, fantasyWorld, LINE_MAX, pickAccent, buildVoiceDescription, expressionLine, descriptionIdentity, previewText, sanitiseFields, violatesPolicy, type DescriptionFields } from "../prompt";
 
 const base: DescriptionFields = {
   presentation: "neutral", ageRange: "40s", character: "everyday", build: "sturdy", energy: "calm", pacing: "measured", pitch: "medium-low",
@@ -242,5 +242,27 @@ describe("pickAccent", () => {
     expect(pickAccent([], key(1))).toBe("");
     expect(pickAccent(["  ", "irish"], key(0xffffffff))).toBe("irish");
     expect(three).toContain(pickAccent([...three, "welsh"], key(0xffffffff)));
+  });
+});
+
+describe("fantasy world roll", () => {
+  const keys = Array.from({ length: 600 }, (_, i) => faceKey({ sem_age: (i % 40) / 40 - 0.5, sem_jaw_width: Math.floor(i / 40) / 15 - 0.5 }));
+
+  it("rolls about one face in FANTASY_ODDS, and the same face always the same", () => {
+    const rolled = keys.filter((k) => fantasyWorld(k)).length;
+    expect(rolled / keys.length).toBeGreaterThan(1 / FANTASY_ODDS - 0.07);
+    expect(rolled / keys.length).toBeLessThan(1 / FANTASY_ODDS + 0.07);
+    for (const k of keys.slice(0, 20)) expect(fantasyWorld(k)).toBe(fantasyWorld(k));
+  });
+
+  it("only applies to striking faces, and shows four different examples", () => {
+    const line = keys.map(fantasyWorld).find(Boolean)!;
+    expect(line).toMatch(/distinct or larger than life/);
+    expect(line).toMatch(/If they read as everyday, ignore this/);
+    const shown = FANTASY_ARCHETYPES.filter((a) => line.includes(a));
+    expect(shown).toHaveLength(4);
+    expect(FANTASY_YOUNG.filter((y) => line.includes(`a ${y},`) || line.includes(`a ${y})`))).toHaveLength(3);
+    // other faces see other examples
+    expect(new Set(keys.map(fantasyWorld).filter(Boolean)).size).toBeGreaterThan(20);
   });
 });

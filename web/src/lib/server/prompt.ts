@@ -57,6 +57,46 @@ export function pickAccent(accents: string[], key: string): string {
   return options[options.length - 1];
 }
 
+/**
+ * Some striking faces come from a fantasy world. One face key in FANTASY_ODDS rolls it (other digits than the accent's,
+ * so the two don't follow each other); the casting then only uses it when it reads the face as distinct or larger
+ * than life, so a plain face is always cast as everyday. Raise FANTASY_ODDS for fewer fantasy characters.
+ */
+export const FANTASY_ODDS = 3;
+/** Fantasy archetypes the casting is shown a few of, so its picks don't all copy the same example. Human ones only:
+ *  the head is human. Add freely. */
+export const FANTASY_ARCHETYPES = [
+  "ancient forest wizard", "cackling swamp witch", "pompous court alchemist", "battle-worn knight", "pirate queen",
+  "travelling fortune-teller", "retired dragon hunter", "castle cook", "village herbalist", "wandering bard",
+  "royal jester", "mountain hermit", "potion seller", "monster hunter", "temple oracle", "gloomy castle gravedigger",
+] as const;
+/** What a young fantasy character might be, three shown per face: without them every teenager came out an
+ *  "apprentice", and with the same three every time, all of them those three. */
+export const FANTASY_YOUNG = [
+  "squire", "thief", "runaway noble", "stable hand", "shepherd", "page", "pickpocket", "dragon keeper's helper",
+  "tavern runner", "novice witch", "ferry hand", "street performer",
+] as const;
+
+/** `n` entries of `list` spread from a start picked by `hex` (different entries for each face). */
+function pick<T>(list: readonly T[], hex: string, n: number): T[] {
+  const start = parseInt(hex, 16) % list.length;
+  const step = Math.floor(list.length / n);
+  return Array.from({ length: n }, (_, i) => list[(start + i * step) % list.length]);
+}
+
+/** The casting's fantasy line for a face that rolled one, with examples picked by `key`; "" for the rest. */
+export function fantasyWorld(key: string): string {
+  if (parseInt(key.slice(16, 24), 16) % FANTASY_ODDS !== 0) return "";
+  const examples = pick(FANTASY_ARCHETYPES, key.slice(24, 32), 4);
+  const young = pick(FANTASY_YOUNG, key.slice(32, 40), 3);
+  return (
+    `If this character reads as distinct or larger than life, they come from a fantasy world: cast a fantasy or ` +
+    `storybook archetype that fits the whole look, as a fantasy game would (for example: ${examples.join(", ")}), and ` +
+    `the voice and the line belong to that world too. A young character is whatever a young person there might be ` +
+    `(like a ${young.join(", a ")}), not always an apprentice. If they read as everyday, ignore this and cast them as usual.`
+  );
+}
+
 export const MOODS = [
   "warm", "friendly", "cheerful", "serious", "thoughtful", "playful", "confident", "gentle",
   "wry", "curious", "melancholic", "bold", "dreamy", "stern", "mischievous", "weary",
