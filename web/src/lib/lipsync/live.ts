@@ -124,6 +124,39 @@ registerProcessor("ftv-meter", FtvMeter);
 /** Contexts the meter's processor is registered in (or being registered in). */
 const metered = new WeakMap<BaseAudioContext, Promise<void>>();
 
+/** Into `out`: a gain of 4, a compressor (−30 dB, 12:1), the make-up `gain`, a limiter just under full scale and a soft
+ *  clipper (linear to 0.8, rounded off toward 0.98). Returns the chain's input. */
+function loudChain(ctx: AudioContext, gain: number, out: AudioNode): AudioNode {
+  const pre = ctx.createGain();
+  pre.gain.value = 4;
+  const squeeze = ctx.createDynamicsCompressor();
+  squeeze.threshold.value = -30;
+  squeeze.knee.value = 6;
+  squeeze.ratio.value = 12;
+  squeeze.attack.value = 0.003;
+  squeeze.release.value = 0.15;
+  const makeup = ctx.createGain();
+  makeup.gain.value = gain;
+  const limit = ctx.createDynamicsCompressor();
+  limit.threshold.value = -1;
+  limit.knee.value = 0;
+  limit.ratio.value = 20;
+  limit.attack.value = 0.001;
+  limit.release.value = 0.05;
+  const soft = ctx.createWaveShaper();
+  const n = 4097;
+  const curve = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const x = (i / (n - 1)) * 2 - 1;
+    const a = Math.abs(x);
+    curve[i] = Math.sign(x) * (a < 0.8 ? a : 0.8 + 0.18 * Math.tanh((a - 0.8) / 0.18));
+  }
+  soft.curve = curve;
+  soft.oversample = "4x";
+  pre.connect(squeeze).connect(makeup).connect(limit).connect(soft).connect(out);
+  return pre;
+}
+
 export class LiveSpeech implements SpeechSource {
   cues: Cue[] = [];
   get gateLookahead(): number {
@@ -203,20 +236,12 @@ export class LiveSpeech implements SpeechSource {
       // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
       this.node.connect(outputOf(this.ctx));
     }
-    // `gain`: the voice made louder (session.ts chatBoost), a limiter after it so loud words don't clip
+    // `gain` (session.ts chatBoost): the voice made louder. It already peaks at full scale, so it is compressed (quiet
+    // syllables up toward the loud ones), raised by `gain`, limited, and soft-clipped so nothing can clip. On a real
+    // line: +5 dB of speech loudness at gain 2, nothing clipped, 0.9% of samples rounded off (qa/lipsync
+    // chaincheck.mjs, 2026-10-16)
     let out: AudioNode = outputOf(this.ctx);
-    if (playThrough && gain !== 1) {
-      const boost = this.ctx.createGain();
-      boost.gain.value = gain;
-      const limit = this.ctx.createDynamicsCompressor();
-      limit.threshold.value = -1; // just under full scale: as loud as it can go without clipping
-      limit.knee.value = 3;
-      limit.ratio.value = 20;
-      limit.attack.value = 0.002;
-      limit.release.value = 0.1;
-      boost.connect(limit).connect(out);
-      out = boost;
-    }
+    if (playThrough && gain !== 1) out = loudChain(this.ctx, gain, out);
     if (playThrough && delaySeconds > 0) {
       // held back: the meter sees each sound this long before it is heard (the gates and loudness read ahead; the
       // evaluator's closure and vowel snapping need more look-ahead than this, so live they mostly settle after the fact)

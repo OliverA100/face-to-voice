@@ -81,22 +81,29 @@ function micFailure(e: unknown): EndReason {
 }
 
 /**
- * `?talkEcho=off` (a test, iPhones and iPads): the microphone without echo cancellation (or the other voice
- * processing), and muted while the character speaks. On an iPhone's loudspeaker the chats popped all through the
- * character's speech, with headphones they didn't (2026-10-16): iOS's echo canceller chops the call's playback. Without
- * it the microphone would hear the character, so it listens only between replies (no interrupting it mid-sentence).
+ * iPhones and iPads: the microphone without echo cancellation (or the other voice processing), and muted while the
+ * character speaks. On an iPhone's loudspeaker the chats popped all through the character's speech, with headphones they
+ * didn't (2026-10-16): iOS's echo canceller chops the call's playback. Without it the microphone would hear the
+ * character, so it listens only between replies (no interrupting it mid-sentence). Checked on an iPhone: no pops, the
+ * character never heard itself. `?talkEcho=on` keeps the echo canceller (as before), `?talkEcho=off` takes this mode
+ * anywhere.
  */
-const echoOff = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("talkEcho") === "off" && isAppleTouch();
+const echoOff = () => {
+  if (typeof window === "undefined") return false;
+  const q = new URLSearchParams(window.location.search).get("talkEcho");
+  return q === "off" || (q !== "on" && isAppleTouch());
+};
 /** After the character stops (its state), the microphone waits this long (ms): the voice is held back and still heard. */
 const DUPLEX_TAIL_MS = 400;
 /**
- * ?talkEcho=off: the character's voice this many times louder (a limiter keeps loud words from clipping). Without the
- * echo canceller iOS played it much quieter on the loudspeaker (2026-10-16; 6 still too quiet). `?talkBoost=` tunes
- * it (1–16).
+ * Without the echo canceller iOS plays the voice much quieter on the loudspeaker (2026-10-16: a plain 10x gain into a
+ * limiter "could be higher"; the voice already peaks at full scale, so gain alone only clips). It is compressed and
+ * made up (live.ts: +5 dB of speech loudness at this make-up gain of 2, nothing clipped); `?talkBoost=` sets the
+ * make-up gain (1–4).
  */
 const chatBoost = () => {
   const q = Number(new URLSearchParams(window.location.search).get("talkBoost"));
-  return Number.isFinite(q) && q >= 1 ? Math.min(16, q) : 2.5;
+  return Number.isFinite(q) && q >= 1 ? Math.min(4, q) : 2;
 };
 
 export class TalkSession {
