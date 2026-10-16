@@ -13,33 +13,38 @@
  * ready (Speak is a secondary action), and "Chat" on Meet.
  * Tokens and pill/card classes: globals.css.
  */
-import dynamic from "next/dynamic";
-import { type CSSProperties, type KeyboardEvent, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import { type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
 import { captureFace } from "@/components/scene/Capture";
 import { extraReady } from "@/lib/headExtra";
 import { characterSettled } from "@/lib/character";
 import { Alert } from "@/components/ui/Alert";
 import { ExportButton } from "@/components/ui/ExportButton";
-import { ProfileSkeleton } from "@/components/ui/ProfileSkeleton";
 import { SpeakBar } from "@/components/ui/SpeakBar";
-import { BusySwap } from "@/components/ui/Spinner";
+import { BusySwap, Spinner } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { useHeightTransition } from "@/components/ui/useHeightTransition";
-import { VoiceBlob, VoiceBlobPlaceholder, usePrefetchVoiceBlobs } from "@/components/ui/VoiceBlob";
+import { VoiceSphere, VoiceSpherePlaceholder } from "@/components/ui/VoiceSphere";
+import { scrollVoiceCardTop } from "@/components/ui/voiceCardScroll";
+import { useScrollEdges } from "@/components/ui/useScrollEdges";
 import type { ProfileResult } from "@/lib/character/profile";
 import { isLimitError } from "@/lib/limits/open";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { talkInvite } from "@/lib/talk/invite";
-import { currentFaceSignature, requestDesign, requestSelect, VoiceApiError, type DesignResult, type Preview, type SelectResult } from "@/lib/voice/client";
+import { currentFaceSignature, requestDesign, requestProfile, requestSelect, VoiceApiError, withCasting, type DesignResult, type Preview, type SelectResult } from "@/lib/voice/client";
 import { saveVoiceSession, subscribeVoiceSession, voiceSession } from "@/lib/voice/voiceSession";
 
 type Phase = "idle" | "designing" | "previews" | "selecting" | "ready" | "meet";
 
-// The character's profile (the Meet step) only shows once a voice is ready: its code loads then, not with the page.
-const loadCharacterCard = () => import("@/components/ui/CharacterCard");
-// While its code loads (fetched ahead on the Speak step), the Meet step shows its placeholder, not nothing.
-const CharacterCard = dynamic(() => loadCharacterCard().then((m) => m.CharacterCard), { ssr: false, loading: () => <ProfileSkeleton /> });
+// The character's profile (the Meet step) only shows once a voice is ready: its code loads then, not with the page
+// (fetched ahead on the Speak step). Meet opens only once it is here (meet()), and it is rendered as it is, not through
+// a lazy component: a lazy one paints nothing for a frame even when its code is in, and the card shrank to its header
+// before growing to the profile. So the step needs no placeholder (the profile skeleton is Recast's alone), and the card
+// eases straight from the Speak step's height to the Meet step's.
+type CardModule = typeof import("@/components/ui/CharacterCard");
+let CharacterCard: CardModule["CharacterCard"] | null = null;
+let cardLoading: Promise<CardModule> | null = null;
+const loadCharacterCard = () => (cardLoading ??= import("@/components/ui/CharacterCard").then((m) => ((CharacterCard = m.CharacterCard), m)));
 
 const STEPS = ["Face", "Voice", "Speak", "Meet"] as const;
 const SAME_FACE_HINT = "Change the face to find new voices";
@@ -60,8 +65,10 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
   // An invite code in the URL (/?talk=…) is kept for this tab and taken out of the address bar, after the first render
   useEffect(() => void talkInvite(), []);
   // On the Speak step, the Meet step's code is fetched ahead, so its card is there when Meet is pressed.
+  // (and on the Meet step itself, should its code somehow not be here yet: rendered once it is)
+  const [, setCardLoaded] = useState(false);
   useEffect(() => {
-    if (phase === "ready") void loadCharacterCard();
+    if (phase === "ready" || (phase === "meet" && !CharacterCard)) void loadCharacterCard().then(() => setCardLoaded(true));
   }, [phase]);
   const [design, setDesign] = useState<DesignResult | null>(null);
   // The design now, for answers that come back later (a profile asked for before "Find my voice" found new voices)
@@ -108,6 +115,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
   const card = useRef<HTMLElement>(null);
   const cardContent = useRef<HTMLDivElement>(null);
   useHeightTransition(card, cardContent);
+  useScrollEdges(card); // from lg the card scrolls: its edges fade while there's more (globals.css .edge-fades)
 
   // Keyboard focus never falls off the card: when the focused control goes away (Use voice, a breadcrumb that became
   // the current step, the first-run Find my voice, Chat, End), focus moves to the nearest control that takes over
@@ -144,7 +152,13 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
       if (!from?.length || from[0].isConnected || (active && active !== document.body)) return; // still there, or the visitor moved on
       for (const scope of [...from.slice(1).filter((n) => n.isConnected), el]) {
         const next = scope.querySelector<HTMLElement>("[data-step-focus]");
-        if (next) return next.focus();
+        if (!next) continue;
+        // Not scrolled to after a tap or click: a new step shows from its top (scrollVoiceCardTop), and its first
+        // control can sit below the fold on a phone. After keyboard use the focus shows (:focus-visible), so it is
+        // brought into view as before.
+        next.focus({ preventScroll: true });
+        if (next.matches(":focus-visible")) next.scrollIntoView({ block: "nearest" });
+        return;
       }
     };
     const watch = new MutationObserver(restore);
@@ -250,12 +264,43 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
     setError(null);
     setPhase((["idle", "previews", "ready", "meet"] as const)[i]);
   };
+  // Each new step is seen from its top (the card or, below lg, the page had scrolled down to the button that led here).
+  const shownStep = useRef(step);
+  useEffect(() => {
+    if (shownStep.current === step) return;
+    shownStep.current = step;
+    scrollVoiceCardTop(card.current);
+  }, [step]);
+  // Meet (the pill on Speak, or the step row's link): like Use voice, it spins until the character's profile is written
+  // (or fetched: one per voice, shared) and the step's code is here, and only then the step opens, on the profile. A
+  // profile already here (and its code) opens it at once.
+  const [meeting, setMeeting] = useState(false);
+  const meet = async () => {
+    if (!design || meeting) return;
+    if (profile && CharacterCard) return goTo(3);
+    const from = phase;
+    setError(null);
+    setMeeting(true);
+    try {
+      const [result] = await Promise.all([profile ?? withCasting(design, () => requestProfile(design)), loadCharacterCard()]);
+      if (designNow.current?.faceKey !== design.faceKey || designNow.current?.descKey !== design.descKey) return; // another voice meanwhile
+      setProfile(result);
+      setPhase((p) => (p === from ? "meet" : p)); // still where Meet was pressed: the visitor didn't go elsewhere meanwhile
+    } catch (e) {
+      fail(e);
+      if (e instanceof VoiceApiError && e.code === "stale") setDesignedFace(null); // "New voices" may design for this face again
+    } finally {
+      setMeeting(false);
+    }
+  };
   // First run: the big black pill sits in the footer. Later runs ("New voices") are a
   // retreat, so the same button becomes a white pill at the end of the breadcrumb row.
   const firstRun = phase === "idle" || (phase === "designing" && !design);
+  const Card = CharacterCard; // the Meet step's profile card, once its code is here (loadCharacterCard)
   // What a screen reader hears as the card moves on (the error itself is an Alert).
-  const said =
-    phase === "designing"
+  const said = meeting
+    ? "Writing their profile…"
+    : phase === "designing"
       ? stage === "describe"
         ? "Reading the face…"
         : "Designing three voices…"
@@ -309,7 +354,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
       ref={card}
       aria-label="Voice"
       onKeyDown={onKeyDown}
-      className="card pointer-events-auto flex w-full min-w-0 flex-col p-5 lg:w-[360px] lg:min-h-0 lg:overflow-y-auto lg:shadow-float xl:w-[392px]"
+      className="card edge-fades pointer-events-auto flex w-full min-w-0 flex-col p-5 [--fade-inset:--spacing(5)] lg:w-[360px] lg:min-h-0 lg:overflow-y-auto lg:shadow-float xl:w-[392px]"
     >
       <div ref={cardContent} className="flex min-w-0 shrink-0 flex-col gap-3" style={{ "--tab-dir": stepMove.dir } as CSSProperties}>
         <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
@@ -322,9 +367,15 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
                     <path d="M6 4l4 4-4 4" />
                   </svg>
                 )}
-                {i !== step && reachable[i] && !busy ? (
+                {i === 3 && meeting ? (
+                  // Meet asked for: its profile is on its way (the Speak step's pill spins too)
+                  <span className="flex items-center gap-1.5 text-ink-3">
+                    {s}
+                    <Spinner />
+                  </span>
+                ) : i !== step && reachable[i] && !busy && !meeting ? (
                   // hover as the panel tabs (SliderPanel): grey → ink, no underline (an underline here stands out from the rest)
-                  <button type="button" onClick={() => goTo(i)} className="text-ink-3 transition-colors hover:text-ink">
+                  <button type="button" onClick={() => (i === 3 ? void meet() : goTo(i))} className="text-ink-3 transition-colors hover:text-ink">
                     {s}
                   </button>
                 ) : (
@@ -356,7 +407,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
             <ul className="-mx-2 flex flex-col">
               {[0, 1, 2].map((i) => (
                 <li key={i} className="flex h-14 items-center gap-3 px-2">
-                  <VoiceBlobPlaceholder index={i} />
+                  <VoiceSpherePlaceholder index={i} />
                   <span className="h-3.5 w-16 animate-pulse rounded-full bg-surface" />
                 </li>
               ))}
@@ -411,21 +462,23 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
               </p>
             )}
             <SpeakBar descKey={design.descKey} take={inUse} onRetired={retired} />
-            <MeetRow onMeet={() => goTo(3)} />
+            <MeetRow onMeet={meet} busy={meeting} />
           </div>
         )}
 
         {/* The end of the flow: who the character is, then everything to take away (the zip carries the profile too). */}
         {phase === "meet" && selection && design && (
           <div className="step-enter flex flex-col gap-3">
-            <CharacterCard
-              design={design}
-              take={inUse}
-              result={profile}
-              onResult={(r, asked) => asked.faceKey === designNow.current?.faceKey && asked.descKey === designNow.current?.descKey && setProfile(r)}
-              onRetired={retired}
-              onStale={() => setDesignedFace(null)}
-            />
+            {Card && (
+              <Card
+                design={design}
+                take={inUse}
+                result={profile}
+                onResult={(r, asked) => asked.faceKey === designNow.current?.faceKey && asked.descKey === designNow.current?.descKey && setProfile(r)}
+                onRetired={retired}
+                onStale={() => setDesignedFace(null)}
+              />
+            )}
             <ExportButton design={design} selection={selection} chosen={chosen} profile={profile?.profile ?? null} />
           </div>
         )}
@@ -451,18 +504,30 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
 }
 
 /** The way on from Speak to Meet: the step's next move, so a tray with a black pill rather than another white row. */
-function MeetRow({ onMeet }: { onMeet: () => void }) {
+function MeetRow({ onMeet, busy }: { onMeet: () => void; busy: boolean }) {
   return (
     <div className="mt-3 flex items-center justify-between gap-3 rounded-tray bg-surface p-4">
       <div className="min-w-0">
         <p className="text-body text-ink">Meet the character</p>
         <p className="text-meta text-ink-3">Their name, story and quirks</p>
       </div>
-      <button type="button" onClick={onMeet} className="pill-primary h-10 shrink-0 px-5">
-        Meet
-        <svg viewBox="0 0 16 16" aria-hidden className="size-3" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-          <path d="M3 8h10M9 4l4 4-4 4" />
-        </svg>
+      <button
+        type="button"
+        onClick={onMeet}
+        aria-disabled={busy}
+        aria-busy={busy}
+        aria-label={busy ? "Writing their profile…" : undefined}
+        className="pill-primary grid h-10 shrink-0 px-5"
+      >
+        {/* the spinner in the label's place while the profile is written (BusySwap), so the pill keeps its width */}
+        <BusySwap busy={busy}>
+          <span className="flex items-center gap-2">
+            Meet
+            <svg viewBox="0 0 16 16" aria-hidden className="size-3" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 8h10M9 4l4 4-4 4" />
+            </svg>
+          </span>
+        </BusySwap>
       </button>
     </div>
   );
@@ -471,19 +536,26 @@ function MeetRow({ onMeet }: { onMeet: () => void }) {
 /** "0:13" from a duration in seconds. */
 const clock = (secs: number) => `${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, "0")}`;
 
+/** A preview row's orb: the live sphere answering its preview (VoiceSphere); /dev/voice-sphere also shows others.
+ *  `audios`: the rows' <audio> elements (a ref: read them per frame, not while rendering). */
+export type PreviewOrb = (p: { index: number; preview: Preview; playing: boolean; audios: RefObject<(HTMLAudioElement | null)[]> }) => ReactNode;
+const sphereOrb: PreviewOrb = ({ index, preview, playing, audios }) => <VoiceSphere index={index} url={preview.url} playing={playing} audios={audios} />;
+
 /**
  * The three preview rows. Each keeps a hidden <audio> (no `controls`, so it has no box); the orb
  * is the play button, with the glyph shown on hover and while playing. Only one preview plays
  * at a time. Playback state is local to this list, so it resets whenever new previews arrive.
  * `inUse`: the take the current voice came from; its pill reads "In use" and goes back to Speak.
  */
-function PreviewList({
+export function PreviewList({
   previews,
   line,
   busy,
   saving,
   inUse,
   onChoose,
+  orb = sphereOrb,
+  dim = false,
 }: {
   previews: Preview[];
   /** What every preview says: the play buttons' description. */
@@ -492,9 +564,10 @@ function PreviewList({
   saving: number | null;
   inUse: number | null;
   onChoose: (index: number) => void;
+  orb?: PreviewOrb;
+  dim?: boolean; // the orb darkens on hover and focus and its icon turns white (the old image orbs, in /dev/voice-sphere)
 }) {
   const audios = useRef<(HTMLAudioElement | null)[]>([]);
-  usePrefetchVoiceBlobs(); // the playing strips, so the first play doesn't wait
   const [playing, setPlaying] = useState<number | null>(null);
   const lineId = useId();
 
@@ -530,14 +603,13 @@ function PreviewList({
             data-step-focus={i === 0 ? "" : undefined}
             className="group/play relative h-9 w-9 shrink-0 rounded-full active:scale-[0.98]"
           >
-            {/* darkens itself on hover / focus (40 %) and a little while playing (VoiceBlob), following its bumps */}
-            <span className="block group-focus-visible/play:brightness-[0.4]">
-              <VoiceBlob index={i} playing={playing === i} />
-            </span>
-            {/* black on the pale orb, white once it darkens (hover, focus); a white icon at rest would be faint, and an orb
-                darkened at rest turns muddy grey. Playing dims it only a little, so the pause icon stays
-                black (white on it would be nearly invisible) */}
-            <span className="absolute inset-0 grid place-items-center text-ink transition-colors duration-(--dur-1) group-hover/row:text-white group-focus-visible/play:text-white">
+            {/* the orb keeps its full colour (the row's grey shows the hover; the focus ring, the focus); `dim`: the old
+                image orbs darkened themselves on hover and focus, under a white icon */}
+            <span className={`block ${dim ? "group-focus-visible/play:brightness-[0.4]" : ""}`}>{orb({ index: i, preview: p, playing: playing === i, audios })}</span>
+            {/* black on the pale orb (a white icon on it would be faint) */}
+            <span
+              className={`absolute inset-0 grid place-items-center text-ink transition-colors duration-(--dur-1) ${dim ? "group-hover/row:text-white group-focus-visible/play:text-white" : ""}`}
+            >
               {playing === i ? (
                 <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
                   <path d="M5 4h4v12H5zM11 4h4v12h-4z" />

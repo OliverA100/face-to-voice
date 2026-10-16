@@ -7,7 +7,8 @@
  * surprise until the conversation.
  *
  * Opening the step writes the profile the first time (one Claude call, then shared by everyone who meets this voice);
- * after that it is free. "Recast" writes a different one for the same voice, kept for this visitor only.
+ * after that it is free. "Recast" writes a different one for the same voice, kept for this visitor only: the profile is
+ * a skeleton while it is written, and the card scrolls back up to the new one.
  */
 import { useEffect, useRef, useState } from "react";
 
@@ -19,6 +20,7 @@ import type { ProfileResult } from "@/lib/character/profile";
 import { isLimitError } from "@/lib/limits/open";
 import { talkAvailable } from "@/lib/talk/invite";
 import { ProfileSkeleton } from "@/components/ui/ProfileSkeleton";
+import { scrollVoiceCardTop } from "@/components/ui/voiceCardScroll";
 import { requestProfile, VoiceApiError, withCasting, type DesignResult } from "@/lib/voice/client";
 
 type Busy = null | "write" | "rewrite";
@@ -41,6 +43,7 @@ export function CharacterCard({
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<{ message: string; limits: boolean } | null>(null);
   const [said, setSaid] = useState("");
+  const root = useRef<HTMLDivElement>(null);
 
   const write = async (kind: Exclude<Busy, null>) => {
     if (busy) return;
@@ -49,6 +52,8 @@ export function CharacterCard({
     try {
       onResult(await withCasting(design, () => requestProfile(design, kind === "rewrite")), design);
       setSaid(kind === "rewrite" ? "They have been recast." : "The character's profile is ready.");
+      // Recast is pressed below the profile: back up to the new one (after it renders)
+      if (kind === "rewrite") requestAnimationFrame(() => scrollVoiceCardTop(root.current?.closest('section[aria-label="Voice"]') ?? null));
     } catch (e) {
       if (!(e instanceof VoiceApiError)) console.error("[profile]", e);
       if (e instanceof VoiceApiError && e.code === "stale") onStale();
@@ -89,36 +94,41 @@ export function CharacterCard({
 
   const { profile } = result;
   return (
-    <div className="enter flex flex-col gap-3">
-      <section aria-label={`Character: ${profile.name}`} className="flex flex-col gap-3 rounded-tray bg-surface p-4">
-        <div>
-          <h3 className="display text-[20px] text-ink">{profile.name}</h3>
-          {profile.title && <p className="text-meta text-ink-3 first-letter:uppercase">{profile.title}</p>}
-        </div>
-        <p className="text-body text-ink-2">{profile.backstory}</p>
-        {/* Chips wrap onto new lines; the card never scrolls sideways. */}
-        <ul aria-label="Traits" className="flex flex-wrap gap-1.5">
-          {profile.traits.map((t) => (
-            <li key={t} className="rounded-full bg-card px-2.5 py-0.5 text-meta text-ink-2 shadow-hairline">
-              {t}
-            </li>
-          ))}
-        </ul>
-        <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-meta">
-          <Row label="Habits" items={profile.habits} />
-          <Row label="Quirks" items={profile.quirks} />
-          <Row label="Loves" items={profile.interests} />
-          {profile.dislikes?.length > 0 && <Row label="Hates" items={profile.dislikes} />}
-          <Row label="Catchphrase" items={profile.catchphrases.map((c) => `“${c}”`)} />
-          {profile.want && <Row label="Wants" items={[profile.want]} />}
-        </dl>
-      </section>
+    <div ref={root} className="enter flex flex-col gap-3">
+      {busy === "rewrite" ? (
+        // the new character is being written: a tray shaped like the profile it becomes, in the old one's place
+        <ProfileSkeleton label="Recasting the character…" />
+      ) : (
+        <section aria-label={`Character: ${profile.name}`} className="flex flex-col gap-3 rounded-tray bg-surface p-4">
+          <div>
+            <h3 className="display text-[20px] text-ink">{profile.name}</h3>
+            {profile.title && <p className="text-meta text-ink-3 first-letter:uppercase">{profile.title}</p>}
+          </div>
+          <p className="text-body text-ink-2">{profile.backstory}</p>
+          {/* Chips wrap onto new lines; the card never scrolls sideways. */}
+          <ul aria-label="Traits" className="flex flex-wrap gap-1.5">
+            {profile.traits.map((t) => (
+              <li key={t} className="rounded-full bg-card px-2.5 py-0.5 text-meta text-ink-2 shadow-hairline">
+                {t}
+              </li>
+            ))}
+          </ul>
+          <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-meta">
+            <Row label="Habits" items={profile.habits} />
+            <Row label="Quirks" items={profile.quirks} />
+            <Row label="Loves" items={profile.interests} />
+            {profile.dislikes?.length > 0 && <Row label="Hates" items={profile.dislikes} />}
+            <Row label="Catchphrase" items={profile.catchphrases.map((c) => `“${c}”`)} />
+            {profile.want && <Row label="Wants" items={[profile.want]} />}
+          </dl>
+        </section>
+      )}
       {/* The step's main action (when talking is invite-only, for invited visitors: lib/talk/invite.ts). */}
       {talkAvailable() && <TalkPanel design={design} take={take} name={profile.name} onRetired={onRetired} onStale={onStale} />}
       {/* Its own row, like the download: what it does on the left, the action on the right. */}
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-label text-ink">Someone else?</p>
+          <p className="text-label text-ink">Not who you had in mind?</p>
           <p className="text-meta text-ink-3">Keep the voice, meet a different character</p>
         </div>
         <button
