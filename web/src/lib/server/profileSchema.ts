@@ -83,6 +83,11 @@ export function cleanText(s: string): string {
     .trim();
 }
 
+/** Spoken text without stage directions: "*chuckles*" and "(sighs)" are left out whole (the voice would read them). */
+export function withoutActions(s: string): string {
+  return s.replace(/\*[^*]*\*|\([^)]*\)/g, " ");
+}
+
 /** `s` cleaned and cut to `max` characters, at a word boundary when one is near (a generated sentence can run long). */
 export function clip(s: string, max: number): string {
   const t = cleanText(s);
@@ -90,6 +95,15 @@ export function clip(s: string, max: number): string {
   const cut = t.slice(0, max);
   const space = cut.lastIndexOf(" ");
   return (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:–-]+$/, "");
+}
+
+/** Spoken text cut to `max` characters at the end of a sentence, when one fits: a greeting cut mid-sentence is said
+ *  that way ("…you ain't here to tell me, are"). Otherwise as `clip`. */
+export function clipSentences(s: string, max: number): string {
+  const t = cleanText(s);
+  if (t.length <= max) return t;
+  const end = Math.max(...[...t.slice(0, max + 1).matchAll(/[.!?…](?=\s|$)/g)].map((m) => m.index! + 1), 0);
+  return end > 0 ? t.slice(0, end) : clip(t, max);
 }
 
 /** Claude's answer held to LIMITS: texts cleaned and clipped, lists cut to size (a list Claude left empty gets a filler). */
@@ -111,7 +125,7 @@ export function clampProfile(p: GeneratedProfile): CharacterProfile {
     vocabulary: p.vocabulary,
     catchphrases: items(p.catchphrases, LIMITS.catchphrase, LIMITS.catchphrases, "Well, there it is."),
     mood: p.mood,
-    greeting: clip(p.greeting, LIMITS.greeting) || "Oh, hello there.",
+    greeting: clipSentences(withoutActions(p.greeting), LIMITS.greeting) || "Oh, hello there.",
     want: clip(p.want, LIMITS.want),
   };
 }

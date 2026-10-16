@@ -79,10 +79,10 @@ export function withoutPlainCopies(text: string): string {
  *
  * The visitor's words can't pass for the app's notes: "note from the app" in them loses its "from the app".
  *
- * `opening`: the character wants something (the instructions' "What's on your mind"). Haiku left it out of half its
- * first replies when only told so in the instructions, so the visitor's first turn carries a note to work it in.
+ * The character's want has no note of its own: the instructions bring it in within the first few replies. A note on
+ * the visitor's first turn forcing it into that reply made characters skip past whatever the visitor said (2026-10-15).
  */
-export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (reply: llm.ChatMessage) => Mood | null, opening = false): { system: string; messages: Turn[] } {
+export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (reply: llm.ChatMessage) => Mood | null): { system: string; messages: Turn[] } {
   const system: string[] = [];
   const turns: { role: "user" | "assistant"; text: string }[] = [];
   for (const item of chatCtx.items) {
@@ -105,13 +105,9 @@ export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (repl
   }
   if (turns.at(-1)?.role !== "user") turns.push({ role: "user", text: turns.length ? SILENT : WALKS_UP });
 
-  let visitorTurns = 0;
   const messages: Turn[] = turns.map(({ role, text }) => {
     if (role === "assistant") return { role, content: text };
-    const visitor = !text.startsWith("(The visitor");
-    if (visitor) visitorTurns++;
     const notes = [
-      ...(opening && visitor && visitorTurns === 1 ? ["work what's on your mind (what you want right now) into this reply, in your own way"] : []),
       "reply in one or two short sentences, under 20 words",
       ...(moodOf ? ["begin it with your mood tag"] : []),
     ];
@@ -135,12 +131,13 @@ const visitorSaid = (text: string) => withoutPlainCopies(text).replace(/note fro
 const WALKS_UP = "(The visitor walks up.)";
 const SILENT = "(The visitor says nothing.)";
 
-/** The opening of a later chat in the same visit: new words, not the greeting they heard last time. */
+/** The opening of a later chat in the same visit: a welcome back in new words, not the greeting they heard last time.
+ *  Several examples, so the welcomes don't all come out as the same one. */
 export const againNote = (greeting: string) =>
-  `The visitor has come back for another chat. Open with something new, in one or two short sentences (under 20 words ` +
-  `in all), in the middle ` +
-  `of something else in your world; don't repeat or reword your first greeting ("${greeting}"), and don't claim to ` +
-  `remember what was said last time.`;
+  `The visitor has come back for another chat. Greet them as someone you've met before, in your own words (like ` +
+  `"Oh, it's you again!", "Look who's back.", "Twice in one day?" or "Ah, my favourite visitor."), then say something ` +
+  `new about you or your day, in one or two short sentences (under 20 words in all); don't repeat or reword your first ` +
+  `greeting ("${greeting}"), and don't claim to remember what was said last time.`;
 
 /** Where a reply's word timings go: a text stream to the browser ("ftv.words"), one per reply. */
 export type OpenWords = () => Promise<{ write(text: string): Promise<void>; close(): Promise<void> }>;
@@ -188,7 +185,7 @@ export class CharacterAgent extends voice.Agent {
       return ReadableStream.from([(DIALOGUE_MODEL ? audioTag(mood, this.meta.moodTags) : "") + text]);
     }
     const moodOf = (item: llm.ChatMessage) => (item.extra[MOOD_KEY] as Mood | undefined) ?? null;
-    const { system, messages } = toClaude(chatCtx, this.meta.instructions, moodOf, this.meta.instructions.includes("What's on your mind"));
+    const { system, messages } = toClaude(chatCtx, this.meta.instructions, moodOf);
     const tag = new MoodTag(new Set(["neutral", ...Object.keys(this.meta.moodTags)]));
     const { meta, claude } = this;
     const setPending = (mood: Mood | null) => (this.pendingMood = mood);
@@ -209,6 +206,7 @@ export class CharacterAgent extends voice.Agent {
       });
       current = stream;
       const cap = new SentenceCap(REPLY_WORDS);
+      const actions = new ActionStrip(); // "*chuckles*" is never spoken
       let first = true;
       try {
         for await (const event of stream) {
@@ -224,7 +222,7 @@ export class CharacterAgent extends voice.Agent {
             }
             log("first text", { ms: Math.round(performance.now() - started) });
           }
-          const said = text && cap.push(text);
+          const said = text && cap.push(actions.push(text));
           if (said) yield said;
           if (cap.done) break; // long enough: the rest is never said (or paid for)
         }
@@ -232,7 +230,7 @@ export class CharacterAgent extends voice.Agent {
           log("reply capped", { words: cap.words });
           return;
         }
-        const rest = cap.push(tag.flush());
+        const rest = cap.push(actions.push(tag.flush()));
         if (rest) yield rest;
         const { usage } = await stream.finalMessage();
         log("usage", { input: usage.input_tokens, cacheRead: usage.cache_read_input_tokens, cacheWrite: usage.cache_creation_input_tokens, output: usage.output_tokens });
@@ -399,6 +397,34 @@ export class BracketStrip {
       if (c === "[") this.inside = true;
       else if (c === "]") this.inside = false;
       else if (!this.inside) out += c;
+    }
+    return out;
+  }
+}
+
+/**
+ * Drops stage directions from a reply as it streams: "*chuckles softly*" and "(sighs)", even across pieces, with the
+ * space they leave collapsed. The instructions forbid them, but a delivery quirk ("chuckles between sentences") still
+ * brings them out, and the voice would read them aloud.
+ */
+export class ActionStrip {
+  private close: string | null = null;
+  private space = false;
+  push(s: string): string {
+    let out = "";
+    for (const c of s) {
+      if (this.close) {
+        if (c === this.close) this.close = null;
+        continue;
+      }
+      if (c === "*" || c === "(") {
+        this.close = c === "*" ? "*" : ")";
+        continue;
+      }
+      const space = /\s/.test(c);
+      if (space && this.space) continue;
+      this.space = space;
+      out += c;
     }
     return out;
   }

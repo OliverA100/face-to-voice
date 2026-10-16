@@ -1,7 +1,7 @@
 import { llm } from "@livekit/agents";
 import { describe, expect, it } from "vitest";
 
-import { againNote, BracketStrip, SentenceCap, toClaude, withoutPlainCopies } from "./character.ts";
+import { ActionStrip, againNote, BracketStrip, SentenceCap, toClaude, withoutPlainCopies } from "./character.ts";
 import { HARD_MAX_SECONDS, parseMetadata } from "./metadata.ts";
 
 const chat = (...turns: [llm.ChatRole, string][]) => {
@@ -50,18 +50,14 @@ describe("the conversation as Claude takes it", () => {
     expect(said).not.toMatch(/note from the app/i);
   });
 
-  it("asks for the character's want in their first answer to the visitor only", () => {
-    const first = toClaude(chat(["assistant", "Well now!"], ["user", "Hi!"]), undefined, undefined, true).messages;
-    expect(first.at(-1)?.content).toBe("Hi!\n\n(Note from the app: work what's on your mind (what you want right now) into this reply, in your own way; reply in one or two short sentences, under 20 words.)");
-    const later = toClaude(chat(["assistant", "Well now!"], ["user", "Hi!"], ["assistant", "Aye."], ["user", "Nice."]), undefined, undefined, true).messages;
-    expect(later.at(-1)?.content).toBe("Nice.\n\n(Note from the app: reply in one or two short sentences, under 20 words.)");
-    const nudge = toClaude(chat(["assistant", "Well now!"], ["user", "Hi!"], ["assistant", "Aye."]), undefined, undefined, true).messages;
-    expect(nudge.at(-1)?.content).toBe("(The visitor says nothing.)\n\n(Note from the app: reply in one or two short sentences, under 20 words.)"); // a nudge or the goodbye: not the want
+  it("leaves the visitor's first turn free to be answered: no note pushing the character's want", () => {
+    const first = toClaude(chat(["assistant", "Well now!"], ["user", "Hi!"])).messages;
+    expect(first.at(-1)?.content).toBe("Hi!\n\n(Note from the app: reply in one or two short sentences, under 20 words.)");
   });
 
   it("opens a later chat with the visitor walking up and the app's note, not the greeting", () => {
     const base = "You are Hamish.";
-    const { system, messages } = toClaude(chat(["system", `${base}\n${againNote("Well now!")}`]), base, undefined, true);
+    const { system, messages } = toClaude(chat(["system", `${base}\n${againNote("Well now!")}`]), base);
     expect(system).toBe(base); // the cached instructions stay as they are
     expect(messages).toHaveLength(1);
     expect(messages[0].content).toMatch(/^\(The visitor walks up\.\)\n\n\(Note from the app: reply in one[^)]*\)\n\n\(Note from the app, not said by the visitor: The visitor has come back/);
@@ -76,7 +72,7 @@ describe("the conversation as Claude takes it", () => {
     const said: [llm.ChatRole, string][] = [["system", base], ["assistant", "Well now!"]];
     const ask = (instructions?: string) => {
       const turns = instructions ? [["system", `${base}\n${instructions}`] as [llm.ChatRole, string], ...said.slice(1)] : said;
-      return toClaude(chat(...turns), base, moodOf, true);
+      return toClaude(chat(...turns), base, moodOf);
     };
     const requests: ReturnType<typeof ask>[] = [];
     for (const [role, text] of [["user", "Hi!"], ["assistant", "Aye."], ["user", "Nice day."], ["assistant", "It is."]] as [llm.ChatRole, string][]) {
@@ -109,6 +105,11 @@ describe("captions", () => {
   it("lose the audio tag even across pieces", () => {
     const s = new BracketStrip();
     expect(["[chee", "rful] Hello", " there"].map((p) => s.push(p)).join("")).toBe(" Hello there");
+  });
+
+  it("never speak stage directions, even across pieces", () => {
+    const a = new ActionStrip();
+    expect(["Ah, *chuck", "les softly* well. (sig", "hs) Fine."].map((p) => a.push(p)).join("")).toBe("Ah, well. Fine.");
   });
 });
 

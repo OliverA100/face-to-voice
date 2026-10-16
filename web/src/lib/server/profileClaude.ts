@@ -20,6 +20,8 @@ const PROFILE_SYSTEM = `You write character profiles for a video game. Each char
 
 The character is made up. Never use the name of a real person, living or dead, or of a famous fictional character, and never describe a real person. Invent a fresh name that fits their age, persona and the way they speak.
 
+Set them in the world their persona belongs to: an everyday town for a baker, a world of magic for a witch or wizard. A fantasy character is fully part of that world (spells, potions, dragons, enchanted woods), never a person in costume.
+
 Write from the casting below. The profile must match the voice: their age, energy, pace, moods and accent should all be felt in it. Lean into the persona the way games do, with specific, vivid details rather than generic ones.
 
 Fields:
@@ -36,7 +38,7 @@ Fields:
 - catchphrases: one or two short things they often say (at most 8 words each), in plain spelling. New words: not taken from their introduction line.
 - mood: their mood right now, from the list; the expression on their face decides it when they have one.
 - want: what they want right now, as they would say it, starting "to" (at most 25 words): a specific goal, problem or errand from their life that a stranger could help with or have an opinion on ("to find whoever keeps moving my lobster pots", "to get the town to taste my new pickled-egg recipe"). Small and everyday or a little adventurous, never dangerous, and nothing they need from the visitor in real life (no money, details or meetings).
-- greeting: what they say as someone walks up to them, in character: one or two short sentences, at most 25 words. It drops that person into a scene, as a game does: the character is in the middle of something in their world (mending a net, tasting a sauce, arguing with a stuck door) and turns to them mid-moment, with a remark or a question that hints at what they want. Not an offer to help ("What can I do for you?") unless helping people is their job, not a stage direction (only spoken words), and not their introduction line or a rewording of it.
+- greeting: their first words when a stranger walks up to them: one or two short sentences, at most 25 words. It is a real hello, in their own way ("Well, hello there!", "Oi, you!", "Ah, a visitor!", "Oh! Hello..."), then something about them that makes sense to someone who knows nothing about them yet (who they are, what they're up to, how their day is going), usually ending with a question or an invitation to the visitor. They may give their name. Only spoken words: no narration, actions or stage directions, and no people or things the visitor can't know about ("this fella", "that shadow", "the clause"). Not an offer to help ("What can I do for you?") unless helping people is their job, and not their introduction line or a rewording of it.
 
 Everything is family-friendly, contains no slurs, says nothing about the character's skin colour or ethnicity, and mentions no real people or brands. Plain English, standard spelling (no phonetic dialect spelling: the accent is in the voice). Use the enum values exactly as given.`;
 
@@ -56,7 +58,7 @@ export const LIVES = [
   "the outdoors", "a shop, stall or market", "travel and far-off places", "the law (on either side of it)", "a sport",
   "art or craft", "the past (collecting, history, old things)", "machines and engines", "a small town where everyone knows them",
   "a big city at night", "teaching or looking after others", "games, puzzles and contests", "the sky (flying, weather, stars)",
-  "a family business",
+  "a family business", "magic, spells and potions", "myths, monsters and legends",
 ] as const;
 
 export function reimagineBrief(previous: CharacterProfile, life: string): string {

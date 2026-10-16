@@ -63,5 +63,10 @@ describe("clamping Claude's answer", () => {
   it("cleans text of markup and audio tags, so the greeting is spoken as words", () => {
     expect(cleanText('  Ann <b>"Bee"</b> [whispers] {x} `y`\n\tz\u0000 ')).toBe("Ann bBee/b whispers x y z");
     expect(clampProfile({ ...ANSWER, greeting: "Hello [laughs] there\nfriend" }).greeting).toBe("Hello laughs there friend");
+    // stage directions go whole: the voice would read them out
+    expect(clampProfile({ ...ANSWER, greeting: "(chuckles) Ah, careful there. *wipes hands* Hello!" }).greeting).toBe("Ah, careful there. Hello!");
+    // a long greeting ends on a whole sentence, never mid-way
+    const long = "Oh! You scared the daylights out of me, mister. Name's Clete, I work the Haskell place, and you ain't here to tell me something's wrong with the herd again tonight, are you?";
+    expect(clampProfile({ ...ANSWER, greeting: long }).greeting).toBe("Oh! You scared the daylights out of me, mister.");
   });
 });
