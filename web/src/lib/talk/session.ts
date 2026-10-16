@@ -89,6 +89,14 @@ function micFailure(e: unknown): EndReason {
 const echoOff = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("talkEcho") === "off" && isAppleTouch();
 /** After the character stops (its state), the microphone waits this long (ms): the voice is held back and still heard. */
 const DUPLEX_TAIL_MS = 400;
+/**
+ * ?talkEcho=off: the character's voice this many times louder (a limiter keeps loud words from clipping). Without the
+ * echo canceller iOS played it much quieter on the loudspeaker (2026-10-16). `?talkBoost=` tunes it (1–6).
+ */
+const chatBoost = () => {
+  const q = Number(new URLSearchParams(window.location.search).get("talkBoost"));
+  return Number.isFinite(q) && q >= 1 ? Math.min(6, q) : 2.5;
+};
 
 export class TalkSession {
   private readonly halfDuplex = echoOff();
@@ -154,7 +162,7 @@ export class TalkSession {
         const playThrough = params.get("talkAudio") !== "element";
         // the captions wait for the voice, which is held back
         if (playThrough) this.captionDelayMs = LIVE.delay * 1000;
-        live.attach(track.mediaStreamTrack, playThrough).then(
+        live.attach(track.mediaStreamTrack, playThrough, LIVE.delay, this.halfDuplex ? chatBoost() : 1).then(
           () => {
             if (this.snap.state === "ended") return; // over while the meter was loading
             // the element stays the voice until the graph really plays (and becomes it again if Safari suspends it).

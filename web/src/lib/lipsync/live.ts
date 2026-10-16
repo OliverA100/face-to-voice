@@ -179,7 +179,7 @@ export class LiveSpeech implements SpeechSource {
    * Start measuring the character's voice. `playThrough`: also play it from here, held back LIVE.delay, instead of from
    * livekit-client's element, so the sound and the meter share one clock and the lip sync can look ahead.
    */
-  async attach(track: MediaStreamTrack, playThrough = false, delaySeconds = LIVE.delay): Promise<void> {
+  async attach(track: MediaStreamTrack, playThrough = false, delaySeconds = LIVE.delay, gain = 1): Promise<void> {
     // once per context: a context serves every chat (TalkPanel), and registering the processor twice throws
     let ready = metered.get(this.ctx);
     if (!ready) {
@@ -203,14 +203,28 @@ export class LiveSpeech implements SpeechSource {
       // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
       this.node.connect(outputOf(this.ctx));
     }
+    // `gain`: the voice made louder (session.ts chatBoost), a limiter after it so loud words don't clip
+    let out: AudioNode = outputOf(this.ctx);
+    if (playThrough && gain !== 1) {
+      const boost = this.ctx.createGain();
+      boost.gain.value = gain;
+      const limit = this.ctx.createDynamicsCompressor();
+      limit.threshold.value = -6;
+      limit.knee.value = 3;
+      limit.ratio.value = 20;
+      limit.attack.value = 0.002;
+      limit.release.value = 0.1;
+      boost.connect(limit).connect(out);
+      out = boost;
+    }
     if (playThrough && delaySeconds > 0) {
       // held back: the meter sees each sound this long before it is heard (the gates and loudness read ahead; the
       // evaluator's closure and vowel snapping need more look-ahead than this, so live they mostly settle after the fact)
       const hold = this.ctx.createDelay(1);
       hold.delayTime.value = delaySeconds;
-      this.source.connect(hold).connect(outputOf(this.ctx)); // Safari: through an <audio> element (output.ts)
+      this.source.connect(hold).connect(out); // Safari: through an <audio> element (output.ts)
       this.delay = delaySeconds;
-    } else if (playThrough) this.source.connect(outputOf(this.ctx));
+    } else if (playThrough) this.source.connect(out);
   }
 
   detach(): void {
