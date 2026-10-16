@@ -6,13 +6,17 @@
  * reaches the button or the button is pressed, never with the page.
  *
  *   idle      a surface tray with the black "Chat" pill
- *   live      the state (Connecting / Waking … / Listening / Thinking / … is speaking), the character's words as they
- *             are spoken, Mute and End; "30 seconds left" only near the end (the character says goodbye itself)
+ *   live      the loader's sphere answering whoever talks (CHAT_SPHERE), the state (Connecting / Waking … / Listening /
+ *             Thinking / … is speaking), the character's words as they are spoken, Mute and End; "30 seconds left" only
+ *             near the end (the character says goodbye itself)
  *   ended     why it ended, and "Have another chat", which starts the next one straight away
  */
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Alert } from "@/components/ui/Alert";
+import { BALL_IN_FRAME, CHROME, VOICE_STYLE, VOICE_STYLES } from "@/components/ui/loader/chrome";
+import type { ChromeVoice, ChromeVoiceStyle } from "@/components/ui/loader/chromeGl";
+import { LoaderSphere } from "@/components/ui/loader/LoaderSphere";
 import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { isLimitError } from "@/lib/limits/open";
@@ -66,6 +70,24 @@ let lastRoom: string | undefined;
 
 /** The time left is shown only in the last stretch: a clock running all along makes a chat feel like a test. */
 const SHOW_LEFT_SECONDS = 30;
+
+/**
+ * The sphere beside the chat's state. While someone talks it answers their voice (how: ./loader/chrome.tsx
+ * VOICE_STYLES, compared in /dev/voice-sphere), holding `polish` (0 = the loader's lumpy white blob, 1 = the soap
+ * bubble with its rainbow): mostly white while the character talks, colourful while you do. Thinking, it swings as
+ * the busy spinner does (the loader's whole swing, quicker, the rainbow at 30 %); connecting and waking, as the loader
+ * does; once the chat is over it rests on the bubble.
+ */
+export const CHAT_SPHERE = {
+  size: 34, // px, the sphere's --orb size, as the Voice step's orbs (the ball is CHROME.ball of it; its box adds room for the bumps)
+  polish: { listening: 1, speaking: 0.4, ended: 1 },
+  // the spinner's: blob → bubble in 1.2 s (the loader's 1.5 s), the rainbow at 30 %, and the lumpy blob end keeps a
+  // little of it (colourFloor). evenBumps (chromeGl.ts evenBumped) stays off: the swing as the loader's
+  thinking: { swing: true, pace: 3 / 2.4, rainbow: 0.3, evenBumps: 0, colourFloor: 0.25 },
+};
+
+/** What the live view needs from a session: a TalkSession (the voice lab passes a stand-in). */
+export type LiveTalkSession = Pick<TalkSession, "subscribe" | "snapshot" | "setMuted" | "end" | "level"> & { room: Pick<TalkSession["room"], "startAudio"> };
 
 export function TalkPanel({
   design,
@@ -189,8 +211,33 @@ export function TalkPanel({
   );
 }
 
-function LiveTalk({ session, name, maxSeconds, starting, onAgain }: { session: TalkSession; name: string; maxSeconds: number; starting: boolean; onAgain: () => void }) {
+export function LiveTalk({
+  session,
+  name,
+  maxSeconds,
+  starting,
+  onAgain,
+  sphere,
+}: {
+  session: LiveTalkSession;
+  name: string;
+  maxSeconds: number;
+  starting: boolean;
+  onAgain: () => void;
+  sphere?: { style: ChromeVoiceStyle; size: number }; // the voice lab's
+}) {
   const snap: TalkSnapshot = useSyncExternalStore(session.subscribe, session.snapshot, session.snapshot);
+  // read every frame by the sphere, from the session itself (not this render's snapshot)
+  const [voice] = useState(() => ({
+    read: (): ChromeVoice | null => {
+      const state = session.snapshot().state;
+      if (state === "listening" || state === "speaking") return { polish: CHAT_SPHERE.polish[state], level: session.level() };
+      if (state === "thinking") return { polish: 0, level: 0, ...CHAT_SPHERE.thinking };
+      return state === "ended" ? { polish: CHAT_SPHERE.polish.ended, level: 0 } : null;
+    },
+  }));
+  const size = sphere?.size ?? CHAT_SPHERE.size;
+  const pad = (size * (CHROME.ball / BALL_IN_FRAME - CHROME.ball)) / 2; // the box's room around the ball: the ball lines up with the text
   // The clock, from when the character joined.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -213,11 +260,11 @@ function LiveTalk({ session, name, maxSeconds, starting, onAgain }: { session: T
 
   return (
     <section aria-label={`Conversation with ${name}`} className="enter flex flex-col gap-3 rounded-tray bg-surface p-4">
-      <header className="flex items-center justify-between gap-3">
-        <p className="flex items-center gap-2 text-label text-ink">
-          <span aria-hidden className={`size-2 rounded-full ${snap.state === "speaking" ? "bg-ink" : snap.state === "listening" ? "animate-pulse bg-ink" : "bg-ink-4"}`} />
-          {label[snap.state]}
-        </p>
+      <header className="flex items-center gap-3">
+        <div className="shrink-0" style={{ margin: -pad }}>
+          <LoaderSphere size={`${size}px`} voice={{ style: sphere?.style ?? VOICE_STYLES[VOICE_STYLE.id].style, read: voice.read }} />
+        </div>
+        <p className="min-w-0 flex-1 text-label text-ink">{label[snap.state]}</p>
         {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{Math.max(0, left)} seconds left</span>}
       </header>
       {snap.caption && <p className="text-body text-ink">“{snap.caption}”</p>}
