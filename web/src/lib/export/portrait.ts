@@ -58,8 +58,8 @@ export async function capturePortrait(size = PORTRAIT.size): Promise<Blob> {
   return toPng(matte(onBlack, onWhite));
 }
 
-/** Head + eyes on the Pose sliders, passing layers off. Returns the undo. */
-function holdStill(): () => void {
+/** Head + eyes on the Pose sliders, passing layers off. Returns the undo. The 3D model holds still the same way (lib/export/model.ts). */
+export function holdStill(): () => void {
   const undo: (() => void)[] = [];
 
   // Pose only, as IdleLife would draw it with no idle life and no cursor (lib/pose.ts currentPose without `cursor`).

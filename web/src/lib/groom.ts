@@ -489,6 +489,7 @@ export async function buildGroom(
   mesh.name = "groom";
   mesh.frustumCulled = false; // the shader places every vertex
   mesh.userData.groom = true;
+  mesh.userData.groomDef = def; // the 3D model export rebuilds the strands from it (lib/export/strands.ts)
 
   const applyTier = () => {
     const { children, widthScale } = tierCount(def);

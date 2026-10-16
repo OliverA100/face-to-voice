@@ -1,3 +1,4 @@
+import { inflateRawSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 
 import { crc32, makeZip } from "../zip";
@@ -10,7 +11,7 @@ describe("zip writer", () => {
 
   it("stores each file after its local header and lists them all in the central directory", async () => {
     const png = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
-    const blob = makeZip([
+    const blob = await makeZip([
       { name: "a/README.md", data: "héllo" },
       { name: "a/portrait.png", data: png },
     ]);
@@ -34,5 +35,21 @@ describe("zip writer", () => {
     }
     expect(view.getUint32(at, true)).toBe(0x02014b50); // central directory follows the files
     expect(view.getUint32(end + 16, true)).toBe(at);
+  });
+
+  it("deflates the entries marked deflate, with the CRC and size of the original", async () => {
+    const model = new Uint8Array(4096).map((_, i) => i % 7); // repetitive, like a mesh's floats
+    const bytes = new Uint8Array(await (await makeZip([{ name: "a/character.glb", data: model, deflate: true }])).arrayBuffer());
+    const view = new DataView(bytes.buffer);
+    expect(view.getUint16(8, true)).toBe(8); // method: deflate
+    const packed = view.getUint32(18, true);
+    expect(view.getUint32(22, true)).toBe(model.length); // uncompressed size
+    expect(packed).toBeLessThan(model.length);
+    expect(view.getUint32(14, true)).toBe(crc32(model));
+    const nameLength = view.getUint16(26, true);
+    const data = bytes.subarray(30 + nameLength, 30 + nameLength + packed);
+    expect([...inflateRawSync(data)]).toEqual([...model]);
+    const central = 30 + nameLength + packed;
+    expect(view.getUint16(central + 10, true)).toBe(8); // the central record says deflate too
   });
 });

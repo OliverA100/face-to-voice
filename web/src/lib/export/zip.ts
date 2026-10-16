@@ -1,12 +1,19 @@
 /**
- * A minimal .zip writer: files are stored, not compressed. The export is a PNG and an MP3 (already compressed) plus a
- * few small text files, so deflate would save almost nothing, and this keeps the export free of dependencies.
- * Format: PKWARE APPNOTE 6.3 (local headers, central directory, end record); names are UTF-8 (flag bit 11).
+ * A minimal .zip writer: files are stored, except those marked `deflate` (the 3D model: its floats shrink well), which
+ * the browser's own CompressionStream deflates. The PNG and MP3 are already compressed, so the export stays free of
+ * dependencies. Format: PKWARE APPNOTE 6.3 (local headers, central directory, end record); names are UTF-8 (flag bit 11).
  */
 
 export interface ZipEntry {
   name: string; // path inside the zip, "/" separated
   data: Uint8Array | string; // strings are written as UTF-8
+  deflate?: boolean; // compress (method 8) instead of storing
+}
+
+/** Raw deflate (no zlib header), as zip's method 8 takes it. */
+async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
+  const stream = new Blob([data as BlobPart]).stream().pipeThrough(new CompressionStream("deflate-raw"));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
 const CRC_TABLE = (() => {
@@ -30,7 +37,7 @@ function dosTime(d: Date): [number, number] {
   return [(d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()];
 }
 
-export function makeZip(entries: ZipEntry[], when = new Date()): Blob {
+export async function makeZip(entries: ZipEntry[], when = new Date()): Promise<Blob> {
   const utf8 = new TextEncoder();
   const [time, date] = dosTime(when);
   const parts: Uint8Array[] = [];
@@ -41,15 +48,16 @@ export function makeZip(entries: ZipEntry[], when = new Date()): Blob {
     const name = utf8.encode(entry.name);
     const data = typeof entry.data === "string" ? utf8.encode(entry.data) : entry.data;
     const crc = crc32(data);
+    const stored = entry.deflate ? await deflateRaw(data) : data;
     // Fields shared by the local header (from "version needed") and the central record (from its offset 6).
     const common = (v: DataView, at: number) => {
       v.setUint16(at, 20, true); // version needed: 2.0
       v.setUint16(at + 2, 0x0800, true); // flags: UTF-8 names
-      v.setUint16(at + 4, 0, true); // method: stored
+      v.setUint16(at + 4, entry.deflate ? 8 : 0, true); // method: deflate or stored
       v.setUint16(at + 6, time, true);
       v.setUint16(at + 8, date, true);
       v.setUint32(at + 10, crc, true);
-      v.setUint32(at + 14, data.length, true); // compressed size
+      v.setUint32(at + 14, stored.length, true); // compressed size
       v.setUint32(at + 18, data.length, true); // uncompressed size
       v.setUint16(at + 22, name.length, true);
       v.setUint16(at + 24, 0, true); // extra field length
@@ -60,7 +68,7 @@ export function makeZip(entries: ZipEntry[], when = new Date()): Blob {
     lv.setUint32(0, 0x04034b50, true);
     common(lv, 4);
     local.set(name, 30);
-    parts.push(local, data);
+    parts.push(local, stored);
 
     const record = new Uint8Array(46 + name.length);
     const cv = new DataView(record.buffer);
@@ -72,7 +80,7 @@ export function makeZip(entries: ZipEntry[], when = new Date()): Blob {
     record.set(name, 46);
     central.push(record);
 
-    offset += local.length + data.length;
+    offset += local.length + stored.length;
   }
 
   const size = central.reduce((n, c) => n + c.length, 0);

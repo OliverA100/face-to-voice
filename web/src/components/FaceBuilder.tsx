@@ -109,6 +109,8 @@ if (debugHandle) {
     view,
     still: (on: boolean) => void (idleDebug.still = on),
     captureFace,
+    // the 3D model on its own (lib/export/model.ts), e.g. { strands: "guides" }: loaded on first use
+    exportModel: (o?: Parameters<typeof import("@/lib/export/model").buildModel>[0]) => import("@/lib/export/model").then((m) => m.buildModel(o)),
     perf,
   };
 }
