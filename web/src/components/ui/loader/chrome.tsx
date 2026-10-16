@@ -131,8 +131,10 @@ export function Chrome({ size, poster, boot }: { size: string; poster?: string; 
       </div>
       {/* The WebGL canvas goes here (chromeMotion creates a fresh one per run: a canvas handed to a worker can't be reused).
           The boot canvas is the exception: it is in the server's HTML so a script can draw on it before React hydrates
-          (one added then would break hydration). Sized inline: it may be read before the stylesheet has loaded. */}
-      {boot && <canvas data-chrome-boot aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0 }} />}
+          (one added then would break hydration). Sized inline: it may be read before the stylesheet has loaded. Once its
+          worker draws, the browser writes its pixel size onto it (width, height) before React may have hydrated: expected,
+          so React isn't told to warn about it. */}
+      {boot && <canvas data-chrome-boot aria-hidden suppressHydrationWarning style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0 }} />}
     </div>
   );
 }
