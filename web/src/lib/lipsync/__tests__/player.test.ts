@@ -274,6 +274,27 @@ describe("SpeechPlayer", () => {
     expect(store.get("ftv-sync-ms")).toBe("80");
   });
 
+  it("release() before a chat: on an iPhone the line stops and its context closes (made again by the next Speak)", async () => {
+    vi.stubGlobal("navigator", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15", maxTouchPoints: 5 });
+    const { speechPlayer } = await import("../player");
+    await speechPlayer.speak(async () => stream(2));
+    const first = ctx;
+    speechPlayer.release(); // the chat's tap, while the line still plays
+    expect(speechPlayer.state).toBe("idle");
+    expect(first.closed).toBe(true);
+    speechPlayer.unlock(); // the next Speak
+    expect(ctx).not.toBe(first);
+  });
+
+  it("release() on a computer only stops the line: its context is kept", async () => {
+    const { speechPlayer } = await import("../player");
+    await speechPlayer.speak(async () => stream(2));
+    const first = ctx;
+    speechPlayer.release();
+    expect(speechPlayer.state).toBe("idle");
+    expect(first.closed).toBe(false);
+  });
+
   it("unlock() asks iOS for a playback audio session, so the silent switch does not mute speech", async () => {
     const audioSession = { type: "auto" };
     vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5 });

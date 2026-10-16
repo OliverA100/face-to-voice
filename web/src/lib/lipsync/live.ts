@@ -190,6 +190,9 @@ export class LiveSpeech implements SpeechSource {
     }
     await ready;
     if (this.detached) return; // the chat ended while the meter loaded
+    // not running when the voice arrives (an iPhone left it suspended): asked again; with the mic on, iOS allows it
+    // without a tap
+    if (this.ctx.state !== "running") void this.ctx.resume().catch(() => {});
     this.disconnect(); // the track again (a reconnect): one graph at a time
     this.source = this.ctx.createMediaStreamSource(new MediaStream([track]));
     // `?talkMeter=off` (a test: chats popped on an iPhone): no meter, the voice only, so the mouth stays still

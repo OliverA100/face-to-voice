@@ -12,7 +12,7 @@ import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
 import { dropOutput, outputOf, restOutput, wakeOutput } from "./output";
 import { addPhonemes } from "./phonemes";
-import { takeLongHide } from "./staleTab";
+import { isAppleTouch, takeLongHide } from "./staleTab";
 
 const SAMPLE_RATE = ENVELOPE_RATE;
 const PRIME_SECONDS = 0.25; // audio buffered before playback starts (raised when chunks arrive slowly)
@@ -118,6 +118,20 @@ class SpeechPlayer {
     // the route's <audio> element is made and played here, in the tap (Safari starts media only from a gesture)
     outputOf(this.ctx);
     wakeOutput(this.ctx);
+  }
+
+  /**
+   * Stop, and on an iPhone or iPad let the audio go entirely (the next Speak makes it again, in its tap): a chat started
+   * while a line still played got a context that never ran there (2026-10-16: the voice heard through LiveKit's own
+   * element, the lips still). Call before the chat's context is resumed.
+   */
+  release(): void {
+    this.stop();
+    if (this.ctx && isAppleTouch()) {
+      dropOutput(this.ctx);
+      void this.ctx.close().catch(() => {});
+      this.ctx = null;
+    }
   }
 
   /** Clip time in seconds as the listener hears it (negative before playback starts). */
