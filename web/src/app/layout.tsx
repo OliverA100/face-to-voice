@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "@/components/ui/loader/orbPoster.css";
+import { ChromeBootScript } from "@/components/ui/loader/chrome";
 import { TooltipLayer } from "@/components/ui/TooltipLayer";
 
 // Inter for everything (400 for titles and text, 500 for labels), JetBrains Mono for the voice prompt and debug readouts.
@@ -30,6 +31,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         {children}
         <TooltipLayer />
+        {/* after the page's markup: starts the head loader's sphere before any of the app's JS (loader/chrome.tsx) */}
+        <ChromeBootScript />
       </body>
     </html>
   );

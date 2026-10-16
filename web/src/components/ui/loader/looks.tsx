@@ -20,7 +20,7 @@ const LAYOUT_A = {
 } as CSSProperties;
 
 function MarkupA() {
-  return <Chrome size="var(--orb)" />;
+  return <Chrome size="var(--orb)" boot />; // boot: it may start moving before the app hydrates (./chrome.tsx bootChrome)
 }
 
 function createA(root: HTMLElement): Rig {

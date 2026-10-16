@@ -1,8 +1,9 @@
 import { withBotId } from "botid/next/config";
 import type { NextConfig } from "next";
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
 
 /** head.glb's size, so the loader can show real download progress (lib/headLoad.ts). 0 = unknown. */
 function headBytes(): string {
@@ -41,9 +42,45 @@ function assetVersion(): string {
 }
 const ASSET_V = assetVersion();
 
+/**
+ * The loader sphere's worker (src/components/ui/loader/chromeWorker.ts + chromeGl.ts) as one plain JS file. The
+ * bundler's own worker is a chain of three files fetched one after another (a bootstrap, its runtime, then the code:
+ * ~2 s on a slow 4G phone before the sphere can move); this one file is preloaded from the page's head (loader/chrome.tsx
+ * Chrome `boot`), so it is cached by the time the sphere starts.
+ * Not a general bundler: chromeGl.ts imports nothing and chromeWorker.ts imports only chromeGl.ts, so the two are
+ * transpiled (types and comments dropped) and joined, chromeGl's code in its own scope.
+ */
+export function chromeWorkerSource(): string {
+  const dir = join(process.cwd(), "src/components/ui/loader");
+  const js = (file: string) =>
+    ts.transpileModule(readFileSync(join(dir, file), "utf8"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true } }).outputText;
+  const gl = js("chromeGl.ts").replace(/^export /gm, "");
+  const worker = js("chromeWorker.ts").replace(/^import \{[^}]*\} from "\.\/chromeGl";\n/m, "").replace(/^export \{\};\n?/m, "");
+  const source = `const { createChromeGl, createChromeFlow } = (() => {\n${gl}\nreturn { createChromeGl, createChromeFlow };\n})();\n${worker}`;
+  // a new import or export in either file needs a look here (a real bundler, or join it the same way)
+  if (/^\s*(import|export)\b/m.test(source)) throw new Error("chromeWorkerSource: chromeGl.ts / chromeWorker.ts import or export more than this joins");
+  return source;
+}
+
+/** Production builds write it to public/chrome/worker.<content hash>.js (git-ignored) and the app gets its URL
+ *  (process.env.FTV_CHROME_WORKER); dev keeps the bundler's worker, which rebuilds on every edit. "" = the bundler's
+ *  (also when the sources aren't there: `next start` from another folder, after the build has baked the URL in). */
+function chromeWorker(): string {
+  if (process.env.NODE_ENV !== "production" || !existsSync(join(process.cwd(), "src/components/ui/loader/chromeWorker.ts"))) return "";
+  const source = chromeWorkerSource();
+  const name = `worker.${createHash("sha1").update(source).digest("hex").slice(0, 10)}.js`;
+  const dir = join(process.cwd(), "public/chrome");
+  if (!existsSync(join(dir, name))) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(join(dir, name), source);
+  }
+  return `/chrome/${name}`;
+}
+const CHROME_WORKER = chromeWorker();
+
 const nextConfig: NextConfig = {
   agentRules: false, // no AGENTS.md / CLAUDE.md written into the project by `next dev`
-  env: { FTV_HEAD_BYTES: headBytes(), FTV_ASSET_V: ASSET_V },
+  env: { FTV_HEAD_BYTES: headBytes(), FTV_ASSET_V: ASSET_V, FTV_CHROME_WORKER: CHROME_WORKER },
   async rewrites() {
     // any version is served (a tab opened before a deploy still gets its files), but only this build's is immutable
     return [{ source: "/v/:version/:dir(models|textures|basis)/:path*", destination: "/:dir/:path*" }];
@@ -51,6 +88,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       ...(ASSET_V ? [{ source: `/v/${ASSET_V}/:path*`, headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }] : []),
+      // the sphere's worker: its name changes with its content (and the page's preload only helps if it is reused as is)
+      { source: "/chrome/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
       // the page spends credits on a click: never inside someone else's frame
       {
         source: "/:path*",

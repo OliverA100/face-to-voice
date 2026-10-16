@@ -12,6 +12,7 @@
 
 # production
 /build
+/public/chrome/
 
 # misc
 .DS_Store
