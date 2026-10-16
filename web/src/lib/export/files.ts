@@ -5,6 +5,7 @@
  *   face-to-voice-<name>/
  *     README.md               what's inside, the rebuild link, what the face may be used for
  *     portrait.png            1024² transparent portrait (lib/export/portrait.ts)
+ *     character.glb           the face in 3D, posed as in the portrait (lib/export/model.ts)
  *     character.json          the face as data; the rebuild link carries the same (lib/export/characterCode.ts)
  *     voice-sample.mp3        the take the voice came from, saying the character's line (.wav in mock mode)
  *     voice.md                casting, the Voice Design prompt and line, how to make a similar voice in your own account
@@ -23,6 +24,7 @@ import type { DesignResult, VoiceRecipe } from "@/lib/voice/client";
 
 import { characterLink, currentCharacter } from "./character";
 import { addonPiece, hairPiece, HEAD_PIECE, licenceMarkdown, overallUse, SKIN_PIECE, type Piece } from "./licence";
+import { buildModel } from "./model";
 import { capturePortrait } from "./portrait";
 import { makeZip, type ZipEntry } from "./zip";
 
@@ -51,7 +53,7 @@ export async function buildExport(voice: ExportVoice): Promise<ExportResult> {
   const date = new Date().toISOString().slice(0, 10);
   const appUrl = location.origin;
 
-  const [portrait, sample] = await Promise.all([capturePortrait(), fetchSample(design.previews[take]?.url)]);
+  const [portrait, model, sample] = await Promise.all([capturePortrait(), buildModel(), fetchSample(design.previews[take]?.url)]);
   const character = currentCharacter();
   const link = characterLink(character, appUrl);
   const pieces = facePieces();
@@ -60,6 +62,7 @@ export async function buildExport(voice: ExportVoice): Promise<ExportResult> {
   const entries: ZipEntry[] = [
     { name: "README.md", data: readme({ name, link, pieces, sampleName, date, profile }) },
     { name: "portrait.png", data: new Uint8Array(await portrait.arrayBuffer()) },
+    { name: "character.glb", data: model, deflate: true },
     { name: "character.json", data: json(character) },
     ...(sample && sampleName ? [{ name: sampleName, data: sample.bytes }] : []),
     { name: "voice.md", data: voiceMarkdown({ name, design, take, studioFallback, sampleName }) },
@@ -69,7 +72,7 @@ export async function buildExport(voice: ExportVoice): Promise<ExportResult> {
   ].map((e) => ({ ...e, name: `${folder}/${e.name}` }));
 
   return {
-    blob: makeZip(entries),
+    blob: await makeZip(entries),
     filename: `${folder}.zip`,
     files: entries.map((e) => ({ name: e.name, bytes: typeof e.data === "string" ? new TextEncoder().encode(e.data).length : e.data.length })),
   };
@@ -112,6 +115,7 @@ function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: st
     "| File | What it is |",
     "| --- | --- |",
     "| portrait.png | The face, 1024 × 1024, transparent background |",
+    `| character.glb | The character in 3D, posed as in the portrait (metres, Y up), hair as strands. Opens in Blender, Unity, Unreal and Godot |`,
     "| character.json | The face as data: every slider, the expression, pose, hair, add-ons, skin and eyes |",
     ...(o.sampleName ? [`| ${o.sampleName} | The voice, saying the character's own line |`] : []),
     "| voice.md | Who the voice is, the ElevenLabs Voice Design prompt, and how to make a similar voice in your own account |",

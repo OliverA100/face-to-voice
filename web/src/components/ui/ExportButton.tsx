@@ -54,7 +54,7 @@ export function ExportButton({ design, selection, chosen, profile }: { design: D
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-label text-ink">Your character</p>
-          <p className="text-meta text-ink-3">{profile ? "Portrait, voice, profile and licence" : "Portrait, voice and licence"}</p>
+          <p className="text-meta text-ink-3">{profile ? "Portrait, 3D model, voice, profile and licence" : "Portrait, 3D model, voice and licence"}</p>
         </div>
         <button
           type="button"
