@@ -17,8 +17,7 @@
  *     its loudness as the agent made it (10 ms blocks), for the lip sync (lib/lipsync/live.ts)
  *
  * The face follows: the mouth from the voice (LiveSpeech, registered with LipSync), the expression from the mood, and
- * nods while the visitor talks and as the character answers (lib/talk/face.ts). The chat's sphere follows level():
- * whoever is talking, how loud.
+ * nods while the visitor talks and as the character answers (lib/talk/face.ts).
  */
 import { MediaDeviceFailure, type Participant, type RemoteTrack, Room, RoomEvent, Track } from "livekit-client";
 
@@ -27,7 +26,6 @@ import { restOutput } from "@/lib/lipsync/output";
 import { isAppleTouch } from "@/lib/lipsync/staleTab";
 import { setLiveSpeech } from "@/lib/lipsync/source";
 import { HeardLine } from "@/lib/talk/heard";
-import { type LevelMeter, micMeter } from "@/lib/talk/meter";
 import { chatFaceEnd, chatFaceStart, chatListening, chatMood, chatNod } from "@/lib/talk/face";
 import type { TalkTicket } from "@/lib/voice/client";
 
@@ -110,8 +108,6 @@ export class TalkSession {
   private agentState = "";
   private wordsStream = 0; // the newest "ftv.words" stream: a late line from an older one is dropped
   private readonly unlisten = new AbortController(); // listeners on the shared AudioContext, removed when the chat ends
-  private mic: LevelMeter | null = null; // the visitor's loudness (level()), made on first read
-  private micFailed = false;
 
   /**
    * `ctx`: the lip sync's AudioContext, made and resumed synchronously in the tap that started the call (Safari only
@@ -280,32 +276,6 @@ export class TalkSession {
     this.set({ joinedAt: Date.now(), state: this.snap.state === "ended" ? "ended" : "listening" });
   }
 
-  /**
-   * How loud whoever is talking is now, 0..1: the character's voice as it is heard while it speaks (the lip sync's
-   * loudness), the visitor's microphone while it listens (unless muted), else 0. Cheap: read it every frame.
-   * `?chatMeter=off` leaves the microphone unmeasured (the sphere then only follows the character).
-   */
-  level(): number {
-    const { state, muted } = this.snap;
-    if (state === "speaking") {
-      const live = this.live;
-      return live?.playing ? live.loudness(live.time()) : 0;
-    }
-    if (state !== "listening" || muted || !this.ctx || this.micFailed) return 0;
-    const track = this.room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track?.mediaStreamTrack;
-    if (!track) return 0;
-    if (this.mic?.track !== track) {
-      // first read, or livekit-client swapped the track (another device): measure the one it sends
-      this.mic?.dispose();
-      this.mic = new URLSearchParams(location.search).get("chatMeter") === "off" ? null : micMeter(this.ctx, track);
-      if (!this.mic) {
-        this.micFailed = true;
-        return 0;
-      }
-    }
-    return this.mic.level();
-  }
-
   /** ?talkEcho=off: the microphone off while the character speaks, back on just after (unless the visitor muted it). */
   private duplex(state: string) {
     const track = this.room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
@@ -341,8 +311,6 @@ export class TalkSession {
     void this.room.disconnect();
     this.unlisten.abort();
     this.audio.splice(0).forEach((el) => el.remove());
-    this.mic?.dispose();
-    this.mic = null;
     setLiveSpeech(null);
     this.live?.detach();
     if (this.ctx) void restOutput(this.ctx).catch(() => {}); // kept for the next chat (TalkPanel audioContextNow)
