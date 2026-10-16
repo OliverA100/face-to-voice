@@ -16,8 +16,7 @@ import { Alert } from "@/components/ui/Alert";
 import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { isLimitError } from "@/lib/limits/open";
-import { dropOutput, outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
-import { isAppleTouch } from "@/lib/lipsync/staleTab";
+import { outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { speechPlayer } from "@/lib/lipsync/player";
 import { talkInvite } from "@/lib/talk/invite";
 import type { EndReason, TalkSession, TalkSnapshot } from "@/lib/talk/session";
@@ -49,23 +48,8 @@ const ENDED: Record<EndReason, string> = {
  * Resumed synchronously, inside the tap (Safari); null without Web Audio.
  */
 let chatCtx: AudioContext | null = null;
-/**
- * `?chatSession=first` (a test, this page view; iPhone and iPad): the call's audio session (play-and-record) is asked for
- * before the chat's context is made, and the context is made afresh for each chat. Chats popped on an iPhone (Speak
- * didn't, 2026-10-15): a context made before iOS switches to the call's audio can run at the hardware's old rate.
- */
-const sessionFirst = () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("chatSession") === "first" && isAppleTouch();
 function audioContextNow(): AudioContext | null {
   try {
-    if (sessionFirst()) {
-      const nav = navigator as Navigator & { audioSession?: { type: string } };
-      if (nav.audioSession) nav.audioSession.type = "play-and-record";
-      if (chatCtx && chatCtx.state !== "closed") {
-        dropOutput(chatCtx);
-        void chatCtx.close().catch(() => {});
-      }
-      chatCtx = null;
-    }
     if (!chatCtx || chatCtx.state === "closed") chatCtx = new AudioContext();
     void chatCtx.resume();
     // Safari: the voice plays through an <audio> element (lib/lipsync/output.ts), made and played in this tap

@@ -228,14 +228,11 @@ export class LiveSpeech implements SpeechSource {
     if (this.ctx.state !== "running") void this.ctx.resume().catch(() => {});
     this.disconnect(); // the track again (a reconnect): one graph at a time
     this.source = this.ctx.createMediaStreamSource(new MediaStream([track]));
-    // `?talkMeter=off` (a test: chats popped on an iPhone): no meter, the voice only, so the mouth stays still
-    if (new URLSearchParams(location.search).get("talkMeter") !== "off") {
-      this.node = new AudioWorkletNode(this.ctx, "ftv-meter", { numberOfOutputs: 1, outputChannelCount: [1] });
-      this.node.port.onmessage = (e: MessageEvent<ArrayLike<number>>) => this.blocks(e.data);
-      this.source.connect(this.node);
-      // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
-      this.node.connect(outputOf(this.ctx));
-    }
+    this.node = new AudioWorkletNode(this.ctx, "ftv-meter", { numberOfOutputs: 1, outputChannelCount: [1] });
+    this.node.port.onmessage = (e: MessageEvent<ArrayLike<number>>) => this.blocks(e.data);
+    this.source.connect(this.node);
+    // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
+    this.node.connect(outputOf(this.ctx));
     // `gain` (session.ts chatBoost): the voice made louder. It already peaks at full scale, so it is compressed (quiet
     // syllables up toward the loud ones), raised by `gain`, limited, and soft-clipped so nothing can clip. On a real
     // line: +5 dB of speech loudness at gain 2, nothing clipped, 0.9% of samples rounded off (qa/lipsync
