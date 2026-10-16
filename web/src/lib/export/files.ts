@@ -57,11 +57,10 @@ export async function buildExport(voice: ExportVoice): Promise<ExportResult> {
   const character = currentCharacter();
   const link = characterLink(character, appUrl);
   const pieces = facePieces();
-  const shellBeard = addonState.facialHair !== "none" && addonStyleById("facialHair", addonState.facialHair)?.kind === "shells";
   const sampleName = sample ? `voice-sample.${sample.ext}` : null;
 
   const entries: ZipEntry[] = [
-    { name: "README.md", data: readme({ name, link, pieces, sampleName, date, profile, shellBeard }) },
+    { name: "README.md", data: readme({ name, link, pieces, sampleName, date, profile }) },
     { name: "portrait.png", data: new Uint8Array(await portrait.arrayBuffer()) },
     { name: "character.glb", data: model, deflate: true },
     { name: "character.json", data: json(character) },
@@ -107,7 +106,7 @@ function facePieces(): Piece[] {
 
 const USE_SHORT = { commercial: "yes", "share-alike": "yes, share alike (CC BY-SA 4.0)", "non-commercial": "no, non-commercial only" };
 
-function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: string | null; date: string; profile: CharacterProfile | null; shellBeard: boolean }): string {
+function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: string | null; date: string; profile: CharacterProfile | null }): string {
   return [
     `# ${o.name}`,
     "",
@@ -116,7 +115,7 @@ function readme(o: { name: string; link: string; pieces: Piece[]; sampleName: st
     "| File | What it is |",
     "| --- | --- |",
     "| portrait.png | The face, 1024 × 1024, transparent background |",
-    `| character.glb | The character in 3D, posed as in the portrait (metres, Y up), hair as strands. Opens in Blender, Unity, Unreal and Godot${o.shellBeard ? ". The short beard isn't in it (the app draws it as fur layers)" : ""} |`,
+    `| character.glb | The character in 3D, posed as in the portrait (metres, Y up), hair as strands. Opens in Blender, Unity, Unreal and Godot |`,
     "| character.json | The face as data: every slider, the expression, pose, hair, add-ons, skin and eyes |",
     ...(o.sampleName ? [`| ${o.sampleName} | The voice, saying the character's own line |`] : []),
     "| voice.md | Who the voice is, the ElevenLabs Voice Design prompt, and how to make a similar voice in your own account |",

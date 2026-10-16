@@ -58,8 +58,8 @@ let furTexture: DataTexture | null = null;
  *  G 0.45, B 0.7, A 0.9 of full length), 0 elsewhere. Mipmapping turns that into the share of hair reaching each
  *  height, so far away a layer draws as partial coverage (alpha-to-coverage) instead of collapsing into a solid
  *  sheet, and close up the hairs are crisp discs. */
-const BANDS = [0.2, 0.45, 0.7, 0.9];
-function fur(): DataTexture {
+export const BANDS = [0.2, 0.45, 0.7, 0.9];
+export function fur(): DataTexture {
   if (furTexture) return furTexture;
   const n = 256;
   const tall = new Float32Array(n * n);
@@ -88,6 +88,9 @@ function fur(): DataTexture {
 }
 
 type ShellLook = { lengthMm: number; gravity: number; density: number };
+
+/** What character.glb needs to rebuild the layers (lib/export/shells.ts), on the shells mesh's userData.shells. */
+export type ShellSource = { pixels: ImageData; lenLocal: number; look: ShellLook; colours: { root: Color; tip: Color } };
 
 /** Fetch a shell style's mask: the GPU texture plus its pixels for picking the beard triangles. */
 export async function loadShellMask(url: string, signal?: AbortSignal): Promise<{ texture: Texture; pixels: ImageData }> {
@@ -220,6 +223,7 @@ material.specularF90 *= ${SHELLS.specular.toFixed(2)};`);
   shells.frustumCulled = false;
   shells.renderOrder = 1;
   shells.name = "beard-shells";
+  shells.userData.shells = { pixels: mask.pixels, lenLocal: uniforms.uLenLocal.value, look, colours } satisfies ShellSource;
   skin.add(shells); // same local space as the skin's vertices
   const stopTier = onTier(setLayers);
 

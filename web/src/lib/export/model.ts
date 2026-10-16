@@ -10,8 +10,8 @@
  *     of the mouth its shade. JPEG textures, seams padded so a filtered lookup never reaches the background.
  *   - the cornea becomes a faint clear shell (in the app it is black and additive: reflections only).
  *
- * Strand pieces (hair, brows, lashes, strand beards) become ribbons, the child strands included (lib/export/strands.ts).
- * Shell beards (fur layers drawn by the GPU) are left out.
+ * Strand pieces (hair, brows, lashes, strand beards) become ribbons, the child strands included (lib/export/strands.ts);
+ * shell beards their fur layers, built on the CPU (lib/export/shells.ts).
  * Tweak here: MODEL.
  */
 import {
@@ -22,6 +22,7 @@ import {
   DoubleSide,
   Float32BufferAttribute,
   Group,
+  type InstancedMesh,
   Matrix3,
   Matrix4,
   Mesh,
@@ -46,6 +47,7 @@ import { characterSettled } from "@/lib/character";
 import { extraReady } from "@/lib/headExtra";
 
 import { holdStill } from "./portrait";
+import { shellMesh } from "./shells";
 import { strandMeshes, type StrandMode } from "./strands";
 
 /** Tweak freely: texture sizes (px, square) per part, how far seams are padded, JPEG quality. */
@@ -80,8 +82,13 @@ export async function buildModel({ strands = "children" }: { strands?: StrandMod
     const glasses = addonRig.meshes.glasses;
     sway.traverseVisible((o) => {
       const mesh = o as Mesh;
-      if (!mesh.isMesh || (mesh as { isInstancedMesh?: boolean }).isInstancedMesh) return; // shell beards: later
+      if (!mesh.isMesh) return;
       const matrix = new Matrix4().multiplyMatrices(toBust, mesh.matrixWorld);
+      if ((mesh as InstancedMesh).isInstancedMesh) {
+        const shells = shellMesh(mesh as InstancedMesh, matrix); // a shell beard (the only instanced mesh on the head)
+        if (shells) root.add(shells);
+        return;
+      }
       if (mesh.userData.groom) {
         if (strands === "none") return;
         mesh.onBeforeRender(gl, scene, camera, mesh.geometry, mesh.material as Material, null as unknown as Group); // roots onto the posed skin, as a frame would
