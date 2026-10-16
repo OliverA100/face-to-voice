@@ -2,6 +2,14 @@
 /* Every value (colours, type scale, radii, shadows, motion) lives in tokens.css; this file only uses them. */
 @import "./tokens.css";
 
+/* The page doesn't bounce when a scroll or swipe runs past its top or bottom (the rubber band on trackpads and phones;
+   it also turns off pull-to-refresh). On both html and body: browsers differ on which one scrolls the page. Vertical
+   only: horizontally the same setting would also stop the two-finger swipe back and forward. */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 html {
   color-scheme: light;
   /* Lets <details> animate to its natural height (::details-content below). */
@@ -56,11 +64,139 @@ body {
 @utility card {
   @apply rounded-card bg-card shadow-hairline;
 }
-/* Scrolls without a visible scrollbar (the face column and panel); wheel, touch and keys still scroll. */
-@utility no-scrollbar {
+
+/*
+ * Panels that scroll inside themselves (from lg: the slider panel, the voice card; the Limits dialog's body), with
+ * useScrollEdges (components/ui/useScrollEdges.ts) setting data-more-top / data-more-bottom:
+ *   - their top and bottom edges fade into the panel's white while there is more to scroll that way (a 24 px gradient
+ *     pinned to each edge, fading in and out: --dur-2), so it's clear the panel goes on. An overlay, not a mask: a mask
+ *     would fade the card's own background and corners too. Under sticky bars (z-index 5; the slider panel's tabs are
+ *     z-10) and over the content. --fade-inset: the panel's padding, so the fade still reaches its edges;
+ *   - reaching their end doesn't scroll the page behind them (overscroll-behavior: contain);
+ *   - no visible scrollbar (wheel, touch and keys still scroll): the fades say there's more.
+ */
+.edge-fades {
+  overscroll-behavior: contain;
   scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
+}
+.edge-fades::-webkit-scrollbar {
+  display: none;
+}
+.edge-fades::before,
+.edge-fades::after {
+  content: "";
+  position: sticky;
+  z-index: 5;
+  display: block;
+  flex: none;
+  height: 24px;
+  margin-inline: calc(-1 * var(--fade-inset, 0px));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease);
+}
+.edge-fades::before {
+  top: calc(-1 * var(--fade-inset, 0px));
+  margin-top: calc(-1 * var(--fade-inset, 0px));
+  margin-bottom: calc(var(--fade-inset, 0px) - 24px);
+  background: linear-gradient(var(--card), transparent);
+}
+.edge-fades::after {
+  bottom: calc(-1 * var(--fade-inset, 0px));
+  margin-top: calc(var(--fade-inset, 0px) - 24px);
+  margin-bottom: calc(-1 * var(--fade-inset, 0px));
+  background: linear-gradient(transparent, var(--card));
+}
+.edge-fades[data-more-top]::before,
+.edge-fades[data-more-bottom]::after {
+  opacity: 1;
+}
+
+/*
+ * The slider tabs once stuck (components/ui/SliderPanel.tsx data-stuck): the rows fade out as they slide under the tab
+ * pill, like the panel's bottom fade (.edge-fades): a 24 px white-to-clear gradient that starts right at the pill's bottom
+ * edge, over the bar's bottom padding (painted solid, that padding read as a white band before the fade began). The
+ * bar takes clicks while stuck, so tapping it doesn't reach a hidden row.
+ *   - From lg the panel scrolls inside its card: the bar is white down to the pill (inside the card's rounded corners).
+ *   - Below lg (stacked: the page scrolls and the bar sticks under the head's band) the card's own top has scrolled away
+ *     under the band, which left its edge cut flat: down to the pill the bar is a white plate with the card's rounded top
+ *     corners and hairline, over the page colour. Painted only while stuck: iOS Safari 26 fills the space under its
+ *     toolbar with whatever a sticky element near the bottom edge paints (see SliderPanel).
+ * --tabs-pad: the bar's bottom padding (py-3), where the fade begins.
+ */
+.tabs-bar {
+  --tabs-pad: calc(var(--spacing) * 3);
+}
+.tabs-bar[data-stuck] {
+  pointer-events: auto;
+}
+.tabs-bar[data-stuck]::after {
+  content: "";
+  position: absolute;
+  top: calc(100% - var(--tabs-pad));
+  inset-inline: 0;
+  z-index: -1; /* under the tab pill, still over the rows */
+  height: 24px;
+  pointer-events: none;
+  background: linear-gradient(var(--card), transparent);
+}
+@media (width >= 64rem) {
+  .tabs-bar[data-stuck] {
+    background: linear-gradient(var(--card) calc(100% - var(--tabs-pad)), transparent 0);
+  }
+}
+@media (width < 64rem) {
+  .tabs-bar[data-stuck] {
+    background: linear-gradient(var(--page) calc(100% - var(--tabs-pad)), transparent 0);
+    /* page colour 1 px out on each side: hides the card's own straight hairline beside the plate's rounded corners */
+    box-shadow:
+      -1px 0 var(--page),
+      1px 0 var(--page);
+  }
+  .tabs-bar[data-stuck]::before {
+    content: "";
+    position: absolute;
+    /* 2 px down: the bar sticks 1 px into the head's band (no sliver of rows between), which would hide the top hairline.
+       Full height, so its hairline carries on down the sides; white only down to the pill, where the fade takes over */
+    inset: 2px 0 0;
+    z-index: -1;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    background: linear-gradient(var(--card) calc(100% - var(--tabs-pad)), transparent 0);
+    box-shadow: var(--shadow-hairline);
+    clip-path: inset(-1px -1px 1px -1px); /* the hairline round the top and sides, none along the bottom (1 px in: it's antialiased across the edge) */
+  }
+}
+
+/*
+ * The slider card's top in the stacked layout, before its tabs stick (components/ui/SliderPanel.tsx .tabs-cap): once the
+ * card's top reaches the head's band, a zero-height sticky cap holds the card's curved top there (the same plate as the
+ * stuck bar: rounded corners and hairline over the page colour, the card's straight hairline hidden beside them) and
+ * the title fades out under it, until the bar sticks in the same place over it (z-index 9 under the bar's 10). Painted
+ * only while stuck, as the bar (iOS Safari 26). 2 px down: the band covers the cap's first pixel.
+ */
+@media (width < 64rem) {
+  .tabs-cap[data-stuck]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    inset-inline: 0;
+    height: calc(var(--radius-card) + 2px);
+    background: var(--page);
+    box-shadow:
+      -1px 0 var(--page),
+      1px 0 var(--page);
+  }
+  .tabs-cap[data-stuck]::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    inset-inline: 0;
+    height: calc(var(--radius-card) + 24px);
+    pointer-events: none;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+    background: linear-gradient(var(--card) var(--radius-card), transparent);
+    box-shadow: var(--shadow-hairline);
+    clip-path: inset(-1px -1px 1px -1px); /* as the bar's plate: no hairline along the bottom */
   }
 }
 
@@ -148,6 +284,22 @@ details.disclose[open]::details-content {
   }
 }
 .enter {
+  animation: enter var(--dur-2) var(--ease);
+}
+
+/* A dialog opening (the Limits dialog, components/ui/LimitsDialog.tsx): the panel fades in and rises 8 px into place
+   (movement: --dur-2 + --ease-out-soft), its backdrop fades in with it. Opacity and translate only (the compositor);
+   keyframes on [open], so it plays each time showModal() opens it, in every browser. Closing is instant. */
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+.dialog-in[open] {
+  animation: dialog-in var(--dur-2) var(--ease-out-soft);
+}
+.dialog-in[open]::backdrop {
   animation: enter var(--dur-2) var(--ease);
 }
 
@@ -325,7 +477,8 @@ input[type="checkbox"].switch:checked {
 /* Keyboard focus never hides under the sticky tab bar (WCAG 2.4.11): a control that Tab scrolls into view keeps the
    bar's height (64px) and a little air clear above it, and the same below it. Below lg the page scrolls and the bar
    sticks under the header and the head's band (--tabs-top, FaceBuilder), so the whole stack is kept clear above. The
-   voice card sits above the sliders, so only the header and the band are over it: they and a little air stay clear. */
+   voice card sits above the sliders, so only the header and the band are over it: they and a little air stay clear
+   (the card itself too: a new step scrolls it back to its top, components/ui/voiceCardScroll.ts). */
 [role="tabpanel"] :is(button, input, summary, a, textarea) {
   scroll-margin-block: 76px;
 }
@@ -333,6 +486,7 @@ input[type="checkbox"].switch:checked {
   [role="tabpanel"] :is(button, input, summary, a, textarea) {
     scroll-margin-top: calc(var(--tabs-top) + 76px);
   }
+  section[aria-label="Voice"],
   section[aria-label="Voice"] :is(button, input, summary, a, textarea) {
     scroll-margin-top: calc(var(--tabs-top) + 12px);
   }

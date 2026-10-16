@@ -3,10 +3,17 @@
 /**
  * "Today's limits": what this visitor has used of their own daily limits (voices picked), why, and a countdown to
  * midnight UTC, when they reset. Opened from the header's Limits button
- * and from any limit error's "See your limits" (lib/limits/open.ts). A native <dialog>: focus, Escape and the
- * backdrop come with it. Asks GET /api/limits each time it opens (asking counts nothing).
+ * and from any limit error's "See your limits" (lib/limits/open.ts). A native <dialog>: Escape, the backdrop and the
+ * page behind made inert come with it. Asks GET /api/limits each time it opens (asking counts nothing).
+ *
+ * Focus: it opens on its title (mostly text to read: the title is announced, and nothing shows a ring; the native first
+ * button, Close, showed one in Safari, which never focuses a clicked button and so took it for keyboard focus). Tab and
+ * Shift+Tab go round its own controls and never leave it (the native dialog let Tab out to the page and the browser,
+ * and Safari's Tab skips buttons unless asked). Closing gives focus back to what opened it.
  */
 import { useEffect, useRef, useState } from "react";
+
+import { useScrollEdges } from "@/components/ui/useScrollEdges";
 
 import { onOpenLimits, openLimits } from "@/lib/limits/open";
 import type { LimitRow, Limits } from "@/lib/limits/types";
@@ -40,8 +47,15 @@ function Row({ row }: { row: LimitRow }) {
   );
 }
 
+/** The dialog's controls, in order (Close, and Try again when the limits didn't load). */
+const controls = (dialog: HTMLElement) => [...dialog.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]:not([tabindex="-1"])')].filter((el) => !el.matches(":disabled"));
+
 export function LimitsDialog() {
   const ref = useRef<HTMLDialogElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
+  const opener = useRef<HTMLElement | null>(null); // focus goes back here on close
+  const body = useRef<HTMLDivElement>(null); // scrolls on short screens: its edges fade while there's more (.edge-fades)
+  useScrollEdges(body);
   const [limits, setLimits] = useState<Limits | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
@@ -59,7 +73,10 @@ export function LimitsDialog() {
     () =>
       onOpenLimits(() => {
         if (ref.current?.open) return;
+        const from = document.activeElement;
+        opener.current = from instanceof HTMLElement && from !== document.body ? from : null;
         ref.current?.showModal();
+        title.current?.focus(); // (after showModal, which focused Close)
         setOpen(true);
         setNow(Date.now());
         load();
@@ -89,14 +106,30 @@ export function LimitsDialog() {
     <dialog
       ref={ref}
       aria-labelledby="limits-title"
-      onClose={() => setOpen(false)}
+      onClose={() => {
+        setOpen(false);
+        if (opener.current?.isConnected) opener.current.focus();
+        opener.current = null;
+      }}
+      onKeyDown={(e) => {
+        // the trap: Tab and Shift+Tab go round the dialog's own controls (from the title, to the first or the last)
+        if (e.key !== "Tab" || !ref.current) return;
+        const items = controls(ref.current);
+        if (!items.length) return;
+        e.preventDefault();
+        const i = items.indexOf(document.activeElement as HTMLElement);
+        const next = e.shiftKey ? (i <= 0 ? items.length - 1 : i - 1) : i < 0 || i === items.length - 1 ? 0 : i + 1;
+        items[next].focus();
+      }}
       // a click on the backdrop lands on the dialog itself, outside its padding box's content
       onClick={(e) => e.target === e.currentTarget && close()}
-      className="m-auto w-[calc(100%-32px)] max-w-[420px] rounded-card bg-card p-0 text-ink shadow-float backdrop:bg-black/25"
+      // dialog-in (globals.css): it fades in and rises into place as it opens, its backdrop fading in with it
+      className="dialog-in m-auto w-[calc(100%-32px)] max-w-[420px] rounded-card bg-card p-0 text-ink shadow-float backdrop:bg-black/25"
     >
-      <div className="flex max-h-[calc(100dvh-64px)] flex-col gap-4 overflow-y-auto p-5">
+      <div ref={body} className="edge-fades flex max-h-[calc(100dvh-64px)] flex-col gap-4 overflow-y-auto p-5 [--fade-inset:--spacing(5)]">
         <div className="flex items-start justify-between gap-3">
-          <h2 id="limits-title" className="display text-[20px]">
+          {/* focused on open (tabIndex -1: not a Tab stop), with no ring: it isn't a control */}
+          <h2 ref={title} id="limits-title" tabIndex={-1} className="display text-[20px] outline-none">
             Today’s limits
           </h2>
           <button type="button" onClick={close} className="pill-secondary -mr-1 -mt-1 h-8 px-3 text-label">
