@@ -76,6 +76,8 @@ const ARRIVAL_SECONDS = 0.25;
 
 // The meter, as an AudioWorklet: 10 ms blocks of RMS, all of it and above 2 kHz (RBJ high-pass, Q 1/√2), as the
 // speech player computes them; each block is posted with the context time of its first sample.
+/** 10 ms meter blocks sent to the page together (40 ms: well inside LIVE.delay's 130 ms of look-ahead). */
+const METER_BATCH = 4;
 const WORKLET = `
 class FtvMeter extends AudioWorkletProcessor {
   constructor() {
@@ -85,24 +87,34 @@ class FtvMeter extends AudioWorkletProcessor {
     const w = (2 * Math.PI * 2000) / sampleRate, cos = Math.cos(w), alpha = Math.sin(w) / Math.SQRT2, a0 = 1 + alpha;
     this.c = [(1 + cos) / 2 / a0, -(1 + cos) / a0, (1 + cos) / 2 / a0, (-2 * cos) / a0, (1 - alpha) / a0];
     this.done = false;
+    // finished blocks wait here and go to the page BATCH at a time: nothing is allocated per render quantum (every
+    // 2.7 ms), and few messages are posted. An array made in every process() and a message per 10 ms block made garbage
+    // on the audio thread, and an iPhone's chats popped (Speak, with no worklet, didn't: 2026-10-16)
+    this.out = new Float64Array(3 * ${METER_BATCH});
+    this.k = 0;
     this.port.onmessage = () => (this.done = true); // the chat ended: let the node go
   }
   process(inputs) {
     if (this.done) return false;
     const ch = inputs[0] && inputs[0][0];
     if (!ch) return true;
-    const [b0, b1, b2, a1, a2] = this.c;
-    const out = [];
+    const c = this.c;
     for (let i = 0; i < ch.length; i++) {
-      const x = ch[i], y = b0 * x + b1 * this.x1 + b2 * this.x2 - a1 * this.y1 - a2 * this.y2;
+      const x = ch[i], y = c[0] * x + c[1] * this.x1 + c[2] * this.x2 - c[3] * this.y1 - c[4] * this.y2;
       this.x2 = this.x1; this.x1 = x; this.y2 = this.y1; this.y1 = y;
       this.e += x * x; this.h += y * y;
       if (++this.n === this.block) {
-        out.push((currentFrame + i + 1 - this.block) / sampleRate, Math.sqrt(this.e / this.block), Math.sqrt(this.h / this.block));
+        const j = 3 * this.k++;
+        this.out[j] = (currentFrame + i + 1 - this.block) / sampleRate;
+        this.out[j + 1] = Math.sqrt(this.e / this.block);
+        this.out[j + 2] = Math.sqrt(this.h / this.block);
         this.n = 0; this.e = 0; this.h = 0;
+        if (this.k === ${METER_BATCH}) {
+          this.port.postMessage(this.out);
+          this.k = 0;
+        }
       }
     }
-    if (out.length) this.port.postMessage(out);
     return true;
   }
 }
@@ -180,11 +192,14 @@ export class LiveSpeech implements SpeechSource {
     if (this.detached) return; // the chat ended while the meter loaded
     this.disconnect(); // the track again (a reconnect): one graph at a time
     this.source = this.ctx.createMediaStreamSource(new MediaStream([track]));
-    this.node = new AudioWorkletNode(this.ctx, "ftv-meter", { numberOfOutputs: 1, outputChannelCount: [1] });
-    this.node.port.onmessage = (e: MessageEvent<number[]>) => this.blocks(e.data);
-    this.source.connect(this.node);
-    // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
-    this.node.connect(outputOf(this.ctx));
+    // `?talkMeter=off` (a test: chats popped on an iPhone): no meter, the voice only, so the mouth stays still
+    if (new URLSearchParams(location.search).get("talkMeter") !== "off") {
+      this.node = new AudioWorkletNode(this.ctx, "ftv-meter", { numberOfOutputs: 1, outputChannelCount: [1] });
+      this.node.port.onmessage = (e: MessageEvent<ArrayLike<number>>) => this.blocks(e.data);
+      this.source.connect(this.node);
+      // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
+      this.node.connect(outputOf(this.ctx));
+    }
     if (playThrough && delaySeconds > 0) {
       // held back: the meter sees each sound this long before it is heard (the gates and loudness read ahead; the
       // evaluator's closure and vowel snapping need more look-ahead than this, so live they mostly settle after the fact)
@@ -207,7 +222,7 @@ export class LiveSpeech implements SpeechSource {
     this.node = this.source = null;
   }
 
-  private blocks(data: number[]) {
+  private blocks(data: ArrayLike<number>) {
     for (let i = 0; i < data.length; i += 3) {
       const [at, rms, high] = [data[i], data[i + 1], data[i + 2]];
       if (Number.isNaN(this.t0)) this.t0 = at;
