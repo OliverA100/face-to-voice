@@ -11,6 +11,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "smoke": "node scripts/smoke.mjs",
     "fetch-hair": "node scripts/fetch-hair.ts"
   },
   "dependencies": {

@@ -36,6 +36,7 @@ jobs:
         env:
           FTV_MOCK_ELEVENLABS: "1"
           FTV_MOCK_CLAUDE: "1"
+      - run: pnpm smoke # the built app in headless Chrome: the head draws, Find my voice gives three takes
 
   agent:
     runs-on: ubuntu-latest
