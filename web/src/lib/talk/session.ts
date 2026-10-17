@@ -27,6 +27,7 @@ import { restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { isAppleTouch, setAudioSession } from "@/lib/lipsync/platform";
 import { setLiveSpeech } from "@/lib/lipsync/source";
 import { HeardLine } from "@/lib/talk/heard";
+import { type Turn, Turns } from "@/lib/talk/turns";
 import { type LevelMeter, micMeter } from "@/lib/talk/meter";
 import { chatFaceEnd, chatFaceStart, chatListening, chatMood, chatNod } from "@/lib/talk/face";
 import type { TalkTicket } from "@/lib/talk/ticket";
@@ -43,6 +44,8 @@ export interface TalkSnapshot {
   caption: string;
   /** What the visitor said last, as the agent heard it. */
   heard: string;
+  /** The last few turns, the character's and the visitor's, oldest first (lib/talk/turns.ts). */
+  turns: Turn[];
   mood: { emotion: string; intensity: number } | null;
   endReason: EndReason | null;
   /** When the character joined (the clock starts then), ms since epoch. */
@@ -102,7 +105,7 @@ export class TalkSession {
   private readonly halfDuplex = echoOff();
   readonly room = new Room({ audioCaptureDefaults: { echoCancellation: !this.halfDuplex, noiseSuppression: !this.halfDuplex, autoGainControl: !this.halfDuplex } });
   private duplexTimer: ReturnType<typeof setTimeout> | null = null;
-  private snap: TalkSnapshot = { state: "connecting", caption: "", heard: "", mood: null, endReason: null, joinedAt: null, muted: false, muteFailed: false, needsAudioTap: false };
+  private snap: TalkSnapshot = { state: "connecting", caption: "", heard: "", turns: [], mood: null, endReason: null, joinedAt: null, muted: false, muteFailed: false, needsAudioTap: false };
   private readonly listeners = new Set<() => void>();
   private readonly audio: HTMLMediaElement[] = [];
   private wakeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -110,6 +113,7 @@ export class TalkSession {
   private micTrackSid: string | null = null;
   // what the visitor has said since the character last spoke, by transcript segment (a pause starts a new one)
   private heard = new HeardLine(); // the "You:" line
+  private turns = new Turns(); // the card's conversation
   private ctx: AudioContext | null = null;
   private live: LiveSpeech | null = null;
   private captionsWait = false; // the voice plays through the lip sync, held back: the captions wait for it too
@@ -209,6 +213,7 @@ export class TalkSession {
           this.live?.replyStarted();
           chatListening(false); // the character talks now, not the visitor
           this.heard.clear(); // the visitor's next words start a new line under "You:"
+          this.turns.closeYou();
         }
         if (state !== "speaking" && this.agentState === "speaking") this.live?.replyEnded();
         if (state === "thinking" && this.agentState === "listening") chatNod(); // heard: a nod, then the answer
@@ -269,19 +274,25 @@ export class TalkSession {
       const mine = !!this.micTrackSid && reader.info.attributes?.["lk.transcribed_track_id"] === this.micTrackSid;
       if (from.identity !== room.localParticipant.identity && !mine) {
         let line = "";
+        const reply = reader.info.id;
+        const show = (caption: string) => {
+          this.turns.character(reply, caption);
+          this.set({ caption, turns: this.turns.value });
+        };
         for await (const piece of reader) {
           const caption = (line += piece);
           // paced to the voice as the agent sends it: shown when it is heard (held back, and the speakers' own delay)
           const wait = this.captionsWait && this.live ? this.live.heardDelay() * 1000 : 0;
-          if (wait > 0) setTimeout(() => this.snap.state !== "ended" && this.set({ caption }), wait);
-          else this.set({ caption });
+          if (wait > 0) setTimeout(() => this.snap.state !== "ended" && show(caption), wait);
+          else show(caption);
         }
       } else {
         // the line is every final segment since the character last spoke, once each, and the draft
         // now (lib/talk/heard.ts)
         const final = reader.info.attributes?.["lk.transcription_final"] !== "false";
         this.heard.add(reader.info.attributes?.["lk.segment_id"] ?? reader.info.id, await reader.readAll(), final);
-        this.set({ heard: this.heard.text });
+        this.turns.you(this.heard.text);
+        this.set({ heard: this.heard.text, turns: this.turns.value });
       }
     });
 

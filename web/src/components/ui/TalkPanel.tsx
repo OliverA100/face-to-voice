@@ -259,8 +259,6 @@ export function LiveTalk({
   };
   const ended = snap.state === "ended";
   const reason = snap.endReason ? ENDED[snap.endReason] : "";
-  const caption = snap.caption.trim();
-  const cutShort = !!caption && snap.state !== "speaking" && !/[.!?…"”')]$/.test(caption); // interrupted mid-sentence
 
   return (
     <section aria-label={`Conversation with ${name}`} className="enter flex flex-col gap-3 rounded-tray bg-surface p-4">
@@ -271,18 +269,33 @@ export function LiveTalk({
         <p className="min-w-0 flex-1 text-label text-ink">{label[snap.state]}</p>
         {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{secondsLeft(left)}</span>}
       </header>
-      {/* what you said last above, while the character answers (live while you speak); its words below, the main line.
-          A reply cut short ends with "…" rather than mid-word. */}
-      {snap.heard && !ended && (
-        <p className="text-meta text-ink-3">
-          {snap.state === "listening" ? "You" : "You said"}: {snap.heard}
-        </p>
-      )}
-      {caption && (
-        <p className="text-body text-ink">
-          “{caption}
-          {cutShort ? "…" : ""}”
-        </p>
+      {/* the last few turns, newest at the bottom; older ones fade out at the top (no scrolling) */}
+      {snap.turns.length > 0 && (
+        <ol
+          aria-label="Conversation"
+          className="flex max-h-56 flex-col justify-end gap-2 overflow-hidden"
+          style={snap.turns.length > 3 ? { maskImage: "linear-gradient(to bottom, transparent, black 3rem)" } : undefined}
+        >
+          {snap.turns.map((turn, i) => {
+            const age = snap.turns.length - 1 - i; // 0 = the newest
+            const tone = age < 2 ? "text-ink" : age < 3 ? "text-ink-2" : "text-ink-3";
+            const live = age === 0 && !ended && (turn.who === "you" ? snap.state === "listening" : snap.state === "speaking");
+            // a reply cut off mid-sentence ends with "…" rather than on a half word
+            const cut = turn.who === "character" && !live && !/[.!?…"”')]$/.test(turn.text.trim());
+            return turn.who === "character" ? (
+              <li key={turn.id} className={`text-body ${tone}`}>
+                <span className="sr-only">{name}: </span>
+                {turn.text.trim()}
+                {cut ? "…" : ""}
+              </li>
+            ) : (
+              <li key={turn.id} className={`max-w-[85%] self-end rounded-tray bg-card px-3 py-1.5 text-body ${live ? "text-ink-2" : tone}`}>
+                <span className="sr-only">You: </span>
+                {turn.text}
+              </li>
+            );
+          })}
+        </ol>
       )}
       {snap.state === "waking" && <p className="text-meta text-ink-3">The first conversation in a while can take up to a minute to start.</p>}
       {snap.needsAudioTap && !ended && (
