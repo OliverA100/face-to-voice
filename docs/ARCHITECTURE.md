@@ -199,7 +199,7 @@ PCM + aligned times ◄─────────── NDJSON with the aligned
   last words; the lips keep the sound's shape under a softer gate, and keep a vowel's rounding or spread while the
   loudness takes the opening away. The tongue tip rises for d/t/n/l on a track of its own, and every movement eases in.
 - **Lip sync: on time.** The whole mouth runs 30 ms ahead of the sound: as drawn, the lips part on each p/b/m burst
-  (measured in Chrome, Firefox and Safari with `qa/lipsync`; [the lip-sync report](lipsync-report.md)). Tuning values
+  (measured in Chrome, Firefox and Safari with `qa/lipsync`; [the lip-sync measurements](lipsync.md)). Tuning values
   and the reason for each are in `tuning.ts`.
 - **Safari's audio route.** In Safari (Mac, iPhone, iPad) the sound of lines and chats plays through a hidden `<audio>`
   element as a live MediaStream, not the context's own output (`lib/lipsync/output.ts`). That output, shared by every

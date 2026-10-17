@@ -16,7 +16,7 @@ describe("the heard clock", () => {
   it("hears what played the reported output delay ago, plus the measured Bluetooth extra", () => {
     vi.spyOn(performance, "now").mockReturnValue(1000);
     expect(new HeardClock(() => ctxWith(5, 0.024)).heard()).toBeCloseTo(5 - 0.024, 9);
-    // AirPods report ~0.16–0.17 s but take ~0.245 s (docs/lipsync-report.md)
+    // AirPods report ~0.16–0.17 s but take ~0.245 s (docs/lipsync.md)
     expect(new HeardClock(() => ctxWith(5, 0.168)).heard()).toBeCloseTo(5 - 0.168 - BLUETOOTH.extra, 9);
   });
 

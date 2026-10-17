@@ -1,6 +1,6 @@
 /**
  * When the listener hears what: the AudioContext time of the sound reaching them now, for the speech player and live
- * conversations alike. Measured on real devices (qa/lipsync room.mjs, docs/lipsync-report.md):
+ * conversations alike. Measured on real devices (qa/lipsync room.mjs, docs/lipsync.md):
  *  - ctx.currentTime − ctx.outputLatency is right to within ~20 ms on built-in speakers in Chrome, Firefox and Safari.
  *    getOutputTimestamp is not a substitute: Firefox's and Safari's leave the output delay out (162 ms off on AirPods).
  *  - Chrome moves currentTime in 10.7 ms steps (512 frames at 48 kHz) while frames come every 8.3 ms: between two

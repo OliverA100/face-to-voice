@@ -1,7 +1,7 @@
 # Lip-sync measurement tools
 
 These tools measure how well the mouth matches the voice on a real deployment, in real browsers and devices. Results
-for the current state are in [the lip-sync report](../../docs/lipsync-report.md). Recordings go to `out/` (gitignored, several GB).
+for the current state are in [docs/lipsync.md](../../docs/lipsync.md). Recordings go to `out/` (gitignored, several GB).
 
 ## Setup (once)
 
@@ -48,7 +48,7 @@ are grouped by the head's outline in the whole-head grab, and each group judged 
 ```bash
 ./analyse.sh 'A-*'          # truth.py (audio events) + mouth.py (pixels) + events.py (offsets), skips done steps
 uv run events.py --app <run> # the app's own mouth values instead of pixels (needs ?debug runs)
-uv run summary.py --md       # pooled table per path × browser (docs/lipsync-report.md)
+uv run summary.py --md       # pooled table per path × browser (docs/lipsync.md)
 uv run strips.py <run> closure|vowel|fv|word:<w> [--all]   # frame strips around events, for checking by eye
 uv run room.py <room run>    # flash vs beep (cal runs) or mouth vs mic (line runs) on the capture's clock
 uv run phone.py film.mov auto <camera delay ms> <clip> …   # a phone filmed playing saved clips (mouth box or auto)
@@ -159,4 +159,4 @@ cd ../qa/lipsync && node caps.mjs --url http://localhost:3041/ && node caps.mjs 
   - QuickTime → New Movie Recording (MacBook camera + mic).
   - Clap once in view of the camera (that gives the camera's delay), then play lines on the phone.
   - For the device delay, open `http://<mac LAN ip>:3199/calibrate.html` on the phone and film about 15 flashes.
-  - Analyse with `phone.py`, or with the snippets in [the lip-sync report](../../docs/lipsync-report.md).
+  - Analyse with `phone.py`.
