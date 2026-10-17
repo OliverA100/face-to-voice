@@ -28,7 +28,7 @@
 # bake    = "auto" (default) | true | false: true = its own morph target in head.glb; false = a runtime mix of
 #           the raw head_* targets (no extra bytes); auto picks the mix when it does nearly as well
 # measure normal: groups default to all outer skin; y = [lo, hi], z = [lo, hi], x_abs_max cut a band (metres)
-# view    = front | profile | quarter, frame = face | eyes | nose | mouth | jaw (contact sheets only)
+# view    = front | profile | quarter, frame = face | eyes_close | nose | mouth | jaw (contact sheets only: render.FRAMING)
 # low / high = what -1 / +1 look like (the web panel shows these under the slider)
 # optional per slider: scale_sigma (weight 1.0 = exactly this many σ), lambda_out, lambda_sym, falloff_mm
 
@@ -264,7 +264,7 @@ low = "small eyes"
 high = "large eyes"
 region = ["left_orbital_region", "right_orbital_region"]
 view = "front"
-frame = "eyes"
+frame = "eyes_close"
 measure = { terms = [
   { type = "distance", pairs = [["endocanthion_l", "exocanthion_l"], ["endocanthion_r", "exocanthion_r"]], weight = 0.5 },
   { type = "distance", pairs = [["lid_upper_l", "lid_lower_l"], ["lid_upper_r", "lid_lower_r"]], weight = 0.5 },
@@ -278,7 +278,7 @@ low = "close-set"
 high = "wide-set"
 region = ["left_orbital_region", "right_orbital_region", "middle_brow_region", "nose_region"]
 view = "front"
-frame = "eyes"
+frame = "eyes_close"
 measure = { type = "distance", pairs = [["endocanthion_l", "endocanthion_r"]] }
 
 [[slider]]
@@ -289,7 +289,7 @@ low = "outer corners down"
 high = "outer corners up"
 region = ["left_orbital_region", "right_orbital_region"]
 view = "front"
-frame = "eyes"
+frame = "eyes_close"
 measure = { type = "axis", axis = "y", pairs = [["exocanthion_l", "endocanthion_l"], ["exocanthion_r", "endocanthion_r"]] }
 
 [[slider]]
@@ -300,7 +300,7 @@ low = "deep-set eyes"
 high = "prominent eyes"
 region = ["left_orbital_region", "right_orbital_region", "left_brow_region", "right_brow_region"]
 view = "profile"
-frame = "eyes"
+frame = "eyes_close"
 measure = { type = "axis", axis = "z", pairs = [["lid_upper_l", "brow_l"], ["lid_upper_r", "brow_r"]] }  # + = eyes forward of the brow (right end = prominent)
 
 [[slider]]
@@ -312,7 +312,7 @@ high = "high brows"
 region = ["left_brow_region", "right_brow_region", "middle_brow_region", "forehead_region",
           "left_orbital_region", "right_orbital_region"]
 view = "front"
-frame = "eyes"
+frame = "eyes_close"
 measure = { type = "axis", axis = "y", pairs = [["brow_l", "canthi_l"], ["brow_r", "canthi_r"]] }
 
 [[slider]]
@@ -324,7 +324,7 @@ high = "heavy brow ridge"
 region = ["left_brow_region", "right_brow_region", "middle_brow_region", "forehead_region"]
 free = ["eye_depth"]
 view = "profile"
-frame = "eyes"
+frame = "eyes_close"
 measure = { type = "normal", groups = ["left_brow_region", "right_brow_region", "middle_brow_region"] }
 
 # --- Nose ----------------------------------------------------------------------------------------------------

@@ -583,36 +583,16 @@ def check(rows: list[dict]) -> list[str]:
 
 # --- rendering ----------------------------------------------------------------------------------------------
 
-# (focal point, distance) for a 28° vertical field of view; eyes at y≈0.30, mouth y≈0.23, nose tip z≈0.145
-FRAMES = {
-    "face": ((0.0, 0.268, 0.07), 0.62),
-    "eyes": ((0.0, 0.305, 0.10), 0.28),
-    "nose": ((0.0, 0.272, 0.11), 0.26),
-    "mouth": ((0.0, 0.215, 0.10), 0.30),
-    "jaw": ((0.0, 0.235, 0.05), 0.55),
-}
 VIEW_YAW = {"front": 0.0, "quarter": 40.0, "profile": 90.0}
-
-
-def head_renderer(gnm: GNM, size: int):
-    """An off-screen render.HeadRenderer with `size` px square frames."""
-    from .render import HeadRenderer
-
-    return HeadRenderer(gnm, size=size)
-
-
-def label_font(size: int):
-    """PIL's default font at `size` px, for sheet captions."""
-    from PIL import ImageFont
-
-    return ImageFont.load_default(size=size)
 
 
 def render_landmarks(gnm: GNM, lm: dict[str, np.ndarray], cfg: dict, path: Path, size: int = 640) -> None:
     """Six views of the template with every landmark marked and labelled, plus the 'normal' vertex groups."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 
-    r = head_renderer(gnm, size)
+    from .render import FRAMING, HeadRenderer
+
+    r = HeadRenderer(gnm, size=size)
     r.set_positions(gnm.template)
     normals = vertex_normals(gnm.template, gnm.triangles)
     groups = sorted({g for s in cfg["slider"] for g in _normal_groups(s["measure"])})
@@ -621,11 +601,11 @@ def render_landmarks(gnm: GNM, lm: dict[str, np.ndarray], cfg: dict, path: Path,
         patch |= gnm.vertex_groups[grp]
     patch &= gnm.vertex_groups["skin_exterior"]
 
-    panels = [("front, whole face", "face", 0.0), ("profile (left side)", "face", 90.0), ("eyes and brows", "eyes", 0.0),
+    panels = [("front, whole face", "face", 0.0), ("profile (left side)", "face", 90.0), ("eyes and brows", "eyes_close", 0.0),
               ("nose, three-quarter", "nose", 35.0), ("mouth and chin, three-quarter", "mouth", 35.0), ("jaw, three-quarter", "jaw", 45.0)]
     tiles = []
     for title, frame, yaw in panels:
-        focal, dist = FRAMES[frame]
+        focal, dist = FRAMING[frame]
         r.look(focal, dist, yaw)
         cam = np.array(r.plotter.camera.position)
         r.clear_overlays()
@@ -647,12 +627,9 @@ def render_landmarks(gnm: GNM, lm: dict[str, np.ndarray], cfg: dict, path: Path,
             r.add_points(gnm.template[facing], "#81c784", size=3)
         if pts:
             r.add_points(np.array(pts), "#ff5252", size=11, labels=labels, font_size=13 if frame == "face" else 15)
-        tile = SEM_OUT / f"_landmarks_{frame}_{int(yaw)}.png"
-        r.screenshot(tile)
-        img = Image.open(tile).convert("RGB")
-        ImageDraw.Draw(img).text((10, 8), title, fill="white", font=label_font(18))
+        img = r.image()
+        ImageDraw.Draw(img).text((10, 8), title, fill="white", font=ImageFont.load_default(size=18))
         tiles.append(img)
-        tile.unlink()
     r.clear_overlays()
     cols = 3
     sheet = Image.new("RGB", (cols * size, ((len(tiles) + cols - 1) // cols) * size), "#2b2b2b")
@@ -660,7 +637,7 @@ def render_landmarks(gnm: GNM, lm: dict[str, np.ndarray], cfg: dict, path: Path,
         sheet.paste(t, ((i % cols) * size, (i // cols) * size))
     legend = ImageDraw.Draw(sheet)
     legend.text((10, sheet.height - 26), "red = landmark vertex · blue = vertex set (mean used) · green = vertices of a 'normal' (fullness) measurement",
-                fill="#dddddd", font=label_font(15))
+                fill="#dddddd", font=ImageFont.load_default(size=15))
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path)
 
@@ -673,40 +650,38 @@ def _normal_groups(spec: dict) -> list[str]:
 
 def render_sheet(gnm: GNM, sol: Solution, cfg: dict, rows: list[dict], path: Path, size: int = 300) -> None:
     """One row per slider: −1 / 0 / +1 in the slider's own view, then a heat map of where it moves the face."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 
-    r = head_renderer(gnm, size)
+    from .render import FRAMING, HeadRenderer
+
+    r = HeadRenderer(gnm, size=size)
     label_w = 250
     sheet = Image.new("RGB", (label_w + 4 * size, len(sol.ids) * size + 34), "#1f1f1f")
     draw = ImageDraw.Draw(sheet)
     for c, head in enumerate(["-1", "0", "+1", "where it moves (dark 0 mm .. bright max)"]):
-        draw.text((label_w + c * size + 10, 8), head, fill="white", font=label_font(17))
+        draw.text((label_w + c * size + 10, 8), head, fill="white", font=ImageFont.load_default(size=17))
     for k, s in enumerate(cfg["slider"]):
         d = sol.delta(gnm, k)
-        focal, dist = FRAMES[s.get("frame", "face")]
+        focal, dist = FRAMING[s.get("frame", "face")]
         yaw = VIEW_YAW[s.get("view", "front")]
         y0 = 34 + k * size
         for c, w in enumerate((-1.0, 0.0, 1.0)):
             r.show_heat(None)
             r.set_positions(gnm.template + np.float32(w) * d)
             r.look(focal, dist, yaw)
-            tile = SEM_OUT / "_tile.png"
-            r.screenshot(tile)
-            sheet.paste(Image.open(tile).convert("RGB"), (label_w + c * size, y0))
+            sheet.paste(r.image(), (label_w + c * size, y0))
         mag = np.linalg.norm(d, axis=1) * 1000.0
         r.set_positions(gnm.template)
         r.show_heat(mag, (0.0, float(mag.max())))
-        r.look(FRAMES["face"][0], FRAMES["face"][1], 30.0)
-        r.screenshot(tile)
-        sheet.paste(Image.open(tile).convert("RGB"), (label_w + 3 * size, y0))
+        r.look(*FRAMING["face"], 30.0)
+        sheet.paste(r.image(), (label_w + 3 * size, y0))
         row = rows[k]
         text = [s["name"], f"-1 {s.get('low', '')}", f"+1 {s.get('high', '')}",
                 f"own change {row['own_mm']:+.1f} mm", f"largest other {row['cross_mm']:.1f} mm",
                 f"  ({row['cross_id']})", f"outside RMS {row['outside_rms_mm']:.2f} mm", f"heat max {mag.max():.1f} mm"]
         for i, t in enumerate(text):
-            draw.text((12, y0 + 12 + i * 22), t, fill="white" if i == 0 else "#cfcfcf", font=label_font(19 if i == 0 else 15))
+            draw.text((12, y0 + 12 + i * 22), t, fill="white" if i == 0 else "#cfcfcf", font=ImageFont.load_default(size=19 if i == 0 else 15))
     r.show_heat(None)
-    (SEM_OUT / "_tile.png").unlink(missing_ok=True)
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path)
 

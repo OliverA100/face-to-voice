@@ -33,8 +33,8 @@ def lid_margins(ctx: HeadContext, positions: np.ndarray | None = None) -> dict[t
     surface around each eye (40 vertices per eye), split at its two corners (smallest and largest |x|)."""
     gnm = ctx.gnm
     pos = gnm.template if positions is None else positions
-    skin = gnm.vertex_groups["skin_exterior"] > 0.5
-    socket = gnm.vertex_groups["eye_sockets"] > 0.5
+    skin = gnm.vertex_groups["skin_exterior"]
+    socket = gnm.vertex_groups["eye_sockets"]
     tris = gnm.triangles[skin[gnm.triangles].all(axis=1)]
     out = {}
     for found in boundary_loops(tris):
@@ -60,7 +60,7 @@ def lash_lines(ctx: HeadContext) -> dict[tuple[str, str], np.ndarray]:
     between the last two vertices of the walk."""
     gnm = ctx.gnm
     pos = gnm.template.astype(np.float64)
-    skin = gnm.vertex_groups["skin_exterior"] > 0.5
+    skin = gnm.vertex_groups["skin_exterior"]
     tris = gnm.triangles[skin[gnm.triangles].all(axis=1)]
     normals = vertex_normals(gnm.template, tris).astype(np.float64)
     neighbours: dict[int, set[int]] = {}
@@ -70,7 +70,7 @@ def lash_lines(ctx: HeadContext) -> dict[tuple[str, str], np.ndarray]:
     margins = lid_margins(ctx)
     out = {}
     for side in ("left", "right"):
-        eye = pos[gnm.vertex_groups[f"{side}_eye"] > 0.5]
+        eye = pos[gnm.vertex_groups[f"{side}_eye"]]
         centre = (eye.min(0) + eye.max(0)) / 2.0
 
         def facing(v: int, centre: np.ndarray = centre) -> float:  # the normal's share pointing away from the eyeball

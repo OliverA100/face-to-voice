@@ -5,27 +5,17 @@ from pathlib import Path
 
 from .. import semantic
 from ..gnm import OUT_DIR
-from ..parts import PARTS
 from ..render import FRAMING, HeadRenderer
 
 OUT = OUT_DIR / "validation"
 SECTIONS = {"semantic": "Shape sliders", "identity": "Advanced: raw head, eyeball and teeth", "expression": "Advanced: raw mouth, lids, tongue"}
 
 
-def renderer(gnm, size: int) -> HeadRenderer:
-    """HeadRenderer without the cornea: it is a clear shell in the app, but pyvista would paint it opaque black."""
-    r = HeadRenderer(gnm, size=size)
-    for actor, part in zip(r._part_actors, PARTS):
-        if part.material == "cornea":
-            actor.SetVisibility(False)
-    return r
-
-
 def _frame(target: str, kind: str, sem_cfg: dict) -> tuple[tuple, float, float]:
     """(focal, distance, yaw) that shows what this slider changes."""
     if kind == "semantic":
         s = next((s for s in sem_cfg["slider"] if semantic.TARGET_PREFIX + s["id"] == target), {})
-        focal, dist = semantic.FRAMES[s.get("frame", "face")]
+        focal, dist = FRAMING[s.get("frame", "face")]
         return focal, dist, semantic.VIEW_YAW[s.get("view", "front")]
     region = target.rsplit("_", 1)[0]
     if region == "head":
@@ -42,8 +32,7 @@ def range_sheets(model, ranges: dict, size: int = 230) -> list[Path]:
     font = ImageFont.load_default(size=15)
     bold = ImageFont.load_default(size=18)
     sem_cfg = semantic.load_config()
-    r = renderer(model.gnm, size)
-    tile = OUT / "_tile.png"
+    r = HeadRenderer(model.gnm, size=size)
     paths = []
     for kind, title in SECTIONS.items():
         items = [(t, v) for t, v in ranges.items() if v["kind"] == kind]
@@ -62,8 +51,7 @@ def range_sheets(model, ranges: dict, size: int = 230) -> list[Path]:
                 w = model.vector(model.expand({target: x}))
                 r.set_positions(model.positions(w))
                 r.look(focal, dist, yaw)
-                r.screenshot(tile)
-                sheet.paste(Image.open(tile).convert("RGB"), (label_w + c * size, y0))
+                sheet.paste(r.image(), (label_w + c * size, y0))
             s = v["sides"]
             lines = [v["name"], f"weights {v['min']:+.2f} / {v['max']:+.2f}", f"− {s['min']['limit']}"[:34], f"+ {s['max']['limit']}"[:34]]
             if v["own"]:
@@ -75,5 +63,4 @@ def range_sheets(model, ranges: dict, size: int = 230) -> list[Path]:
         path = OUT / f"ranges_{kind}.png"
         sheet.save(path)
         paths.append(path)
-    tile.unlink(missing_ok=True)
     return paths

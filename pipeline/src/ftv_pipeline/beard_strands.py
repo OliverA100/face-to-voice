@@ -13,10 +13,7 @@ Each style (config/beards.toml):
 """
 from __future__ import annotations
 
-import argparse
 import json
-import time
-import tomllib
 
 import numpy as np
 from PIL import Image
@@ -24,14 +21,13 @@ from scipy.spatial import cKDTree
 
 from .addon_fit import ADDONS_MODELS_DIR
 from .bake import BAKE_DIR, ktx2
-from .export_groom import WORK, entry
+from .export_groom import WORK, export_styles
 from .gnm import PIPELINE_DIR
-from .groom import Groom, GroomSpec, encode, fair, keep_out_smooth, render_views, self_shadow, unit
+from .groom import Groom, GroomSpec, fair, keep_out_smooth, render_views, self_shadow, unit
 from .guides import beard_guide
-from .head_context import head_context
 from .skin_maps import rasterize, skin_triangles
 from .stubble import LANDMARKS, guide_roots, mask, picker_order, smooth
-from .surface import Surface, gnm_surface
+from .surface import Surface
 
 CONFIG = PIPELINE_DIR / "config" / "beards.toml"
 MODELS = ADDONS_MODELS_DIR / "facialHair"
@@ -94,14 +90,13 @@ def comb_dirs(cfg: dict, roots: np.ndarray, normals: np.ndarray, moustache: np.n
     return unit(c * cos + np.cross(normals, c) * sin)
 
 
-def grow(cfg: dict, roots: np.ndarray, normals: np.ndarray, lengths: np.ndarray, moustache: np.ndarray, gnm, mouth_y: float,
+def grow(cfg: dict, roots: np.ndarray, normals: np.ndarray, lengths: np.ndarray, moustache: np.ndarray, surf, mouth_y: float,
          rng) -> np.ndarray:
     """Each hair walks along the skin in its comb direction, at its own layer's height above it (the beard is layers of
     hair lying on the face, thicker towards the tips), until the skin turns away underneath (the jaw line, the chin,
     the lip for the moustache); from there it falls freely under gravity, its end turning under towards the throat."""
     P, sub = int(cfg["points"]), 3
     n = len(roots)
-    surf = gnm_surface(gnm)
     down = np.array([0.0, -1.0, 0.0])
     comb = comb_dirs(cfg, roots, normals, moustache, mouth_y, rng)
     # every hair sweeps through a gentle arc (beard hair curves; ruler-straight hair reads as a brush), mostly the way
@@ -217,14 +212,14 @@ def clump_and_wave(strands: np.ndarray, normals: np.ndarray, cfg: dict, rng, mou
     return out
 
 
-def zone_masks(gnm, tris, L: dict, zc: dict) -> dict[str, np.ndarray]:
+def zone_masks(ctx, tris, L: dict, zc: dict) -> dict[str, np.ndarray]:
     """Named regions of the face (0..1 per GNM vertex), from the landmarks and the skin's shape, that a style's outline
     is made of (`zones`) or cut by (`cut`); `zc` = the style's zone sizes (mm)."""
+    gnm, surf = ctx.gnm, ctx.skin
     P = gnm.template
     x, y, z = P[:, 0], P[:, 1], P[:, 2]
     ax = np.abs(x)
     mm = 1 / 1000
-    surf = gnm_surface(gnm)
     tri, bary, _ = surf.closest(P)
     n = surf.normals_at(tri, bary)
     mouth_y, corner_x = L["cheilion_l"][1], L["cheilion_l"][0]
@@ -234,13 +229,13 @@ def zone_masks(gnm, tris, L: dict, zc: dict) -> dict[str, np.ndarray]:
         return np.clip(v / (soft_mm * mm) + 0.5, 0, 1)
 
     def near(group: str, within_mm: float, soft_mm: float = 1.5):  # within this far of a vertex group
-        d, _ = cKDTree(P[gnm.vertex_groups[group] > 0.5]).query(P)
+        d, _ = cKDTree(P[gnm.vertex_groups[group]]).query(P)
         return ramp(within_mm * mm - d, soft_mm)
 
     front = ramp(z - 0.05, 10)  # the face, not the back of the neck
     # the jaw line: from under the chin (menton) along the jawbone to its angle (below and a little in front of the
     # ear lobe), then up its back edge to the sideburn; on the skin, both sides
-    ear = P[(gnm.vertex_groups["ears"] > 0.5) & (x > 0)]
+    ear = P[gnm.vertex_groups["ears"] & (x > 0)]
     lobe = ear[np.argmin(ear[:, 1])]
     men = np.array(L["menton"]) * [0, 1, 1]
     # (jaw_chin: how far up the front of the chin it starts, 0 = under the chin … 1 = the chin's point)
@@ -282,7 +277,7 @@ def zone_masks(gnm, tris, L: dict, zc: dict) -> dict[str, np.ndarray]:
     return {k: smooth(gnm, tris, v, 2) for k, v in zones.items()}
 
 
-def spine_groom(strands: np.ndarray, roots: np.ndarray, moustache: np.ndarray, sp: dict, gnm, L: dict, rng) -> np.ndarray:
+def spine_groom(strands: np.ndarray, roots: np.ndarray, moustache: np.ndarray, sp: dict, surf, L: dict, rng) -> np.ndarray:
     """A sculpted moustache: each side has a spine, out along the upper lip (just off the skin) to `out_mm` past the
     mouth corner, then either a curl upwards (kind "curl", a waxed handlebar: a spiral from `radius_mm`, `tighten`
     tighter by its end, through `turn_deg`) or a tail hanging down (kind "drop", a Fu Manchu: `drop_mm` long, leaning
@@ -292,7 +287,6 @@ def spine_groom(strands: np.ndarray, roots: np.ndarray, moustache: np.ndarray, s
     of the way to the spine's end), so the wing or tail tapers to a point."""
     out = strands.copy()
     P = strands.shape[1]
-    surf = gnm_surface(gnm)
     mm = 1 / 1000
     y0 = L["cheilion_l"][1] + sp["height_mm"] * mm
     x_end = L["cheilion_l"][0] + sp["out_mm"] * mm
@@ -348,7 +342,7 @@ def outline(st: dict, cfg: dict, ctx) -> tuple[np.ndarray, dict[str, np.ndarray]
     cov = mask(gnm, tris, guide_roots(ctx, st["guides"]), m_cfg, keep, "moustache" in st["guides"])
     zm = {}
     if "zones" in st:
-        zm = zone_masks(gnm, tris, json.loads(LANDMARKS.read_text())["landmarks"], st.get("zone", {}))
+        zm = zone_masks(ctx, tris, json.loads(LANDMARKS.read_text())["landmarks"], st.get("zone", {}))
         sel = np.max([zm[k] for k in st["zones"]], axis=0)
         for k in st.get("cut", []):
             sel *= 1 - zm[k]
@@ -364,7 +358,7 @@ def build(sid: str, st: dict, cfg: dict, ctx) -> tuple[Groom, np.ndarray]:
     rng = np.random.default_rng(st.get("seed", 3))
     L = json.loads(LANDMARKS.read_text())["landmarks"]
     cov, zm = outline(st, cfg, ctx)
-    surf = gnm_surface(gnm)
+    surf = ctx.skin
     mouth_y, sub_y = L["cheilion_l"][1], L["subnasale"][1]
 
     def on_lip(p):  # the moustache: over the upper lip, between the mouth corners and the nose
@@ -386,7 +380,7 @@ def build(sid: str, st: dict, cfg: dict, ctx) -> tuple[Groom, np.ndarray]:
         solid = zm["_sel"][vert] >= {**cfg["mask"], **st.get("mask", {})}["zone_solid"]  # under it keeps the soft outline)
         roots, normals, vert = roots[solid], normals[solid], vert[solid]
     if "lip_band_mm" in st:  # a line thinner than the mesh (pencil): measured to the lip's surface, not its vertices
-        lip_tris = gnm.triangles[(gnm.vertex_groups["upper_lip"] > 0.5)[gnm.triangles].all(1)]
+        lip_tris = gnm.triangles[gnm.vertex_groups["upper_lip"][gnm.triangles].all(1)]
         d = np.linalg.norm(roots - Surface.build(gnm.template, lip_tris).closest(roots)[2], axis=1)
         keep = d <= st["lip_band_mm"] / 1000
         roots, normals, vert = roots[keep], normals[keep], vert[keep]
@@ -421,7 +415,7 @@ def build(sid: str, st: dict, cfg: dict, ctx) -> tuple[Groom, np.ndarray]:
     young = rng.random(len(roots)) < gs["young_share"]
     lengths = np.where(young, lengths * rng.uniform(0.35, 0.85, len(roots)), lengths)
     g = {**cfg["grow"], **st.get("grow", {})}
-    strands = grow(g, roots, normals, lengths, moustache, gnm, mouth_y, rng)
+    strands = grow(g, roots, normals, lengths, moustache, surf, mouth_y, rng)
     strands = fair(strands, int(g["fair"]))
     strands = cohere(strands, roots, g)
     strands = clump_and_wave(strands, normals, g, rng, moustache)
@@ -432,7 +426,7 @@ def build(sid: str, st: dict, cfg: dict, ctx) -> tuple[Groom, np.ndarray]:
         pull = np.where(moustache[:, None], 0.0, t)
         strands[..., 0] += (target - strands[..., 0]) * pull
     if "spine" in st:
-        strands = spine_groom(strands, roots, moustache, st["spine"], gnm, L, rng)
+        strands = spine_groom(strands, roots, moustache, st["spine"], surf, L, rng)
     strands = keep_out_smooth(gnm, fair(strands, 2), 0.0004)
     # and no lone ends: a hair whose tip is out in empty space (no other hairs round it) is a stray
     pts = strands[:, 1:].reshape(-1, 3)
@@ -465,44 +459,32 @@ def build(sid: str, st: dict, cfg: dict, ctx) -> tuple[Groom, np.ndarray]:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("ids", nargs="*")
-    ap.add_argument("--preview", action="store_true")
-    args = ap.parse_args()
-    cfg = tomllib.loads(CONFIG.read_text())
-    ctx = head_context()
-    index_path = MODELS / "index.json"
-    index = json.loads(index_path.read_text())
-    entries = {e["id"]: e for e in index["styles"]}
-    for sid, st in cfg["style"].items():
-        if args.ids and sid not in args.ids:
-            continue
-        t0 = time.time()
-        g, cov = build(sid, st, cfg, ctx)
-        focal = (0.0, 0.225, 0.09)
-        pv = render_views(g, WORK / f"beard-{sid}.png", gnm=ctx.gnm, views=(0, 35, 80), focal=focal, distance=0.3, line_width=1.5)
-        print(f"  {sid}: {len(g.strands)} strands × {g.strands.shape[1]}; preview {pv} ({time.time() - t0:.0f} s)")
-        if args.preview:
-            continue
-        data = encode(g)
-        (MODELS / f"{sid}.strands.bin").write_bytes(data)
+    covers = {}
+
+    def build_one(sid, st, cfg, ctx):
+        g, covers[sid] = build(sid, st, cfg, ctx)
+        return g
+
+    def preview(sid, g, ctx):
+        return render_views(g, WORK / f"beard-{sid}.png", gnm=ctx.gnm, views=(0, 35, 80), focal=(0.0, 0.225, 0.09), distance=0.3, line_width=1.5)
+
+    def extra(sid, st, cfg, ctx, g, e):
         # the stubble under it: the skin between the hairs is never bare (and the outline fades out through stubble)
-        img = rasterize(ctx.gnm, skin_triangles(ctx.gnm), cov[:, None], 1024)[..., 0]
-        BAKE_DIR.mkdir(parents=True, exist_ok=True)  # previews: only bake-ao made it before
+        img = rasterize(ctx.gnm, skin_triangles(ctx.gnm), covers[sid][:, None], 1024)[..., 0]
+        BAKE_DIR.mkdir(parents=True, exist_ok=True)  # out/bake: bake-ao may not have run yet
         png = BAKE_DIR / f"stubble-{sid}.png"
         Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8)).save(png)
-        n_mask = ktx2(png, MODELS / f"{sid}.ktx2", uastc=False, quality=200)
+        e["bytes"] += ktx2(png, MODELS / f"{sid}.ktx2", uastc=False, quality=200)
         under = {**cfg["render"]["under"], **st.get("under", {})}
-        e = entry(g, len(data) + n_mask, mesh_fields=True)
-        e.update({"file": f"addons/facialHair/{sid}.strands.bin", "thumb": f"addons/facialHair/thumbs/{sid}.webp",
-                  "author": "face-to-voice (generated)", "pack": "generated", "alphaCutoff": 0, "tint": True,
-                  "stubbleMask": f"addons/facialHair/{sid}.ktx2",
+        e["author"] = "face-to-voice (generated)"
+        e.update({"stubbleMask": f"addons/facialHair/{sid}.ktx2",
                   "stubble": {"length": under["length"], "shadow": under["shadow"], "root": g.spec.natural[0], "tip": g.spec.natural[1]}})
-        entries[sid] = e
-        print(f"  → web/public/models/addons/facialHair/{sid}.strands.bin {len(data) / 1000:.0f} KB")
-    if args.preview:
+
+    done = export_styles("facialHair", CONFIG, build_one, preview, extra)
+    if done is None:
         return
+    cfg, index, entries = done
     ids = list(dict.fromkeys([e["id"] for e in index["styles"]] + [i for i in cfg["style"] if i in entries]))
     index["styles"] = [entries[i] for i in picker_order(ids)]
-    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
+    (MODELS / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
     print("index:", [e["id"] for e in index["styles"]])

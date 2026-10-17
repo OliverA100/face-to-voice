@@ -130,7 +130,7 @@ def scatter_roots(gnm: GNM, spec: GroomSpec, rng: np.random.Generator):
     centroid = (a + b + c) / 3
     area = 0.5 * np.linalg.norm(np.cross(b - a, c - a), axis=1)
     above = centroid[:, 1] - hairline_height(centroid, spec.hairline)
-    ears = gnm.template[gnm.vertex_groups["ears"] > 0.5]
+    ears = gnm.template[gnm.vertex_groups["ears"]]
     ear_d = cKDTree(ears).query(centroid)[0]
     density = smoothstep(above / (spec.hairline_soft_mm / 1000)) * smoothstep((ear_d - spec.ear_margin_mm / 1000) / 0.006)
     weight = area * density
@@ -431,16 +431,10 @@ def render_views(groom: Groom, path: Path, size: int = 520, views=(0, 40, 90, 18
     col = (lo[None] + (hi - lo)[None] * t[:, None]) * (0.35 + 0.65 * groom.shade.reshape(-1))[:, None]
     lines.point_data["rgb"] = (np.clip(col, 0, 1) * 255).astype(np.uint8)
     r.plotter.add_mesh(lines, scalars="rgb", rgb=True, line_width=line_width, lighting=False)
-    tiles = []
-    for yaw in views:
+    sheet = Image.new("RGB", (size * len(views), size), "white")
+    for i, yaw in enumerate(views):
         r.look(focal, distance, yaw)
-        tmp = path.with_name(f"{path.stem}-{yaw}.png")
-        r.screenshot(tmp)
-        tiles.append(Image.open(tmp).convert("RGB"))
-    sheet = Image.new("RGB", (size * len(tiles), size), "white")
-    for i, im in enumerate(tiles):
-        sheet.paste(im, (i * size, 0))
-        Path(path.with_name(f"{path.stem}-{views[i]}.png")).unlink()
+        sheet.paste(r.image(), (i * size, 0))
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path)
     return path

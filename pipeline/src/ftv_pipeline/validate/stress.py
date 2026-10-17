@@ -27,7 +27,6 @@ import json
 import random as pyrandom
 import subprocess
 import time
-import tomllib
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -35,10 +34,9 @@ import numpy as np
 
 from ..gnm import REPO_DIR
 from . import vlimits
-from .checks import Checker
 from .model import HeadModel
 from .sweep import OUT, SWEPT_KINDS
-from .vlimits import CONFIG, REPORT_ONLY, VLimits
+from .vlimits import REPORT_ONLY, setup
 
 IDENTITIES = OUT / "stress_identities.json"
 STATES = OUT / "stress_states.json"
@@ -59,15 +57,9 @@ ADDON_ANIMS = ["emotion:happy@1", "emotion:angry@1", "emotion:surprised@1", "emo
 _ctx: dict = {}
 
 
-def _cfg() -> dict:
-    with open(CONFIG, "rb") as f:
-        return tomllib.load(f)
-
-
 def _init() -> None:
-    m, cfg = HeadModel.load(), _cfg()
-    ch = Checker(m, cfg)
-    _ctx.update(m=m, ch=ch, vl=VLimits.build(m, ch, cfg))
+    m, ch, vl = setup()
+    _ctx.update(m=m, ch=ch, vl=vl)
 
 
 def weights(m: HeadModel, w: dict, effective: bool = False) -> np.ndarray:
@@ -134,7 +126,7 @@ def _fx(job: tuple) -> list[dict]:
 
 
 def make_identities(m: HeadModel, quick: bool, workers: int) -> list[dict]:
-    ends = lambda t, s: m.sliders[t]["max"] if s > 0 else m.sliders[t]["min"]  # noqa: E731
+    ends = lambda t, s: m.sliders[t]["max"] if s > 0 else m.sliders[t]["min"]
     ids = [{"id": "average", "sliders": {}, "addons": True}]
     for t, s in ADDON_ENDS:
         ids.append({"id": f"{t}{'+' if s > 0 else '-'}", "sliders": {t: ends(t, s)}, "addons": True})
@@ -300,7 +292,7 @@ def fam_addons(m: HeadModel, identities: list[dict], by_state: dict, quick: bool
     from .addons_check import styles
 
     heads = [i["id"] for i in identities if i.get("addons")]
-    avg = lambda anim: by_state[("average", anim)]  # noqa: E731
+    avg = lambda anim: by_state[("average", anim)]
     jobs = []
     for st in styles():
         anims = ["rest"] + (ADDON_ANIMS if st["category"] in ("eyebrows", "eyelashes") else [])
@@ -334,7 +326,7 @@ def summarise(rows: list[dict], family: str, tested: int | None = None) -> dict:
     for r in broken:
         for k in r["fail"]:
             checks.setdefault(k, []).append(r)
-    val = lambda x, k: x["values"].get(ADDON_VALUE.get(k, k) if family == "addons" else k, 0.0)  # noqa: E731
+    val = lambda x, k: x["values"].get(ADDON_VALUE.get(k, k) if family == "addons" else k, 0.0)
     per = {k: {"n": len(v), "worst": max((val(x, k) for x in v), default=0.0),
                "worst_id": max(v, key=lambda x: val(x, k))["id"]} for k, v in checks.items()}
     report = {}
@@ -381,7 +373,9 @@ def write_report(summary: list[dict], rows: list[dict], extra: dict, path: Path)
         L.append("None.")
     L += ["", "## Sheets", ""] + [f"- `{p.relative_to(OUT)}`" for p in extra.get("sheets", [])]
     if extra.get("vision"):
-        L += ["", "## Vision review (claude-opus-5-5)", ""] + extra["vision"]
+        from ..claude import DEFAULT_MODEL
+
+        L += ["", f"## Vision review ({DEFAULT_MODEL})", ""] + extra["vision"]
     path.write_text("\n".join(L) + "\n")
 
 
@@ -392,14 +386,12 @@ def face_sheets(m: HeadModel, entries: list[dict], name: str, size: int = 230) -
     """Front, ¾ and profile of each face, the failing spot in red; two faces per row, 10 per sheet."""
     from PIL import Image, ImageDraw, ImageFont
 
-    from ..render import FRAMING
-    from .sheets import renderer
+    from ..render import FRAMING, HeadRenderer
 
     if not entries:
         return []
     font = ImageFont.load_default(size=14)
-    r = renderer(m.gnm, size)
-    tile = SHEETS / "_tile.png"
+    r = HeadRenderer(m.gnm, size=size)
     paths = []
     focal, dist = FRAMING["head"]
     for s0 in range(0, len(entries), 10):
@@ -418,15 +410,13 @@ def face_sheets(m: HeadModel, entries: list[dict], name: str, size: int = 230) -
             x0, y0 = (i % 2) * 3 * size, (i // 2) * (size + 40)
             for c, yaw in enumerate((0.0, 35.0, 90.0)):
                 r.look(focal, dist * 0.9, yaw)
-                r.screenshot(tile)
-                sheet.paste(Image.open(tile).convert("RGB"), (x0 + c * size, y0))
+                sheet.paste(r.image(), (x0 + c * size, y0))
             label = e["label"]
             d.text((x0 + 6, y0 + size + 2), label[:95], fill="white", font=font)
             d.text((x0 + 6, y0 + size + 20), label[95:190], fill="#cfcfcf", font=font)
         p = SHEETS / f"{name}_{s0 // 10 + 1}.png"
         sheet.save(p)
         paths.append(p)
-    tile.unlink(missing_ok=True)
     return paths
 
 
@@ -436,17 +426,14 @@ def addon_sheets(m: HeadModel, entries: list[dict], name: str, size: int = 240) 
     brows and lashes close up on the worst spot."""
     from PIL import Image, ImageDraw, ImageFont
 
-    from ..render import FRAMING
+    from ..render import FRAMING, HeadRenderer
     from .addons_check import AddonChecker
-    from .sheets import renderer
 
     if not entries:
         return []
     font = ImageFont.load_default(size=13)
     a = AddonChecker(m)
-    r = renderer(m.gnm, size)
-    pv = r.pv
-    tile = SHEETS / "_tile.png"
+    r = HeadRenderer(m.gnm, size=size)
     paths = []
 
     def draw(w, st, where):
@@ -454,14 +441,10 @@ def addon_sheets(m: HeadModel, entries: list[dict], name: str, size: int = 240) 
         r.clear_overlays()
         X = a.points(st, w)
         if X.ndim == 3:
-            N, Pn, _ = X.shape
-            keep = np.arange(N)[:: max(1, N // 3000)]
-            pts = X[keep].reshape(-1, 3)
-            cells = np.hstack([np.full((len(keep), 1), Pn), np.arange(len(keep) * Pn).reshape(len(keep), Pn)]).ravel()
-            r._overlays.append(r.plotter.add_mesh(pv.PolyData(pts, lines=cells), color="#3a2414", line_width=1.5))
+            r.add_lines(X[:: max(1, len(X) // 3000)], "#3a2414", width=1.5)
             flat = X.reshape(-1, 3)
         else:
-            r._overlays.append(r.plotter.add_mesh(pv.PolyData(X.astype(np.float32)), color="#3050c0", point_size=2))
+            r.add_points(X, "#3050c0", size=2, spheres=False)
             flat = X
         if where >= 0:
             r.add_points(flat[[where]], "#ff2020", size=10)
@@ -489,15 +472,13 @@ def addon_sheets(m: HeadModel, entries: list[dict], name: str, size: int = 240) 
                 elif c == 1:
                     draw(e["w"], st, e.get("where", -1))
                 r.look(f, dist, yaw)
-                r.screenshot(tile)
-                sheet.paste(Image.open(tile).convert("RGB"), (x0 + c * size, y0))
+                sheet.paste(r.image(), (x0 + c * size, y0))
             d.text((x0 + 4, y0 + 4), "average face", fill="#bbbbbb", font=font)
             d.text((x0 + 6, y0 + size + 2), e["label"][:88], fill="white", font=font)
             d.text((x0 + 6, y0 + size + 20), e["label"][88:176], fill="#cfcfcf", font=font)
         p = SHEETS / f"{name}_{s0 // 8 + 1}.png"
         sheet.save(p)
         paths.append(p)
-    tile.unlink(missing_ok=True)
     return paths
 
 
@@ -532,7 +513,7 @@ def run(quick: bool = False, vision: bool = False, workers: int = 8, fresh: bool
         only: list[str] | None = None) -> None:
     """`only`: just these families (the report then covers only them)."""
     t0 = time.time()
-    want = lambda *fs: not only or any(f in only for f in fs)  # noqa: E731
+    want = lambda *fs: not only or any(f in only for f in fs)
     m = HeadModel.load()
     SHEETS.mkdir(parents=True, exist_ok=True)
     if fresh or not IDENTITIES.exists() or json.loads(IDENTITIES.read_text()).get("quick") != quick:
@@ -626,7 +607,7 @@ def run(quick: bool = False, vision: bool = False, workers: int = 8, fresh: bool
         g = state_by_id[r["id"]].get("gaze") if r["id"] in state_by_id else None
         return {"w": w, "gaze": g, "where": r.get("where", -1), "label": f"{r['family']}: {r['id']} — {vals}"}
 
-    score = lambda r: max((r["values"].get(k, 0.0) for k in r["fail"]), default=0.0)  # noqa: E731
+    score = lambda r: max((r["values"].get(k, 0.0) for k in r["fail"]), default=0.0)
     broken = sorted([r for r in rows if r["fail"] and r["family"] != "addons"], key=score, reverse=True)[:40]
     rng = pyrandom.Random(7)
     clean = [r for r in rows if not r["fail"] and r["family"] in ("single", "random", "character", "anim", "fx")]
@@ -634,7 +615,7 @@ def run(quick: bool = False, vision: bool = False, workers: int = 8, fresh: bool
     t = time.time()
     sheets = face_sheets(m, [face_entry(r) for r in broken], "worst")
     sheets += face_sheets(m, [face_entry(r) for r in controls], "controls")
-    sev = lambda r: (r["values"].get("clip_share", 0) + r["values"].get("eye_share", 0)  # noqa: E731
+    sev = lambda r: (r["values"].get("clip_share", 0) + r["values"].get("eye_share", 0)
                      + r["values"].get("clip_vertices", 0) / 1000 + r["values"].get("floating_mm", 0) / 10)
     pick = []
     for cat in ("hair", "eyebrows", "eyelashes", "facialHair", "glasses"):  # the worst few styles of every category

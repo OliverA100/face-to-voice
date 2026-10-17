@@ -5,8 +5,9 @@ Reads web/src/data/sliders.json (written by `name-sliders`) and writes web/src/d
   visemes: { "aa": { "lower_face_region_000": -0.9, ... }, ... }   # morph weights per viseme
   roles:   { "blinkLeft": {...}, "blinkRight": {...}, "jawOpen": {...}, "pupils": {...} }
 
-Every value is a morph weight (-1..1). These are only seeds: the web app's /dev/visemes page is
-where the shapes get tuned by eye and written back to this file.
+Every value is a morph weight (-1..1). These are only seeds: the shipped shapes are solved from mouth measures
+(`uv run solve-visemes`, viseme_solve.py) or set by eye on the web app's /dev/visemes page, and a file marked
+"tuned" is never overwritten.
 """
 from __future__ import annotations
 
@@ -115,7 +116,7 @@ def main() -> None:
     result = {
         "version": 1,
         "tuned": False,
-        "note": "Seed values from Claude's slider hints (propose_visemes.py). Tune in the web app's /dev/visemes page, which writes back here and sets tuned=true.",
+        "note": "Seed values from Claude's slider hints (propose_visemes.py). Solve the shapes with `uv run solve-visemes`, or tune them on the web app's /dev/visemes page (its JSON sets tuned=true).",
         **out,
     }
     VISEMES_JSON.write_text(json.dumps(result, indent=2) + "\n")

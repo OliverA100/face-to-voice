@@ -78,6 +78,7 @@ ignore = [
     "PLC0415",  # heavy imports (pyvista, scipy) stay inside the commands that need them, so the CLI starts fast
     "PLR0917",  # positional geometry arguments (points, normals, faces) are clearer than keywords
     "B905",     # zip() over arrays of equal length by construction
+    "E731",     # a one-line lambda for a local helper reads better than a nested def
 ]
 
 [tool.ruff.lint.isort]

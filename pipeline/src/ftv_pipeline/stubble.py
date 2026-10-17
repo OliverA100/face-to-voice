@@ -103,9 +103,9 @@ def mask(gnm, tris, roots: np.ndarray, cfg: dict, keep=None, moustache: bool = T
     if keep is not None:
         cov *= keep
     for g in ("upper_lip", "lower_lip"):  # the lips themselves stay bare
-        cov[gnm.vertex_groups[g] > 0.5] = 0
+        cov[gnm.vertex_groups[g]] = 0
     cov = smooth(gnm, tris, cov, int(cfg["smooth"]))
-    ears = smooth(gnm, tris, (gnm.vertex_groups["ears"] > 0.5).astype(float), 3)
+    ears = smooth(gnm, tris, gnm.vertex_groups["ears"].astype(float), 3)
     cov *= 1 - np.clip(ears * 2.0, 0, 1)  # the sideburn stops in front of the ear; the ear stays bare
     patch = noise3(P, cfg["patch_mm"] / 1000, 1) * 0.6 + noise3(P, cfg["patch_mm"] / 2500, 2) * 0.4
     cov *= np.clip(1 - cfg["patchiness"] + cfg["patchiness"] * 1.6 * patch, 0, 1)
@@ -113,7 +113,7 @@ def mask(gnm, tris, roots: np.ndarray, cfg: dict, keep=None, moustache: bool = T
     # beard ends at a line from the sideburn down to just above the mouth corner
     L = json.loads(LANDMARKS.read_text())["landmarks"]
     mouth_y = L["cheilion_l"][1]
-    nose = smooth(gnm, tris, (gnm.vertex_groups["nose_region"] > 0.5).astype(float), 2)
+    nose = smooth(gnm, tris, gnm.vertex_groups["nose_region"].astype(float), 2)
     base = L["subnasale"][1] + 0.0025  # the nose itself stays bare; the cut sits on the underside of its base, so the
     # mask's soft transition faces down, out of sight, and the moustache starts right under the nose
     cov *= 1 - np.clip(nose * 2.0, 0, 1) * np.clip((P[:, 1] - base) / 0.003, 0, 1)
@@ -147,7 +147,7 @@ def mask(gnm, tris, roots: np.ndarray, cfg: dict, keep=None, moustache: bool = T
     high = np.clip((P[:, 1] - (mouth_y + 0.02)) / 0.03, 0, 1) * (np.abs(P[:, 0]) > 0.025)
     cov *= 1 - cfg["cheek_thin"] * high
     for g in ("upper_lip", "lower_lip"):
-        cov[gnm.vertex_groups[g] > 0.5] = 0
+        cov[gnm.vertex_groups[g]] = 0
     return np.clip(cov, 0, 1)
 
 

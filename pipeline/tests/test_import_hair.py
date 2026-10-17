@@ -1,4 +1,4 @@
-"""import_hair.py: the OBJ reader and the Umeyama fit that places a source head on GNM's cranium."""
+"""import_hair.py: the OBJ reader and how an import updates the hair index (the Umeyama fit is surface.similarity_fit)."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from ftv_pipeline.import_hair import read_obj, similarity_fit
+from ftv_pipeline.import_hair import read_obj
 
 
 def test_read_obj_fans_polygons_into_triangles(tmp_path):
@@ -15,18 +15,6 @@ def test_read_obj_fans_polygons_into_triangles(tmp_path):
     verts, faces = read_obj(path)
     np.testing.assert_array_equal(verts, [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]])
     np.testing.assert_array_equal(faces, [[0, 1, 2], [0, 2, 3]])
-
-
-def test_similarity_fit_recovers_scale_rotation_translation():
-    rng = np.random.default_rng(5)
-    src = rng.normal(size=(30, 3))
-    a = 0.4
-    R = np.array([[1, 0, 0], [0, np.cos(a), -np.sin(a)], [0, np.sin(a), np.cos(a)]])
-    s, R_fit, t = similarity_fit(src, 0.8 * src @ R.T + [0.0, 0.3, -0.1])
-    assert s == pytest.approx(0.8)
-    np.testing.assert_allclose(R_fit, R, atol=1e-10)
-    np.testing.assert_allclose(t, [0.0, 0.3, -0.1], atol=1e-10)
-
 
 
 def _stub_import(tmp_path, monkeypatch, index: dict) -> Path:

@@ -71,10 +71,11 @@ def write_ageing_json(gnm: GNM, cfg: dict | None = None) -> dict:
 
 def preview_main(argv=None) -> None:
     """Shape only (the skin is drawn by the web app): Age -1 / 0 / +1, front and three-quarter."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 
     from .emotions import solve_controls
     from .export_glb import load_config as load_components
+    from .render import FRAMING, HeadRenderer
 
     p = argparse.ArgumentParser(description=preview_main.__doc__)
     p.add_argument("--size", type=int, default=360)
@@ -91,17 +92,15 @@ def preview_main(argv=None) -> None:
             delta += np.float32(w) * sol.delta(gnm, sol.ids.index(t[len(semantic.TARGET_PREFIX):]))
         else:
             delta += np.float32(w * sigma) * gnm.delta(t)
-    r = semantic.head_renderer(gnm, args.size)
+    r = HeadRenderer(gnm, size=args.size)
     sheet = Image.new("RGB", (3 * args.size, 2 * args.size + 30), "#1f1f1f")
     d = ImageDraw.Draw(sheet)
     for c, (w, label) in enumerate([(-1.0, "Age -1 (younger)"), (0.0, "0"), (1.0, "Age +1 (older, shape only)")]):
-        d.text((c * args.size + 10, 6), label, fill="white", font=semantic.label_font(16))
+        d.text((c * args.size + 10, 6), label, fill="white", font=ImageFont.load_default(size=16))
         for row, yaw in enumerate((0.0, 35.0)):
             r.set_positions(gnm.template + np.float32(w) * delta)
-            r.look(*semantic.FRAMES["face"], yaw)
-            tile = OUT_DIR / "age" / "_tile.png"
-            r.screenshot(tile)
-            sheet.paste(Image.open(tile).convert("RGB"), (c * args.size, 30 + row * args.size))
-    (OUT_DIR / "age" / "_tile.png").unlink()
+            r.look(*FRAMING["face"], yaw)
+            sheet.paste(r.image(), (c * args.size, 30 + row * args.size))
+    (OUT_DIR / "age").mkdir(parents=True, exist_ok=True)
     sheet.save(OUT_DIR / "age" / "preview.png")
     print(f"{len(combo)} targets in the Age mix -> {OUT_DIR / 'age' / 'preview.png'}")

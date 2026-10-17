@@ -295,33 +295,27 @@ def write_report(gnm: GNM, doc: dict, res: list[Resolved], path: Path) -> str:
     return text
 
 
-FRAMES = {"face": ((0.0, 0.262, 0.09), 0.40)}  # face only, tighter than semantic.FRAMES["face"]
-
-
-def _tile(r, positions: np.ndarray, frame: str, yaw: float):
-    from PIL import Image
+def _tile(r, positions: np.ndarray, yaw: float):
+    from .render import FRAMING
 
     r.set_positions(positions)
-    focal, dist = FRAMES[frame]
-    r.look(focal, dist, yaw)
-    tmp = EMO_OUT / "_tile.png"
-    r.screenshot(tmp)
-    img = Image.open(tmp).convert("RGB")
-    tmp.unlink()
-    return img
+    r.look(*FRAMING["face_close"], yaw)
+    return r.image()
 
 
 def render_sheet(gnm: GNM, res: list[Resolved], path: Path, size: int = 300) -> None:
     """Rows = emotions; columns = 0.5, 1.0 (front), 1.0 (¾), upper part only, lower part only."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 
-    r = semantic.head_renderer(gnm, size)
+    from .render import HeadRenderer
+
+    r = HeadRenderer(gnm, size=size)
     cols = ["0.5", "1.0", "1.0 three-quarter", "upper part only", "lower part only"]
     label_w = 170
     sheet = Image.new("RGB", (label_w + len(cols) * size, 34 + (len(res) + 1) * size), "#1f1f1f")
     draw = ImageDraw.Draw(sheet)
     for c, head in enumerate(cols):
-        draw.text((label_w + c * size + 10, 8), head, fill="white", font=semantic.label_font(17))
+        draw.text((label_w + c * size + 10, 8), head, fill="white", font=ImageFont.load_default(size=17))
     E = gnm.expression_basis
     rows = [("Neutral", np.zeros(len(gnm.expression_names)), np.zeros(len(gnm.expression_names)))] + [(x.label, x.upper, x.lower) for x in res]
     for k, (label, up, lo) in enumerate(rows):
@@ -331,17 +325,19 @@ def render_sheet(gnm: GNM, res: list[Resolved], path: Path, size: int = 300) -> 
         tiles = [(T + 0.5 * (du + dl), 0.0), (T + du + dl, 0.0), (T + du + dl, 35.0), (T + du, 0.0), (T + dl, 0.0)]
         y0 = 34 + k * size
         for c, (pos, yaw) in enumerate(tiles):
-            sheet.paste(_tile(r, pos, "face", yaw), (label_w + c * size, y0))
-        draw.text((14, y0 + 14), label, fill="white", font=semantic.label_font(22))
+            sheet.paste(_tile(r, pos, yaw), (label_w + c * size, y0))
+        draw.text((14, y0 + 14), label, fill="white", font=ImageFont.load_default(size=22))
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path)
 
 
 def render_controls(gnm: GNM, controls: list[dict], path: Path, size: int = 220) -> None:
     """One row per fine-tune control: min / 0 / max."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 
-    r = semantic.head_renderer(gnm, size)
+    from .render import HeadRenderer
+
+    r = HeadRenderer(gnm, size=size)
     rows = [c for c in controls if "vector" in c]
     label_w = 190
     sheet = Image.new("RGB", (label_w + 3 * size, len(rows) * size), "#1f1f1f")
@@ -351,19 +347,21 @@ def render_controls(gnm: GNM, controls: list[dict], path: Path, size: int = 220)
         dn = np.tensordot(c["vector_neg"].astype(np.float32), gnm.expression_basis, axes=1) if "vector_neg" in c else None
         for col, w in enumerate((c["min"], 0.0, c["max"])):
             pos = gnm.template + (np.float32(-w) * dn if (w < 0 and dn is not None) else np.float32(w) * d)
-            sheet.paste(_tile(r, pos, "face", 0.0), (label_w + col * size, k * size))
-        draw.text((10, k * size + 10), c["name"].replace("↔", "<->"), fill="white", font=semantic.label_font(17))
-        draw.text((10, k * size + 34), f"{c['min']:+g}: {c['low']}", fill="#cfcfcf", font=semantic.label_font(13))
-        draw.text((10, k * size + 52), f"{c['max']:+g}: {c['high']}", fill="#cfcfcf", font=semantic.label_font(13))
+            sheet.paste(_tile(r, pos, 0.0), (label_w + col * size, k * size))
+        draw.text((10, k * size + 10), c["name"].replace("↔", "<->"), fill="white", font=ImageFont.load_default(size=17))
+        draw.text((10, k * size + 34), f"{c['min']:+g}: {c['low']}", fill="#cfcfcf", font=ImageFont.load_default(size=13))
+        draw.text((10, k * size + 52), f"{c['max']:+g}: {c['high']}", fill="#cfcfcf", font=ImageFont.load_default(size=13))
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path)
 
 
 def render_labels_sheet(gnm: GNM, doc: dict, path: Path, size: int = 260) -> None:
     """All GNM sampler labels at one typical sample's strength (reference for writing recipes)."""
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFont
 
-    r = semantic.head_renderer(gnm, size)
+    from .render import HeadRenderer
+
+    r = HeadRenderer(gnm, size=size)
     names = list(doc["labels"])
     cols = 5
     sheet = Image.new("RGB", (cols * size, ((len(names) + cols - 1) // cols) * size), "#1f1f1f")
@@ -371,8 +369,8 @@ def render_labels_sheet(gnm: GNM, doc: dict, path: Path, size: int = 260) -> Non
     for i, n in enumerate(names):
         d = np.tensordot(label_vector(doc, n).astype(np.float32), gnm.expression_basis, axes=1)
         x0, y0 = (i % cols) * size, (i // cols) * size
-        sheet.paste(_tile(r, gnm.template + d, "face", 0.0), (x0, y0))
-        draw.text((x0 + 8, y0 + 6), n, fill="white", font=semantic.label_font(16))
+        sheet.paste(_tile(r, gnm.template + d, 0.0), (x0, y0))
+        draw.text((x0 + 8, y0 + 6), n, fill="white", font=ImageFont.load_default(size=16))
     path.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(path)
 

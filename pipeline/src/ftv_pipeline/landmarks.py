@@ -50,7 +50,7 @@ def profile_landmarks(surface: Surface, eye_y: float, x0: float = 0.0) -> dict[s
     ys = np.arange(eye_y - 0.14, eye_y + 0.02, PROFILE_STEP_M)
     z = midline_profile(surface, ys, x0)
     z = np.convolve(np.pad(z, 2, mode="edge"), np.ones(5) / 5.0, mode="valid")  # 2.5 mm moving average
-    at = lambda i: np.array([x0, ys[i], z[i]])  # noqa: E731
+    at = lambda i: np.array([x0, ys[i], z[i]])
     nose = np.flatnonzero((ys > eye_y - 0.06) & (ys < eye_y - 0.015))
     tip = int(nose[z[nose].argmax()])
     root = np.flatnonzero((ys > ys[tip] + 0.015) & (ys < eye_y + 0.015))

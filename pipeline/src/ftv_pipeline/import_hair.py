@@ -30,6 +30,7 @@ from .export_groom import WORK, entry, merge_index, thumbnail
 from .gnm import CACHE_DIR, GNM, PIPELINE_DIR
 from .groom import Groom, GroomSpec, encode, keep_out, keep_out_smooth, render_views, resample, self_shadow
 from .hair_index import HAIR_MODELS_DIR
+from .surface import similarity_fit
 
 BYSTEDT_BLEND = CACHE_DIR / "bystedt" / "hair_nodes-female_hair_styles.blend"
 BYSTEDT = {  # style -> (curves objects, the head instance empty that offsets it)
@@ -115,21 +116,9 @@ def load_haircs(name: str, keep: int = 14000):
 # --- fitting -------------------------------------------------------------------------------------
 
 
-def similarity_fit(src: np.ndarray, dst: np.ndarray):
-    """Umeyama: s, R, t with dst ≈ s R src + t."""
-    ms, md = src.mean(0), dst.mean(0)
-    a, b = src - ms, dst - md
-    u, sig, vt = np.linalg.svd(b.T @ a / len(src))
-    d = np.sign(np.linalg.det(u @ vt))
-    D = np.diag([1, 1, d])
-    R = u @ D @ vt
-    s = (sig * np.diag(D)).sum() / (a ** 2).sum(1).mean()
-    return s, R, md - s * R @ ms
-
-
 def fit_head(src_v: np.ndarray, gnm: GNM, iters: int = 40):
     """Similarity mapping the source head onto GNM's cranium."""
-    skin = gnm.template[(gnm.vertex_groups["skin_exterior"] > 0.5) & (gnm.vertex_groups["ears"] < 0.5)]
+    skin = gnm.template[gnm.vertex_groups["skin_exterior"] & ~gnm.vertex_groups["ears"]]
     cranium = skin[skin[:, 1] > 0.30]
     tree = cKDTree(cranium)
     # start: match the top of the head and the head's width

@@ -12,23 +12,24 @@ random faces (the app limits each shape per face: animCaps).
 
 from __future__ import annotations
 
+import argparse
 import json
-import sys
-from pathlib import Path
 
 import numpy as np
 from scipy.optimize import lsq_linear
 
-from ftv_pipeline.gnm import GNM
+from . import semantic
+from .export_glb import MANIFEST
+from .gnm import GNM, OUT_DIR, REPO_DIR
 
-ROOT = Path(__file__).resolve().parents[3]
-VISEMES = ROOT / "web/src/data/visemes.json"
-MANIFEST = ROOT / "web/public/models/head.manifest.json"
-OUT = ROOT / "pipeline/out/visemes"
+VISEMES = REPO_DIR / "web" / "src" / "data" / "visemes.json"
+OUT = OUT_DIR / "visemes"
 
-# landmark vertices (GNM template): stomion upper/lower, labrale sup/inf, cheilion l/r, subnasale, menton, and the lip
-# rims 8 and 12 mm out to each side (an opening round vs a slit)
-LANDMARKS = dict(su=12275, sl=12281, ls=12276, li=12270, cl=4608, cr=10736, sn=12297, me=12342, u8l=4625, l8l=4628, u8r=10753, l8r=10756, u12l=4633, l12l=4635, u12r=10761, l12r=10763)
+# the measures' points: landmarks from config/semantic_sliders.toml, and the lip rims 8 and 12 mm out to each side
+# (an opening round vs a slit) as GNM template vertices
+LANDMARKS = dict(su="stomion_upper", sl="stomion_lower", ls="labrale_superius", li="labrale_inferius", cl="cheilion_l",
+                 cr="cheilion_r", sn="subnasale", me="menton")
+LIP_RIMS = dict(u8l=4625, l8l=4628, u8r=10753, l8r=10756, u12l=4633, l12l=4635, u12r=10761, l12r=10763)
 LOPSIDED = ("002", "007", "012")  # move the mouth sideways or tilt its corners: never in a viseme
 LIP_COMPS = [f"lower_face_region_{i:03d}" for i in range(24) if f"{i:03d}" not in LOPSIDED]
 TONGUE_COMPS = ["tongue_mean", "tongue_000", "tongue_001"]
@@ -42,7 +43,8 @@ class Mouth:
         self.g = g
         T = np.asarray(g.template, np.float64)
         self.scale = {t["name"]: float(t["scale"]) for t in json.loads(MANIFEST.read_text())["targets"]}
-        L = dict(LANDMARKS)
+        lm = semantic.config_landmarks(semantic.load_config())
+        L = {k: int(lm[name][0]) for k, name in LANDMARKS.items()} | LIP_RIMS
         teeth = g.vertex_groups["teeth"]
         up = g.vertex_groups["upper_teeth_and_gums"] & teeth
         lo = g.vertex_groups["lower_teeth_and_gums"] & teeth
@@ -166,9 +168,12 @@ BASE = {"ll": "dd"}
 ONLY = {"ll": TONGUE_COMPS}
 
 
-def main() -> None:
-    args = sys.argv[1:]
-    cmd = args[0] if args else "measure"
+def main(argv=None) -> None:
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("cmd", nargs="?", default="measure", choices=("measure", "solve", "apply"))
+    p.add_argument("pairs", nargs="*", metavar="viseme=candidate", help="apply: the candidates to write")
+    args = p.parse_args(argv)
+    cmd = args.cmd
     doc = json.loads(VISEMES.read_text())
     vis = doc["visemes"]
     m = Mouth()
@@ -196,15 +201,13 @@ def main() -> None:
         return
     if cmd == "apply":
         cands = json.loads(cands_file.read_text())
-        for pair in args[1:]:
+        for pair in args.pairs:
             v, name = pair.split("=")
             vis[v] = cands[name]
             print(f"{v} ← {name}: " + " ".join(f"{k} {x:+.1f}" for k, x in m.report(vis[v]).items()))
         doc["speed"] = speed(m, doc)
         VISEMES.write_text(json.dumps(doc, indent=2) + "\n")
         print(f"wrote {VISEMES}")
-        return
-    raise SystemExit(f"unknown command {cmd!r}: measure | solve | apply viseme=candidate …")
 
 
 def speed(m: Mouth, doc: dict) -> dict:

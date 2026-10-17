@@ -26,8 +26,9 @@ SIZE = 784  # multiple of 28 px: Claude bills exactly (784/28)^2 = 784 tokens pe
 SAMPLES = ("min", "mid", "max")
 VIEWS = ("front", "quarter")
 
-# Camera framing per GNM region: (focal point, distance) in metres with a 28° vertical FOV.
-# Eyes sit at y≈0.30, the mouth at y≈0.20, the nose tip at z≈0.15.
+# Camera framing: (focal point, distance) in metres with a 28° vertical FOV, by GNM region (a raw component's renders)
+# or by a contact sheet's frame (`frame` in config/semantic_sliders.toml). Eyes sit at y≈0.30, the mouth at
+# y≈0.20–0.23, the nose tip at z≈0.15.
 FRAMING: dict[str, tuple[tuple[float, float, float], float]] = {
     "head": ((0.0, 0.245, 0.04), 0.86),  # whole head with neck
     "eyes": ((0.0, 0.302, 0.09), 0.30),  # both eyes
@@ -38,11 +39,18 @@ FRAMING: dict[str, tuple[tuple[float, float, float], float]] = {
     "teeth": ((0.0, 0.205, 0.10), 0.30),
     "tongue": ((0.0, 0.205, 0.10), 0.30),
     "preset": ((0.0, 0.245, 0.04), 0.86),
+    "face": ((0.0, 0.268, 0.07), 0.62),
+    "face_close": ((0.0, 0.262, 0.09), 0.40),  # face only (the emotion sheets)
+    "eyes_close": ((0.0, 0.305, 0.10), 0.28),  # eyes and brows
+    "nose": ((0.0, 0.272, 0.11), 0.26),
+    "mouth": ((0.0, 0.215, 0.10), 0.30),
+    "jaw": ((0.0, 0.235, 0.05), 0.55),
 }
 
 
 class HeadRenderer:
-    """One off-screen pyvista plotter with a PolyData per part; update points + normals per frame."""
+    """One off-screen pyvista plotter with a PolyData per part; update points + normals per frame. The cornea is
+    hidden: it is a clear shell in the app, but pyvista would paint it opaque black."""
 
     def __init__(self, gnm: GNM, size: int = SIZE):
         import pyvista as pv  # imported lazily: VTK is slow to import
@@ -68,7 +76,10 @@ class HeadRenderer:
             mesh.point_data.active_normals_name = "Normals"
             actor = self.plotter.add_mesh(mesh, color=MATERIALS[part.material][0], specular=0.15, specular_power=20)
             self.meshes.append(mesh)
-            self._part_actors.append(actor)
+            if part.material == "cornea":
+                actor.SetVisibility(False)
+            else:
+                self._part_actors.append(actor)  # what show_heat swaps for the heat map
         self.plotter.remove_all_lights()
         for pos, intensity in [((0.6, 0.9, 1.2), 1.0), ((-0.9, 0.4, 0.8), 0.5), ((0.0, 0.6, -1.0), 0.4)]:
             self.plotter.add_light(pv.Light(position=pos, focal_point=(0, 0.27, 0.05), intensity=intensity, positional=False))
@@ -100,8 +111,9 @@ class HeadRenderer:
     # --- overlays (landmark markers, displacement heat maps) ---------------------------------------
 
     def add_points(self, points: np.ndarray, colour: str, size: float = 10.0, labels: list[str] | None = None,
-                   font_size: int = 14) -> None:
-        """Round markers (optionally labelled) drawn on top of the head until clear_overlays()."""
+                   font_size: int = 14, spheres: bool = True) -> None:
+        """Markers (round, or plain points without `spheres`; optionally labelled) drawn on top of the head until
+        clear_overlays()."""
         cloud = self.pv.PolyData(np.asarray(points, np.float32))
         if labels:
             actor = self.plotter.add_point_labels(
@@ -109,8 +121,14 @@ class HeadRenderer:
                 font_size=font_size, text_color="white", shape_color="#111111", shape_opacity=0.55,
                 always_visible=True, margin=2)
         else:
-            actor = self.plotter.add_mesh(cloud, color=colour, point_size=size, render_points_as_spheres=True)
+            actor = self.plotter.add_mesh(cloud, color=colour, point_size=size, render_points_as_spheres=spheres)
         self._overlays.append(actor)
+
+    def add_lines(self, strands: np.ndarray, colour: str, width: float = 1.0) -> None:
+        """Polylines ((N, P, 3): N strands of P points each) drawn until clear_overlays()."""
+        N, P, _ = strands.shape
+        cells = np.hstack([np.full((N, 1), P), np.arange(N * P).reshape(N, P)]).ravel()
+        self._overlays.append(self.plotter.add_mesh(self.pv.PolyData(strands.reshape(-1, 3), lines=cells), color=colour, line_width=width))
 
     def clear_overlays(self) -> None:
         for actor in self._overlays:
@@ -133,10 +151,16 @@ class HeadRenderer:
         for actor in self._part_actors:
             actor.SetVisibility(not on)
 
+    def image(self):
+        """The current frame as an RGB PIL image."""
+        from PIL import Image
+
+        self.plotter.render()  # screenshot() alone returns the previous frame
+        return Image.fromarray(self.plotter.screenshot())
+
     def screenshot(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        self.plotter.render()  # screenshot() alone returns the previous frame
-        self.plotter.screenshot(str(path))
+        self.image().save(path)
 
 
 def sample_weights(name: str, cfg: dict) -> dict[str, float]:

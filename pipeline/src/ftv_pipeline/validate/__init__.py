@@ -7,7 +7,7 @@
     sweep.py         `uv run validate --sweep`: where each slider alone first breaks
     vlimits.py       `uv run validate --vlimits`: the web app's limiter (which vertices and triangles to test) + its mirror
     glbmap.py        GNM vertex id -> vertex index in the shipped head.glb (for limits.json)
-    grow.py          grow the limiter from faces made elsewhere (the web app's random faces); --measure only checks them
+    grow.py          `uv run validate --grow`: the limiter from faces made elsewhere (the web app's random faces); `--measure` only checks them
     fights.py        `uv run validate --fights`: which Shape sliders take room from each other
     fx_reach.py      `uv run validate --fx-reach`: how far each fine-tune control may go on each emotion
     stress.py        `uv run validate --stress`: every family of faces exact-checked, report + contact sheets

@@ -160,9 +160,9 @@ def gnm_surface(gnm: GNM, positions: np.ndarray | None = None, ears: bool = Fals
     follows the skull, not the ear); collision and clearance pass `ears` so hair clears the GNM ears. `extrude` extends
     the bust below its rim, so hair hanging past the cape is measured against the cape's silhouette instead of its
     underside."""
-    mask = gnm.vertex_groups["skin_exterior"] > 0.5
+    mask = gnm.vertex_groups["skin_exterior"]
     if not ears:
-        mask = mask & ~(gnm.vertex_groups["ears"] > 0.5)
+        mask = mask & ~gnm.vertex_groups["ears"]
     tris = gnm.triangles[mask[gnm.triangles].all(axis=1)]
     pos = gnm.template if positions is None else positions
     if extrude:

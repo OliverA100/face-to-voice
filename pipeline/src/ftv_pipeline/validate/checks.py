@@ -57,7 +57,7 @@ class Checker:
         T = g.template
         names = [p.name for p in PARTS]
         tri_owner = assign_triangles(model.owner, g.triangles, len(PARTS))
-        part = lambda *ns: np.isin(model.owner, [names.index(n) for n in ns])  # noqa: E731
+        part = lambda *ns: np.isin(model.owner, [names.index(n) for n in ns])
         ext = g.vertex_groups["skin_exterior"] & part("skin")
         self.ext = np.flatnonzero(ext)
         self.ext_tris = g.triangles[ext[g.triangles].all(1)]

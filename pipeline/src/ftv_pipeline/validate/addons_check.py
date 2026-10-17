@@ -90,7 +90,7 @@ class AddonChecker:
         skin = np.flatnonzero(model.owner == names.index("skin"))
         self.skin = skin
         self.tree = cKDTree(g.template[skin])
-        ext = (g.vertex_groups["skin_exterior"] > 0.5) & (model.owner == names.index("skin"))
+        ext = g.vertex_groups["skin_exterior"] & (model.owner == names.index("skin"))
         self.ext_tris = g.triangles[ext[g.triangles].all(1)]
         # the bust's open cut: inside / outside means nothing there (long hair hangs past it), so points whose
         # closest skin is within BUST_MM of it are not judged
@@ -279,7 +279,7 @@ class AddonChecker:
         fronts = np.flatnonzero(side == 0)
         arms = np.flatnonzero((side != 0) & (np.abs(lever) >= F["min_lever_mm"] / 1000)
                               & (V[:, 2] > (F["ear_root_z_mm"] - F["ear_band_mm"]) / 1000))
-        every = lambda ids, n: ids[:: max(1, int(np.ceil(len(ids) / n)))]  # noqa: E731
+        every = lambda ids, n: ids[:: max(1, int(np.ceil(len(ids) / n)))]
         samples = np.r_[every(fronts, F["samples"] // 2), every(arms, F["samples"] // 2)]
         T = self.m.gnm.template
         cen = T[self.skin_tris].mean(1)

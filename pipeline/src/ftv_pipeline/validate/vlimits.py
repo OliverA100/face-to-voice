@@ -258,16 +258,23 @@ def ray_pairs(D: np.ndarray, tri: np.ndarray) -> np.ndarray:
 
 # --- parallel driver ----------------------------------------------------------------------------------------------
 
-_ctx: dict = {}
 
-
-def _init(tris: list) -> None:
+def setup(tris=()) -> tuple[HeadModel, Checker, VLimits]:
+    """The head model, the exact checks and the limiter (plus the crossing triangles `tris`), from config/validation.toml."""
     with open(CONFIG, "rb") as f:
         cfg = tomllib.load(f)
     model = HeadModel.load()
     checker = Checker(model, cfg)
     vl = VLimits.build(model, checker, cfg)
     vl.add_tris(tris)
+    return model, checker, vl
+
+
+_ctx: dict = {}
+
+
+def _init(tris: list) -> None:
+    model, checker, vl = setup(tris)
     _ctx.update(model=model, checker=checker, vl=vl)
 
 
@@ -349,11 +356,7 @@ def seed_rows(model: HeadModel, checker: Checker, vl: VLimits) -> list:
 
 def run(passes: int = 4, workers: int = 8, rays: int = 3000, ray_passes: int = 6) -> None:
     """`passes` over every pair of Shape sliders, then up to `ray_passes` of `rays` random multi-slider faces."""
-    with open(CONFIG, "rb") as f:
-        cfg = tomllib.load(f)
-    model = HeadModel.load()
-    checker = Checker(model, cfg)
-    vl = VLimits.build(model, checker, cfg)
+    model, checker, vl = setup()
     if not len(vl.tris):
         vl.add_tris(seed_rows(model, checker, vl))
     shape = [t for t, s in model.sliders.items() if s["kind"] == "semantic"]
@@ -428,7 +431,7 @@ def export(vl: VLimits) -> dict:
                                     *[t.ravel() for t in thru], *[np.asarray(x) for x in vl.lips]]))
     vmap = vertex_map(vl.model, ids)
     at = {int(v): k for k, v in enumerate(ids.tolist())}
-    idx = lambda arr: [at[int(v)] for v in np.asarray(arr).ravel().tolist()]  # noqa: E731
+    idx = lambda arr: [at[int(v)] for v in np.asarray(arr).ravel().tolist()]
     parts = sorted({p for p, _ in vmap.values()})
     c = vl.cfg["checks"]
     doc = {

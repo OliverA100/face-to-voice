@@ -13,7 +13,9 @@
     uv run validate --stress [--quick] [--vision] [--fresh]
                                                          the stress test, measure-only (stress.py): needs the app
                                                          running on :3000 for its own states (scripts/stress-states.mjs)
-    uv run python -m ftv_pipeline.validate.grow faces.json   grow the limiter from faces made elsewhere (web random faces)
+    uv run validate --grow faces.json […]                grow the limiter from faces made elsewhere (web random faces,
+                                                         the stress test) (grow.py)
+    uv run validate --measure name=faces.json […]        exact-check named sets of faces, changing nothing (grow.py)
 """
 from __future__ import annotations
 
@@ -35,6 +37,8 @@ def main(argv=None) -> None:
     p.add_argument("--quick", action="store_true", help="--stress: the ~10 minute subset")
     p.add_argument("--vision", action="store_true", help="--stress: also ask Claude to review the sheets")
     p.add_argument("--fresh", action="store_true", help="--stress: re-make the extreme identities and the app's states")
+    p.add_argument("--grow", nargs="+", metavar="FACES_JSON", help="grow the limiter from the broken faces in these files")
+    p.add_argument("--measure", nargs="+", metavar="NAME=FACES_JSON", help="exact-check named sets of faces, changing nothing")
     p.add_argument("--workers", type=int, default=8)
     args = p.parse_args(argv)
     if args.sweep:
@@ -61,5 +65,13 @@ def main(argv=None) -> None:
         from .stress import run as stress
 
         stress(args.quick, args.vision, args.workers, args.fresh, args.only)
-    if not (args.sweep or args.vlimits or args.ends or args.fights or args.fx_reach or args.stress):
+    if args.grow:
+        from .grow import grow, load_faces
+
+        grow(load_faces(args.grow), args.workers)
+    if args.measure:
+        from .grow import load_sets, measure
+
+        measure(load_sets(args.measure), args.workers)
+    if not (args.sweep or args.vlimits or args.ends or args.fights or args.fx_reach or args.stress or args.grow or args.measure):
         p.print_help()
