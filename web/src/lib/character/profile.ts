@@ -4,7 +4,7 @@
  */
 export interface CharacterProfile {
   name: string;
-  title?: string; // a game-style title under the name ("retired chip-shop king"); missing on a profile this tab kept from before it
+  title?: string; // a game-style title under the name ("retired chip-shop king"); missing on profiles written before titles
   backstory: string;
   traits: string[];
   habits: string[];
@@ -16,7 +16,7 @@ export interface CharacterProfile {
   catchphrases: string[];
   mood: string; // their mood right now (the casting's mood list)
   greeting: string; // the first thing they say when a conversation starts
-  want?: string; // what they are after right now: a hook they bring up in a chat; missing as `title` can be
+  want?: string; // what they are after right now: a hook they bring up in a chat; missing on profiles written before it
 }
 
 export interface ProfileResult {

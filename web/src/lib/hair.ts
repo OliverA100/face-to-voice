@@ -114,9 +114,8 @@ function loadHairState(): void {
     if (!raw) return;
     const saved = JSON.parse(raw) as Partial<typeof hairState>;
     if (saved.style === "none" || (saved.style && hairStyleById(saved.style))) hairState.style = saved.style;
-    else if (saved.style === "short") hairState.style = "haircs-v0-00681"; // the old procedural shell → a crop
     if (HAIR_COLOURS.some((c) => c.id === saved.colour)) hairState.colour = saved.colour as HairColourId;
-    if (saved.style !== hairState.style) persist(); // migrated or unknown style: store what we show
+    if (saved.style !== hairState.style) persist(); // an unknown style: store what we show
   } catch {
     /* private mode or malformed: keep defaults */
   }
