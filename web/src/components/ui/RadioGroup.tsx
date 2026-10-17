@@ -13,11 +13,18 @@ import { type KeyboardEvent, type ReactNode, useLayoutEffect, useRef } from "rea
 const radiosIn = (group: HTMLElement) => [...group.querySelectorAll<HTMLButtonElement>('[role="radio"]')].filter((r) => !r.disabled);
 
 /** The Tab stop: the radio the visitor is on (mid-arrow), else the chosen one, else the first. */
-function rove(group: HTMLElement) {
+export function rove(group: HTMLElement) {
   const enabled = radiosIn(group);
   const focused = enabled.find((r) => r === document.activeElement);
   const stop = focused ?? enabled.find((r) => r.getAttribute("aria-checked") === "true") ?? enabled[0];
   for (const r of group.querySelectorAll<HTMLElement>('[role="radio"]')) r.tabIndex = r === stop ? 0 : -1;
+}
+
+/** Where a key moves from radio `at` of `n` (the arrows wrap round), or -1 for a key the group doesn't handle. */
+export function nextRadio(key: string, at: number, n: number): number {
+  if (key === "ArrowRight" || key === "ArrowDown") return (at + 1) % n;
+  if (key === "ArrowLeft" || key === "ArrowUp") return (at - 1 + n) % n;
+  return key === "Home" ? 0 : key === "End" ? n - 1 : -1;
 }
 
 export function RadioGroup({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
@@ -36,9 +43,7 @@ export function RadioGroup({ label, className, children }: { label: string; clas
     const radios = radiosIn(e.currentTarget);
     const at = radios.indexOf(e.target as HTMLButtonElement);
     if (at < 0) return;
-    const n = radios.length;
-    const k = e.key;
-    const next = k === "ArrowRight" || k === "ArrowDown" ? (at + 1) % n : k === "ArrowLeft" || k === "ArrowUp" ? (at - 1 + n) % n : k === "Home" ? 0 : k === "End" ? n - 1 : -1;
+    const next = nextRadio(e.key, at, radios.length);
     if (next < 0) return;
     e.preventDefault();
     const r = radios[next];
