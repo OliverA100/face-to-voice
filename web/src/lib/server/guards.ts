@@ -35,7 +35,9 @@ export async function assertNotBot(): Promise<void> {
     if (isBot) throw new ApiError("forbidden", MESSAGES.forbidden, 403);
   } catch (e) {
     if (e instanceof ApiError) throw e;
-    // BotID unavailable (not on Vercel): rate limits and caps still apply.
+    // BotID unavailable (not on Vercel, or failing): let the request through, as the daily caps still apply; on a
+    // deployment say so, so a broken BotID doesn't go unnoticed.
+    if (env.isDeployed) console.warn("[guards] BotID check failed, request let through:", e instanceof Error ? e.message.slice(0, 200) : e);
   }
 }
 
