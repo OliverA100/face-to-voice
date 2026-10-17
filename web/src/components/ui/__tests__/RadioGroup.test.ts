@@ -41,4 +41,11 @@ describe("the group's one Tab stop", () => {
     rove(group(radios));
     expect(radios.map((r) => r.tabIndex)).toEqual([-1, -1, 0]);
   });
+
+  it("goes back to the chosen radio when focus leaves the group (arrows that don't choose: hair, add-ons)", () => {
+    const radios = [radio(false), radio(true), radio(false)];
+    vi.stubGlobal("document", { activeElement: radios[2] }); // arrowed onto the third, Enter not pressed
+    rove(group(radios), false);
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1]);
+  });
 });

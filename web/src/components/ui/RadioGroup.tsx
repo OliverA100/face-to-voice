@@ -13,10 +13,13 @@ import { type KeyboardEvent, type ReactNode, useLayoutEffect, useRef } from "rea
 
 const radiosIn = (group: HTMLElement) => [...group.querySelectorAll<HTMLButtonElement>('[role="radio"]')].filter((r) => !r.disabled);
 
-/** The Tab stop: the radio the visitor is on (mid-arrow), else the chosen one, else the first. */
-export function rove(group: HTMLElement) {
+/**
+ * The Tab stop: the radio the visitor is on (mid-arrow), else the chosen one, else the first. `followFocus` false (focus
+ * has left the group): the chosen one, so Tab comes back to it, not to a thumbnail the arrows passed over.
+ */
+export function rove(group: HTMLElement, followFocus = true) {
   const enabled = radiosIn(group);
-  const focused = enabled.find((r) => r === document.activeElement);
+  const focused = followFocus ? enabled.find((r) => r === document.activeElement) : undefined;
   const stop = focused ?? enabled.find((r) => r.getAttribute("aria-checked") === "true") ?? enabled[0];
   for (const r of group.querySelectorAll<HTMLElement>('[role="radio"]')) r.tabIndex = r === stop ? 0 : -1;
 }
@@ -54,7 +57,14 @@ export function RadioGroup({ label, className, chooseOnArrow = true, children }:
   };
 
   return (
-    <div ref={ref} role="radiogroup" aria-label={label} className={className} onKeyDown={onKeyDown}>
+    <div
+      ref={ref}
+      role="radiogroup"
+      aria-label={label}
+      className={className}
+      onKeyDown={onKeyDown}
+      onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node | null) && rove(e.currentTarget, false)}
+    >
       {children}
     </div>
   );
