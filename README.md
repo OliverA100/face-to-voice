@@ -28,7 +28,7 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 |---|---|
 | **Timestamps → lip sync** | The character timestamps from the speech stream drive the mouth. Closures (p/b/m, f/v, th) and vowels are then snapped to the audio itself, since stamps inside a word can be ~100 ms off. Live chats do the same with word timings from the dialogue websocket. |
 | **Voice Design from the face** | `eleven_ttv_v3`, with a description built from Claude's casting by a fixed template. The preview text is the character's own line, so all three previews already sound in character. |
-| **Text to speech** | `eleven_v4_turbo` streamed with timestamps as `pcm_24000` straight to the browser, the expression riding along as an audio tag. First audio about 0.4 s after the request. |
+| **Text to speech** | `eleven_v4_turbo` streamed with timestamps as `pcm_24000` straight to the browser, the expression riding along as an audio tag. First audio about a second after the request for a new line (it is aligned on its own audio first), under 0.1 s for a line said before. |
 | **Live conversations** | A LiveKit agent answers as the character with Claude Haiku 5.5 and speaks in their designed voice over the text-to-dialogue websocket. |
 | **Cost and limits** | A design is never paid for twice (voices cached per description, spoken lines in Vercel Blob). Saved voices live in a small pool sized to the plan, with a studio voice as the fallback. Every paid call has a daily cap, and picking voices is limited per browser. |
 
