@@ -40,7 +40,6 @@ export async function POST(request: Request) {
         take: body.take,
         replaces: body.replaces,
         ownBrowser: browserId(request) !== null,
-        chargeVisitor: () => checkVisitorLimit(request, "talk"),
       });
       return Response.json(ticket, { headers: { "cache-control": "no-store" } });
     } catch (e) {

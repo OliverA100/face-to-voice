@@ -18,7 +18,8 @@ import { browserId, networkId } from "./visitor";
 
 export { visitorId } from "./visitor";
 
-export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk" | "invite";
+/** The steps limited per visitor; every other paid step has only the site-wide daily caps below. */
+export type Route = "select" | "invite";
 
 /**
  * Per visitor, per UTC day: only picking a voice (each one is a new voice saved at ElevenLabs, whose voice slots are
@@ -30,7 +31,7 @@ export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk
  * that stops someone clearing cookies for a fresh allowance, set well above one browser's so a few people on the
  * same Wi-Fi rarely meet it; without a cookie it is the only count. Tune `network` here.
  */
-export const VISITOR_LIMITS: Partial<Record<Route, { tokens: number; network: number; label: string; message: (tokens: number) => string; networkMessage: string }>> = {
+export const VISITOR_LIMITS: Record<Route, { tokens: number; network: number; label: string; message: (tokens: number) => string; networkMessage: string }> = {
   select: {
     tokens: 10,
     network: 30,
@@ -53,8 +54,8 @@ export const nextResetMs = (now = Date.now()) => (Math.floor(now / DAY_MS) + 1) 
 
 /** The two counts of a limit: per browser (the visitor's own allowance) and per network (the ceiling). */
 type Scope = "browser" | "network";
-const allowance = (route: Route, scope: Scope) => (scope === "browser" ? VISITOR_LIMITS[route]!.tokens : VISITOR_LIMITS[route]!.network);
-const limitMessage = (route: Route, scope: Scope) => (scope === "browser" ? VISITOR_LIMITS[route]!.message(VISITOR_LIMITS[route]!.tokens) : VISITOR_LIMITS[route]!.networkMessage);
+const allowance = (route: Route, scope: Scope) => (scope === "browser" ? VISITOR_LIMITS[route].tokens : VISITOR_LIMITS[route].network);
+const limitMessage = (route: Route, scope: Scope) => (scope === "browser" ? VISITOR_LIMITS[route].message(VISITOR_LIMITS[route].tokens) : VISITOR_LIMITS[route].networkMessage);
 
 let redis: Redis | null | undefined;
 /** The shared Upstash client, or null without Redis (local dev). Also the store behind cache.ts. */
@@ -120,7 +121,6 @@ async function hit(route: Route, scope: Scope, id: string): Promise<void> {
  * already counted; that is fine, as both come back at the same midnight. Without a cookie only the network counts.
  */
 export async function checkVisitorLimit(request: Request, route: Route): Promise<void> {
-  if (!VISITOR_LIMITS[route]) return; // no limit per visitor on this step
   const network = networkId(request); // first: throws (503) without a salt
   const browser = browserId(request);
   if (browser) await hit(route, "browser", browser);

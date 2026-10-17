@@ -40,10 +40,11 @@ Tuning lives in named objects at the top of each module: `LIMITS`, `RANDOM`, `MO
 | `GET /api/limits` | this browser's daily limits, its network's ceiling and the reset time, for the Limits dialog |
 | `GET /api/usage` | today's caps, the pool and plan quotas; `Authorization: Bearer $USAGE_ADMIN_TOKEN` |
 
-Every paid route runs `guards.ts` (same-origin, BotID) and `ratelimit.ts` (per-visitor daily limits and global
-daily caps in Upstash Redis, both reset at midnight UTC; in-memory in development, refused in production without Redis).
-A visitor is a browser: `src/proxy.ts` gives each one a signed cookie holding a random id (`visitor.ts`), and the
-limits also count per network (an HMAC of the IP, IPv6 by /64) so clearing the cookie can't reset them.
+Every paid route runs `guards.ts` (same-origin, BotID) and the site-wide daily caps in `ratelimit.ts` (Upstash Redis,
+reset at midnight UTC; in-memory in development, refused in production without Redis). Picking a voice and invite
+code tries are also limited per visitor (`VISITOR_LIMITS`). A visitor is a browser: `src/proxy.ts` gives each one a
+signed cookie holding a random id (`visitor.ts`), and those limits also count per network (an HMAC of the IP, IPv6 by
+/64) so clearing the cookie can't reset them.
 
 ## Lip sync
 

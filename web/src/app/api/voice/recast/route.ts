@@ -11,7 +11,7 @@ import { z } from "zod";
 import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { LookSchema } from "@/lib/server/look";
-import { checkVisitorLimit, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { requireStore, visitorId } from "@/lib/server/ratelimit";
 import { JpegDataUrl, Key, Weights } from "@/lib/server/schemas";
 import { recastFor } from "@/lib/server/voice";
 
@@ -37,7 +37,6 @@ export async function POST(request: Request) {
       weights: body.weights,
       look: body.look,
       imageJpegBase64: body.image?.split(",")[1],
-      chargeVisitor: () => checkVisitorLimit(request, "design"),
     });
     return Response.json({ ok: true }, { headers: { "cache-control": "no-store" } });
   } catch (e) {

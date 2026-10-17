@@ -9,7 +9,7 @@ import { z } from "zod";
 import { profileFor } from "@/lib/server/characterProfile";
 import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
-import { checkVisitorLimit, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { requireStore, visitorId } from "@/lib/server/ratelimit";
 import { Key } from "@/lib/server/schemas";
 
 export const maxDuration = 60;
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     await guard(request);
     requireStore();
     const body = Body.parse(await jsonBody(request));
-    const result = await profileFor({ ...body, visitor: visitorId(request), chargeVisitor: () => checkVisitorLimit(request, "profile") });
+    const result = await profileFor({ ...body, visitor: visitorId(request) });
     return Response.json(result, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     return errorResponse(e);

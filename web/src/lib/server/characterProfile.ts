@@ -68,13 +68,11 @@ export async function profileFor(input: {
   faceKey: string;
   descKey: string;
   regenerate: boolean;
-  chargeVisitor: () => Promise<void>;
 }): Promise<ProfileResult> {
   const { pKey, fields } = await profileKeyFor(input.visitor, input.faceKey, input.descKey);
   const saved = await savedProfile(input.visitor, pKey);
   if (saved && !input.regenerate) return saved;
   const write = async () => {
-    await input.chargeVisitor();
     await consumeDailyCap("profiles");
     try {
       // Recast: a different person from the one they have now (profileClaude.ts reimagineBrief)

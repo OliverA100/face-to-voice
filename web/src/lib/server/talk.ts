@@ -178,7 +178,6 @@ export async function releaseSlot(room: string): Promise<void> {
 
 /**
  * Everything after the guards: the voice, the profile, the slot and the token. Gives the slot back if it fails.
- * `chargeVisitor` runs last, once everything else worked.
  */
 export async function startTalk(input: {
   visitor: string;
@@ -187,7 +186,6 @@ export async function startTalk(input: {
   take?: number;
   replaces?: string; // the room of this browser's previous conversation
   ownBrowser: boolean; // the visitor id is a browser cookie, not a network
-  chargeVisitor: () => Promise<void>; // the visitor's limit on talks, if VISITOR_LIMITS sets one: only once a slot is theirs
 }): Promise<TalkTicket> {
   if (!talkConfigured()) throw new ApiError("unavailable", MESSAGES.unavailable, 503);
   const record = await voiceRecord(input.descKey);
@@ -237,8 +235,6 @@ export async function startTalk(input: {
       agents: [new RoomAgentDispatch({ agentName: AGENT_NAME, metadata: JSON.stringify(talkMetadata({ voiceId, profile, fields, maxSeconds, again: !!input.replaces })) })],
     });
     const token = await at.toJwt();
-    // only now: a busy slot, a retired voice, a missing profile or a failure here must not count against the visitor
-    await input.chargeVisitor();
     return { serverUrl: env.livekit.url, token, room, name: profile.name, maxSeconds };
   } catch (e) {
     await releaseSlot(room).catch(() => {}); // it expires by itself; the error that matters is the one above

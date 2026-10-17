@@ -41,7 +41,7 @@ async function found(character = "everyday") {
   return { weights, look, design };
 }
 const recast = (f: Awaited<ReturnType<typeof found>>, over: Partial<Parameters<typeof recastFor>[0]> = {}) =>
-  recastFor({ visitor: "on-cellular", faceKey: f.design.faceKey, descKey: f.design.descKey, weights: f.weights, look: f.look, imageJpegBase64: "", chargeVisitor: async () => {}, ...over });
+  recastFor({ visitor: "on-cellular", faceKey: f.design.faceKey, descKey: f.design.descKey, weights: f.weights, look: f.look, imageJpegBase64: "", ...over });
 
 beforeEach(() => vi.mocked(describeFace).mockReset());
 
@@ -50,12 +50,10 @@ describe("recastFor", () => {
     const f = await found();
     expect(await castingFor("on-cellular", f.design.faceKey)).toBeNull();
     vi.mocked(describeFace).mockResolvedValueOnce(cast({ accent: "texan", pitch: "low", persona: "lighthouse keeper", line: "Ahoy." }) as never);
-    const charge = vi.fn(async () => {});
-    await recast(f, { chargeVisitor: charge });
+    await recast(f);
     const fields = (await castingFor("on-cellular", f.design.faceKey))!;
     expect(descriptionKey(descriptionIdentity(fields))).toBe(f.design.descKey);
     expect(fields).toMatchObject({ accent: "irish", pitch: "medium", persona: "lighthouse keeper", line: "Ahoy." }); // an everyday persona is the visitor's own
-    expect(charge).toHaveBeenCalledOnce();
     // Claude is told the voice it is casting for
     expect(vi.mocked(describeFace).mock.calls[0][0].voice).toContain("accent: irish");
   });
@@ -81,12 +79,10 @@ describe("recastFor", () => {
     expect(descriptionKey(descriptionIdentity((await castingFor("on-cellular", f.design.faceKey))!))).toBe(f.design.descKey);
   });
 
-  it("refuses sliders and look that aren't the voice's face, before Claude or the visitor's limit", async () => {
+  it("refuses sliders and look that aren't the voice's face, before asking Claude", async () => {
     const f = await found();
-    const charge = vi.fn(async () => {});
-    await expect(recast(f, { weights: { sem_age: 0.99 }, chargeVisitor: charge })).rejects.toMatchObject({ code: "stale", status: 409 });
+    await expect(recast(f, { weights: { sem_age: 0.99 } })).rejects.toMatchObject({ code: "stale", status: 409 });
     expect(describeFace).not.toHaveBeenCalled();
-    expect(charge).not.toHaveBeenCalled();
   });
 
   it("refuses a voice whose identity was never kept (found before recasting existed)", async () => {

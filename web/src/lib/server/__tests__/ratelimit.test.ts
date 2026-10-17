@@ -22,7 +22,6 @@ describe("visitor limits without Redis", () => {
     await expect(checkVisitorLimit(from("1.1.1.1", a), "select")).rejects.toMatchObject({ code: "visitor_limit", status: 429 });
     await expect(checkVisitorLimit(from("2.2.2.2", a), "select")).rejects.toMatchObject({ code: "visitor_limit" }); // another network: still that browser
     await expect(checkVisitorLimit(from("1.1.1.1", b), "select")).resolves.toBeUndefined();
-    await expect(checkVisitorLimit(from("1.1.1.1", a), "speak")).resolves.toBeUndefined();
   });
 
   it("stop a loop that clears its cookie at the network's ceiling (30 a day, 10× here)", async () => {
@@ -66,10 +65,6 @@ describe("what a refusal says", () => {
     await consumeDailyCap("talks", 20);
     await expect(consumeDailyCap("talks")).rejects.toMatchObject({ message: expect.stringContaining("paused for everyone") });
     await refundDailyCap("talks", 20);
-  });
-
-  it("limits nothing else per visitor: chats, lines, profiles, voice searches and switches (2026-10-16)", async () => {
-    for (const route of ["talk", "speak", "profile", "design", "switch"] as const) for (let i = 0; i < 1500; i++) await checkVisitorLimit(from("4.4.4.4"), route);
   });
 
   it("resets at the next midnight UTC", () => {

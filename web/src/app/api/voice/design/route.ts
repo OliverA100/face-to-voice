@@ -9,7 +9,7 @@ import { z } from "zod";
 import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { LookSchema } from "@/lib/server/look";
-import { checkVisitorLimit, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { requireStore, visitorId } from "@/lib/server/ratelimit";
 import { JpegDataUrl, Weights } from "@/lib/server/schemas";
 import { DESIGN_BUDGET_MS, designForFace } from "@/lib/server/voice";
 
@@ -26,7 +26,6 @@ export async function POST(request: Request) {
   try {
     await guard(request);
     requireStore();
-    await checkVisitorLimit(request, "design");
     const body = Body.parse(await jsonBody(request));
     const result = await designForFace({
       weights: body.weights,

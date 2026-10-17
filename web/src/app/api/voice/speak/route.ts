@@ -12,7 +12,7 @@ import { ApiError, errorResponse, jsonBody } from "@/lib/server/errors";
 import { UpstreamError } from "@/lib/server/elevenlabs";
 import { guard } from "@/lib/server/guards";
 import { SpeakEmotion, spokenText } from "@/lib/server/emotion";
-import { checkVisitorLimit, consumeDailyCap, refundDailyCap, requireStore } from "@/lib/server/ratelimit";
+import { consumeDailyCap, refundDailyCap, requireStore } from "@/lib/server/ratelimit";
 import { withPhonemes } from "@/lib/server/pronounce";
 import { Key, Take } from "@/lib/server/schemas";
 import { cachedSpeech, generateSpeech, speechHeaders } from "@/lib/server/speech";
@@ -34,7 +34,6 @@ export async function POST(request: Request) {
   try {
     await guard(request);
     requireStore();
-    await checkVisitorLimit(request, "speak");
     const body = Body.parse(await jsonBody(request));
     const record = await voiceRecord(body.descKey);
     const voiceId = record ? takeVoice(record, body.take) : null;

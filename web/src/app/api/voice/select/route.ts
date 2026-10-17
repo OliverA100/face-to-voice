@@ -23,7 +23,6 @@ export async function POST(request: Request) {
   try {
     await guard(request);
     requireStore();
-    await checkVisitorLimit(request, "switch");
     const body = Body.parse(await jsonBody(request));
     const result = await selectPreview(body.descKey, body.previewIndex, {
       generatedVoiceId: body.generatedVoiceId,

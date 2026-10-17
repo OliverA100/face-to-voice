@@ -485,7 +485,6 @@ export async function recastFor(input: {
   weights: Record<string, number>;
   look: Look;
   imageJpegBase64?: string;
-  chargeVisitor: () => Promise<void>;
 }): Promise<void> {
   // not the face the voice was found for (a tab from before the browser kept it, whose face has changed since)
   if (faceKey(input.weights, input.look) !== input.faceKey) throw new ApiError("stale", RECAST_GONE, 409);
@@ -493,7 +492,6 @@ export async function recastFor(input: {
   if (have && descriptionKey(descriptionIdentity(have)) === input.descKey) return; // recast meanwhile (another tab)
   const identity = await cacheGet<VoiceIdentity>(identityCacheKey(input.descKey));
   if (!identity) throw new ApiError("stale", RECAST_GONE, 410);
-  await input.chargeVisitor();
   // Claude is told the voice, so the persona, timbre, quirk and line it picks fit the voice they keep
   const fields: DescriptionFields = { ...(await castFace({ ...input, voice: voiceBrief(identity) })), ...identity };
   if (descriptionKey(descriptionIdentity(fields)) !== input.descKey) throw new ApiError("stale", RECAST_GONE, 410);
