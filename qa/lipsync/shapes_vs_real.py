@@ -15,7 +15,9 @@ from pathlib import Path
 import numpy as np
 
 HERE = Path(__file__).parent
-EYES = json.loads((HERE / "out" / "shape_coefs.json").read_text())["rest"]["eyes"]
+# the app's outer-eye-corner distance (mm): measured into out/shape_coefs.json when there is one, else its 88 mm
+_COEFS = HERE / "out" / "shape_coefs.json"
+EYES = json.loads(_COEFS.read_text())["rest"]["eyes"] if _COEFS.exists() else 88.0
 # GRID's words → the class of their (stressed) vowel
 CLASS = {"open": "at a r one five nine white by i y now".split(), "mid": "set red seven again lay place eight h j k f l m n s x".split(),
          "spread": "bin green three please in with six b c d e g p t v z zero".split(), "round": "blue two soon four o q u".split()}

@@ -5,6 +5,10 @@ for the current state are in [docs/lipsync.md](../../docs/lipsync.md). Recording
 
 ## Setup (once)
 
+These tools run on macOS: the room recordings use `screencapture` and the Mac's microphone, the chats' visitor speaks
+with `say`, and Safari is driven by safaridriver. Chrome and Firefox are found at their usual macOS paths, or at
+`CHROME_PATH` / `FIREFOX_PATH`. The offline analysis (`bench.sh`, `summary.py`, `human.py`) runs anywhere.
+
 ```bash
 cd qa/lipsync && pnpm install
 ```
@@ -131,7 +135,7 @@ rig's `shape_coefs.py` (mm per unit of each morph target). That script lives in 
 ## Shapes contact sheet
 
 ```bash
-node shapes.mjs --url http://localhost:3041/ --faces 3 --tag current [--emotion Happy]
+node shapes.mjs --url http://localhost:3000/ --faces 3 --tag current [--emotion Happy]
 uv run sheet.py out/shapes/current                        # → out/shapes/current.jpg
 ```
 
@@ -147,7 +151,7 @@ uv run solve-visemes solve                                  # candidates for GOA
 cd ../qa/lipsync && node shapes.mjs --presets ../../pipeline/out/visemes/cands.json --keys u_now,u_round --tag cands
 uv run sheet.py out/shapes/cands                            # pick by eye, then:
 cd ../../pipeline && uv run solve-visemes apply u=u_round   # writes visemes.json and its "speed"
-cd ../qa/lipsync && node caps.mjs --url http://localhost:3041/ && node caps.mjs --url https://facetovoice.com/
+cd ../qa/lipsync && node caps.mjs --url http://localhost:3000/ && node caps.mjs --url https://facetovoice.com/
 ```
 
 ## Phone and Bluetooth recipes

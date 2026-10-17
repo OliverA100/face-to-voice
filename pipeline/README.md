@@ -76,3 +76,7 @@ uv run bake-ao                            # Blender (headless) AO bake; needs Bl
 uv run render --views front,quarter       # every component at −3σ / 0 / +3σ → out/renders/
 uv run el-probe                           # re-records tests/fixtures/stream.ndjson from ElevenLabs (~100 characters of credit)
 ```
+
+The fixture is a Flash v2.5 stream (the web and agent tests read its timestamps). The mouth shapes in
+`web/src/data/visemes.json` are solved from exact mouth measures with `uv run solve-visemes measure | solve | apply`
+(`viseme_solve.py`); render candidates with `qa/lipsync/shapes.mjs --presets` before applying.

@@ -2,13 +2,13 @@
  * Per-face shape limits (animCaps visemeCap: 1 = the shape at full strength) over random characters: a re-solved shape
  * that crosses geometry on more faces gets capped more. Compare a build against the live site.
  *
- *   node caps.mjs --url http://localhost:3041/ [--faces 20]
+ *   node caps.mjs --url http://localhost:3000/ [--faces 20]
  */
 import { clickText, headReady, launch, open, sleep } from "./lib.mjs";
 
 const args = process.argv.slice(2);
 const opt = (k, d) => (args.includes(`--${k}`) ? args[args.indexOf(`--${k}`) + 1] : d);
-const url = opt("url", "http://localhost:3041/");
+const url = opt("url", "http://localhost:3000/");
 const n = Number(opt("faces", 20));
 const br = await launch({ browser: "chrome", headless: true, width: 1200, height: 900 });
 const page = await open(br, url + (url.includes("?") ? "&" : "?") + "debug=1");

@@ -20,7 +20,7 @@ const url = opt("url", "https://facetovoice.com/");
 const cpu = Number(opt("cpu", 4));
 const clip = fs.readFileSync(args[0], "utf8");
 
-const br = await puppeteer.launch({ executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: false, args: ["--autoplay-policy=no-user-gesture-required"] });
+const br = await puppeteer.launch({ executablePath: process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", headless: false, args: ["--autoplay-policy=no-user-gesture-required"] });
 const page = await br.newPage();
 await page.emulate({ viewport: { width: 390, height: 844, deviceScaleFactor: 3, isMobile: true, hasTouch: true }, userAgent: "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36" });
 await page.goto(url + (url.includes("?") ? "&" : "?") + "debug=1", { waitUntil: "domcontentloaded", timeout: 90_000 });

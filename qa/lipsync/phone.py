@@ -12,7 +12,7 @@ The opening: the tallest column of dark pixels (the mouth interior) in the mouth
 
   uv run phone.py <film.mov> <mouth box> <camera delay ms> <clip> ... [--dark=35] [--seal=6] [--minh]
       mouth box: "x,y,w,h", or "x,y,w,h@from-to;x,y,w,h@from-to" (s) when the phone moved, or "auto"
-      e.g. phone.py ~/Desktop/phone-2.mov auto 93 A-plosive B-plosive E2-plosive-happy A-mumble
+      e.g. phone.py phone-film.mov auto 93 A-plosive B-plosive E2-plosive-happy A-mumble
   auto: find the lips by colour before each playing (the phone can move); heights are scaled to a 250 px mouth.
   Each clip may be played several times: each playing is scored on its own (in film order: "1st", "2nd", …).
 """

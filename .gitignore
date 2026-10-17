@@ -34,8 +34,3 @@ web/.studio/
 
 # hair strand files (~220 MB) live on Vercel Blob in production (web/scripts/upload-hair.ts); not committed
 web/public/models/hair/**/*.strands.bin
-
-# local tooling
-.claude/
-web/AGENTS.md
-web/CLAUDE.md

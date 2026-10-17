@@ -30,13 +30,15 @@ const args = process.argv.slice(2);
 const quick = args.includes("--quick");
 const url = new URL(args.includes("--url") ? args[args.indexOf("--url") + 1] : "http://localhost:3000");
 url.searchParams.set("debug", "1"); // installs window.__faceToVoice in a production build too (FaceBuilder.tsx)
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+// CHROME_PATH, else the usual install path (macOS, or google-chrome on Linux), as scripts/smoke.mjs
+const CHROME =
+  process.env.CHROME_PATH ?? ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome"].find((p) => fs.existsSync(p));
 const LEVELS = [0.5, 1, 1.5, 2, 2.5];
 const PER_LEVEL = quick ? 40 : 300;
 const CHARACTERS = quick ? 10 : 50;
 
 const identities = JSON.parse(fs.readFileSync(path.join(VAL, "stress_identities.json"), "utf8")).identities;
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, protocolTimeout: 1_800_000, args: ["--use-angle=metal"], defaultViewport: { width: 1280, height: 800 } });
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, protocolTimeout: 1_800_000, args: process.platform === "darwin" ? ["--use-angle=metal"] : [], defaultViewport: { width: 1280, height: 800 } });
 const page = await browser.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));

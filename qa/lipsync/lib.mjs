@@ -16,8 +16,8 @@ export const OUT = path.join(HERE, "out");
 const INJECT = fs.readFileSync(path.join(HERE, "inject.js"), "utf8");
 
 const BROWSERS = {
-  chrome: { browser: "chrome", executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" },
-  firefox: { browser: "firefox", executablePath: "/Applications/Firefox.app/Contents/MacOS/firefox" },
+  chrome: { browser: "chrome", executablePath: process.env.CHROME_PATH ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" },
+  firefox: { browser: "firefox", executablePath: process.env.FIREFOX_PATH ?? "/Applications/Firefox.app/Contents/MacOS/firefox" },
 };
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

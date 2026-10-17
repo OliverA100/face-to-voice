@@ -3,7 +3,7 @@
  * LipSync does) held still, from the front, three-quarter and profile, on the default face and a few random
  * characters. Uses the debug handle (?debug): morphs' "viseme" layer, view(), still().
  *
- *   node shapes.mjs [--url http://localhost:3041/] [--faces 3] [--tag shapes] [--emotion Happy]
+ *   node shapes.mjs [--url http://localhost:3000/] [--faces 3] [--tag shapes] [--emotion Happy]
  *   uv run sheet.py out/shapes/<tag>     → out/shapes/<tag>.jpg
  */
 import fs from "node:fs";
@@ -16,7 +16,7 @@ const opt = (k, d) => {
   const i = args.indexOf(`--${k}`);
   return i < 0 ? d : args[i + 1];
 };
-const url = opt("url", "http://localhost:3041/");
+const url = opt("url", "http://localhost:3000/");
 const faces = Number(opt("faces", 3));
 const tag = opt("tag", "shapes");
 const emotion = opt("emotion", null);

@@ -103,7 +103,8 @@ Haiku 5.5, ElevenLabs v4 Turbo with the character's own designed voice).
 
 ## Abuse and cost protection
 
-Every paid route (`/api/voice/design`, `/select`, `/speak`, `/api/character/profile`, `/api/talk/token`) runs, in order:
+Every paid route (`/api/voice/design`, `/select`, `/speak`, `/recast`, `/api/character/profile`, `/api/talk/token`) runs, in
+order:
 
 1. a same-origin check (`Sec-Fetch-Site` and `Origin` must match; requests with no browser headers are refused in
    production);

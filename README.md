@@ -153,7 +153,8 @@ cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 | `web/` | Next.js 16 app: `src/components/scene` (React Three Fiber), `src/components/ui` (panel, voice card, character card, chat), `src/lib/morphs` (morph store, limiter, random faces), `src/lib/lipsync` (recorded and live), `src/lib/talk` (the conversation in the browser), `src/lib/server` (Claude, ElevenLabs, LiveKit tokens, caches, limits), `src/lib/export` |
 | `agent/` | The LiveKit agent that plays the character in a live conversation (Node, TypeScript). See [agent/README.md](agent/README.md) |
 | `pipeline/` | Python tools: GNM export and verification, semantic sliders, ranges and validation, emotions, hair and add-ons. See [pipeline/README.md](pipeline/README.md) |
-| `docs/` | [architecture](docs/ARCHITECTURE.md), [responsible AI](docs/responsible-ai.md), [design tokens](docs/design.md) |
+| `docs/` | [architecture](docs/ARCHITECTURE.md), [lip-sync measurements](docs/lipsync.md), [responsible AI](docs/responsible-ai.md), [design tokens](docs/design.md) |
+| `qa/lipsync/` | lip-sync measurement tools: real browsers and devices on macOS, and an offline bench. See [qa/lipsync/README.md](qa/lipsync/README.md) |
 | `third_party/` | Licences of bundled third-party work (see `NOTICE`) |
 
 ## Responsible AI
