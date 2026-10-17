@@ -234,6 +234,9 @@ room.connect ──────────────────────�
   the room it names.
 - **Limits live in the agent too**: the conversation length (capped at five minutes whatever the metadata says),
   the away timeout, and close-on-disconnect; session recording is off.
+- **When Claude fails.** A reply that errors, or sends nothing for 8 s, becomes a short apology in the character's
+  voice ("Could you say that again?"); a second failure in a row becomes a goodbye, and the chat ends with the reason
+  "error", which the browser shows. The voice failing ends the chat as "voice_error".
 - **Live lip sync.** The agent forwards each reply's word timings ahead of its audio (`ftv.words`): ElevenLabs'
   dialogue socket restarts each message's character times at 0, so `agent/src/elevenTimings.ts` rebases them onto the
   reply's clock (within a sentence, each message follows on from the last one's last character, but never starts later

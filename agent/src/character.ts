@@ -137,6 +137,65 @@ export const againNote = (greeting: string) =>
   `new about you or your day, in one or two short sentences (under 20 words in all); don't repeat or reword your first ` +
   `greeting ("${greeting}"), and don't claim to remember what was said last time.`;
 
+/** Claude sending nothing for this long (before a reply's first word or between two) is a failed reply. */
+export const QUIET_MS = 8000;
+export const AGAIN_LINE = "Sorry, I lost my thread there. Could you say that again?";
+export const GIVE_UP_LINE = "Sorry, I can't think straight right now. Let's talk another time.";
+
+/** A request that sent nothing for QUIET_MS (withDeadline). */
+export class Stalled extends Error {
+  override name = "Stalled";
+}
+
+/**
+ * `source`, failing with Stalled when the next item takes longer than `ms` to come (`onStall` is called first: it
+ * aborts the request). Only the wait for the source counts, not the time the reader takes between items.
+ */
+export async function* withDeadline<T>(source: AsyncIterable<T>, ms: number, onStall: () => void): AsyncGenerator<T> {
+  const it = source[Symbol.asyncIterator]();
+  try {
+    for (;;) {
+      const next = it.next();
+      next.catch(() => {}); // after a stall, the aborted request's rejection has no one waiting for it
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const stalled = new Promise<never>((_, reject) => {
+        timer = setTimeout(() => {
+          onStall();
+          reject(new Stalled());
+        }, ms);
+      });
+      let got: IteratorResult<T>;
+      try {
+        got = await Promise.race([next, stalled]);
+      } finally {
+        clearTimeout(timer);
+      }
+      if (got.done) return;
+      yield got.value;
+    }
+  } finally {
+    await it.return?.()?.catch?.(() => {});
+  }
+}
+
+/**
+ * Replies Claude couldn't give, in a row: the first gets an apology and another try, the second a goodbye, and the
+ * chat ends after it. A reply that comes through starts the count again.
+ */
+export class Trouble {
+  private inRow = 0;
+
+  ok(): void {
+    this.inRow = 0;
+  }
+
+  /** A reply failed: the line said instead, and whether the chat ends after it. */
+  failed(): { line: string; end: boolean } {
+    this.inRow++;
+    return this.inRow >= 2 ? { line: GIVE_UP_LINE, end: true } : { line: AGAIN_LINE, end: false };
+  }
+}
+
 /** Where a reply's word timings go: a text stream to the browser ("ftv.words"), one per reply. */
 export type OpenWords = () => Promise<{ write(text: string): Promise<void>; close(): Promise<void> }>;
 
@@ -167,12 +226,16 @@ export class CharacterAgent extends voice.Agent {
     this.scripted = { text, mood };
   }
   private readonly claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 15_000 });
+  private readonly trouble = new Trouble();
+  /** Called once a reply has failed twice in a row: the goodbye is on its way, and the chat should end after it. */
+  private readonly onGiveUp: () => void;
 
-  constructor(meta: TalkMetadata, onMood: (mood: Mood) => void, openWords: OpenWords | null = null) {
+  constructor(meta: TalkMetadata, onMood: (mood: Mood) => void, openWords: OpenWords | null = null, onGiveUp: () => void = () => {}) {
     super({ instructions: meta.instructions });
     this.meta = meta;
     this.onMood = onMood;
     this.openWords = openWords;
+    this.onGiveUp = onGiveUp;
   }
 
   override async llmNode(chatCtx: llm.ChatContext): Promise<ReadableStream<string>> {
@@ -185,7 +248,7 @@ export class CharacterAgent extends voice.Agent {
     const moodOf = (item: llm.ChatMessage) => (item.extra[MOOD_KEY] as Mood | undefined) ?? null;
     const { system, messages } = toClaude(chatCtx, this.meta.instructions, moodOf);
     const tag = new MoodTag(new Set(["neutral", ...Object.keys(this.meta.moodTags)]));
-    const { meta, claude } = this;
+    const { meta, claude, trouble, onGiveUp } = this;
     const setPending = (mood: Mood | null) => (this.pendingMood = mood);
     // The request starts on the first read (the framework reads at once: preemptive replies are sent too), and stops
     // the moment the reply is thrown away or cut short (cancel), not at the next word Claude sends.
@@ -207,11 +270,12 @@ export class CharacterAgent extends voice.Agent {
       const actions = new ActionStrip(); // "*chuckles*" is never spoken
       let first = true;
       try {
-        for await (const event of stream) {
+        for await (const event of withDeadline(stream, QUIET_MS, () => stream.abort())) {
           if (event.type !== "content_block_delta" || event.delta.type !== "text_delta") continue;
           const text = tag.push(event.delta.text);
           if (first && (text || tag.mood)) {
             first = false;
+            trouble.ok(); // Claude is answering
             setPending(tag.mood ?? { emotion: "neutral", strength: 0 });
             if (tag.mood) {
               // v3/v4 read audio tags; other models would say them out loud
@@ -233,10 +297,17 @@ export class CharacterAgent extends voice.Agent {
         const { usage } = await stream.finalMessage();
         log("usage", { input: usage.input_tokens, cacheRead: usage.cache_read_input_tokens, cacheWrite: usage.cache_creation_input_tokens, output: usage.output_tokens });
       } catch (e) {
-        // the framework logs it only at error level (kept out of the logs, Dockerfile): a status and a name, no words
         const err = e as { status?: number; name?: string };
-        if (err?.name !== "APIUserAbortError") log("llm error", { status: err?.status, name: err?.name });
-        throw e;
+        if (err?.name === "APIUserAbortError") throw e; // cut short or thrown away (cancel): not a failure
+        // A status and a name, no words. The framework would only log a thrown error (at error level, kept out of the
+        // logs: Dockerfile) and leave the visitor waiting, so the character says so in its own voice instead.
+        log("llm error", { status: err?.status, name: err?.name });
+        const { line, end } = trouble.failed();
+        if (first) {
+          setPending({ emotion: "neutral", strength: 0 });
+          yield line;
+        }
+        if (end) onGiveUp();
       } finally {
         stream.abort(); // stop paying for words nobody will hear (a no-op once finished)
       }

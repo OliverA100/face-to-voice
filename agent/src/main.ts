@@ -29,6 +29,8 @@ export const AGENT_NAME = "ftv-character";
 const AWAY_SECONDS = 15;
 /** The goodbye starts this many seconds before the limit. */
 const GOODBYE_SECONDS = 12;
+/** After giving up (Claude failed twice), the chat ends this many seconds later even if the goodbye never plays. */
+const GIVE_UP_SECONDS = 10;
 
 export default defineAgent({
   prewarm: async (proc: JobProcess) => {
@@ -144,7 +146,17 @@ export default defineAgent({
       if (m.type === "eou_metrics") log("end of turn", { afterSpeechMs: Math.round(m.endOfUtteranceDelayMs ?? -1), transcriptMs: Math.round(m.transcriptionDelayMs ?? -1) });
     });
 
-    const character = new CharacterAgent(meta, setMood, () => ctx.room.localParticipant!.streamText({ topic: "ftv.words" }));
+    // Claude failed twice in a row: the character says goodbye (character.ts Trouble), and the chat ends once it has
+    // been said, or after GIVE_UP_SECONDS if it never plays.
+    let givingUp = false;
+    const giveUp = () => {
+      givingUp = true;
+      setTimeout(() => void end("error", false), GIVE_UP_SECONDS * 1000).unref();
+    };
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => {
+      if (givingUp && ev.oldState === "speaking") void end("error", false);
+    });
+    const character = new CharacterAgent(meta, setMood, () => ctx.room.localParticipant!.streamText({ topic: "ftv.words" }), giveUp);
     // each reply keeps the mood it was spoken in, on its own history item (toClaude puts the tags back)
     session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => character.keepMood(ev.item));
     await session.start({

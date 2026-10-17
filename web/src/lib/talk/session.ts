@@ -11,7 +11,7 @@
  *     (lib/lipsync/live.ts; livekit-client's own <audio> element stays muted unless that graph can't play)
  *   - attribute "lk.agent.state": listening / thinking / speaking (set by the LiveKit Agents framework)
  *   - attribute "ftv.mood": "happy:0.75", the mood of the current reply (ours)
- *   - attribute "ftv.end": why the agent ended it (time_up, idle, voice_error, left)
+ *   - attribute "ftv.end": why the agent ended it (time_up, idle, voice_error, error, left)
  *   - text stream "lk.transcription": the character's words as they are spoken, and the visitor's as transcribed
  *   - text stream "ftv.words": each reply's word timings, ahead of its audio, where its voice starts on their clock,
  *     and its loudness as the agent made it (10 ms blocks), for the lip sync (lib/lipsync/live.ts)
@@ -33,6 +33,9 @@ import type { TalkTicket } from "@/lib/talk/ticket";
 
 export type TalkState = "connecting" | "waking" | "listening" | "thinking" | "speaking" | "reconnecting" | "ended";
 export type EndReason = "user" | "time_up" | "idle" | "voice_error" | "left" | "disconnected" | "no_agent" | "mic_denied" | "no_mic" | "mic_busy" | "error";
+const AGENT_ENDS: ReadonlySet<string> = new Set(["time_up", "idle", "voice_error", "error", "left"]);
+/** Why the chat ended, from the agent's "ftv.end" (agent/src/main.ts end): an unknown reason reads as a dropped connection. */
+export const agentEnd = (reason: string): EndReason => (AGENT_ENDS.has(reason) ? (reason as EndReason) : "disconnected");
 
 export interface TalkSnapshot {
   state: TalkState;
@@ -217,7 +220,7 @@ export class TalkSession {
         chatMood({ emotion, intensity: Number(intensity) || 0 });
       }
       const end = changed["ftv.end"];
-      if (end) this.finish(end === "time_up" || end === "idle" || end === "voice_error" || end === "left" ? end : "disconnected");
+      if (end) this.finish(agentEnd(end));
     });
     room.on(RoomEvent.AudioPlaybackStatusChanged, () => this.set({ needsAudioTap: !room.canPlaybackAudio }));
     room.on(RoomEvent.MediaDevicesError, (e: Error) => this.finish(micFailure(e)));
