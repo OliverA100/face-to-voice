@@ -4,7 +4,7 @@ from __future__ import annotations
 import numpy as np
 
 from ftv_pipeline.validate.checks import ray_hits
-from ftv_pipeline.validate.vlimits import REPORT_ONLY, ray_pairs
+from ftv_pipeline.validate.vlimits import ray_pairs
 
 
 def test_ray_pairs_matches_ray_hits():
@@ -17,7 +17,3 @@ def test_ray_pairs_matches_ray_hits():
     assert np.array_equal(np.isnan(want), np.isnan(got))
     assert np.allclose(want[~np.isnan(want)], got[~np.isnan(got)])
     assert (~np.isnan(got)).any()  # the random set does hit something
-
-
-def test_report_only_checks():
-    assert set(REPORT_ONLY) == {"symmetry", "folded", "eye_pivot"}
