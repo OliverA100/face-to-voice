@@ -16,6 +16,7 @@
  */
 import { Color, DoubleSide, Group, LinearSRGBColorSpace, MeshPhysicalMaterial, type MeshStandardMaterial, type Object3D } from "three";
 
+import { fetchBytes } from "@/lib/fetchBytes";
 import { STORAGE_KEYS } from "@/lib/storageKeys";
 import { NATURAL_HAIR } from "@/lib/swatches";
 import { skinRig } from "@/lib/skin";
@@ -377,10 +378,7 @@ async function loadAddon(category: AddonCategory, style: AddonStyleDef, signal: 
   // The first visit's styles were already fetched at hydration (prefetchAddons); everything else fetches now.
   const download =
     takePrefetched(url) ??
-    fetch(url, { signal }).then((r) => {
-      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); // never hand a 404 page to the decoder
-      return r.arrayBuffer();
-    });
+    fetchBytes(url, { signal });
   if (style.kind === "strands" && style.strands) {
     // Strand brows, lashes and beards (pipeline brow_strands.py, lash_strands.py, beard_strands.py): drawn by
     // lib/groom.ts, roots follow the face every frame.

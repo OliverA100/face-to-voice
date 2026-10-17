@@ -9,6 +9,7 @@
 import { BufferAttribute, type BufferGeometry, Float32BufferAttribute, type Mesh, type Object3D } from "three";
 
 import { manifest, MODELS_BASE } from "@/lib/data";
+import { fetchBytes } from "@/lib/fetchBytes";
 import { gltfLoader } from "@/lib/hair";
 import { partDone, takePrefetched, whenRevealed } from "@/lib/headLoad";
 import { morphs } from "@/lib/morphs/store";
@@ -66,11 +67,7 @@ export function loadHeadExtra(meshes: Mesh[], refresher: NormalRefresher): () =>
     const settled = early ? Promise.resolve() : new Promise((r) => setTimeout(r, SETTLE_MS));
     const [loader, buffer] = await Promise.all([
       gltfLoader(),
-      early ??
-        fetch(MODELS_BASE + file).then((r) => {
-          if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
-          return r.arrayBuffer();
-        }),
+      early ?? fetchBytes(MODELS_BASE + file),
     ]);
     if (aborted) return;
     const gltf = await loader.parseAsync(buffer, MODELS_BASE); // meshopt decode runs in workers (lib/hair.ts gltfLoader)

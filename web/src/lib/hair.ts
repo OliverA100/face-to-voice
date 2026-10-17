@@ -16,6 +16,7 @@ import { Color, type Group, LinearSRGBColorSpace, type Mesh, type MeshPhysicalMa
 
 import hairBlob from "@/data/hairBlob.json";
 import { hairIndex, MODELS_BASE, type HairStyleDef } from "@/lib/data";
+import { fetchBytes } from "@/lib/fetchBytes";
 import { partDone, prefetchPart, takePrefetched } from "@/lib/headLoad";
 import { MOTION } from "@/lib/motion";
 import { finishPieceFade, pieceFade, swapPiece } from "@/lib/pieceFade";
@@ -268,10 +269,7 @@ async function loadStyle(style: HairStyleDef, signal: AbortSignal): Promise<Grou
   // The first visit's style was already fetched at hydration (prefetchHair); everything else fetches now.
   const download =
     takePrefetched(url) ??
-    fetch(url, { signal }).then((r) => {
-      if (!r.ok) throw new Error(`${r.status} ${r.statusText}`); // never hand a 404 page to the decoder
-      return r.arrayBuffer();
-    });
+    fetchBytes(url, { signal });
   // Strands drawn by lib/groom.ts (no glTF, no morph targets): the roots follow the skin every frame, since a blink
   // moves the hairline skin and the scalp tint on it. Awaited together: a download failing first is still handled.
   const [{ buildGroom }, bytes] = await Promise.all([import("@/lib/groom"), download]);

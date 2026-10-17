@@ -8,6 +8,7 @@
  * No three.js in here: this module ships in the first-load bundle.
  */
 import { MODEL_URL } from "@/lib/data";
+import { fetchBytes } from "@/lib/fetchBytes";
 import { perf } from "@/lib/perf";
 
 /** head.glb's size in bytes (next.config.ts reads it at build). Content-Length can't be used: with brotli it's the compressed size. */
@@ -53,11 +54,7 @@ export function prefetchPart(id: string, url: string): void {
   if (early.has(url)) return;
   const bytes = headBytes()
     .catch(() => {}) // the head failed: fetch the piece anyway (a remount retries the head)
-    .then(() => fetch(url, { priority: "low" }))
-    .then((r) => {
-      if (!r.ok) throw new Error(`${url}: ${r.status} ${r.statusText}`);
-      return r.arrayBuffer();
-    });
+    .then(() => fetchBytes(url, { priority: "low" }));
   bytes.catch(() => {}); // the loader that takes it reports the failure
   early.set(url, bytes);
 }
@@ -70,10 +67,7 @@ export function prefetchPart(id: string, url: string): void {
 export function preload(url: string, priority: RequestPriority = "auto"): Promise<void> {
   let bytes = early.get(url);
   if (!bytes) {
-    bytes = fetch(url, { priority }).then((r) => {
-      if (!r.ok) throw new Error(`${url}: ${r.status} ${r.statusText}`);
-      return r.arrayBuffer();
-    });
+    bytes = fetchBytes(url, { priority });
     bytes.catch(() => {}); // the loader that takes it reports the failure
     early.set(url, bytes);
   }
