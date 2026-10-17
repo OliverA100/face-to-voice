@@ -139,6 +139,8 @@ export const againNote = (greeting: string) =>
 
 /** Claude sending nothing for this long (before a reply's first word or between two) is a failed reply. */
 export const QUIET_MS = 8000;
+/** The longest stage direction ActionStrip drops ("(laughs softly)", "*clears throat nervously*"). */
+const ACTION_MAX = 40;
 export const AGAIN_LINE = "Sorry, I lost my thread there. Could you say that again?";
 export const GIVE_UP_LINE = "Sorry, I can't think straight right now. Let's talk another time.";
 
@@ -292,7 +294,7 @@ export class CharacterAgent extends voice.Agent {
           log("reply capped", { words: cap.words });
           return;
         }
-        const rest = cap.push(actions.push(tag.flush()));
+        const rest = cap.push(actions.push(tag.flush()) + actions.flush());
         if (rest) yield rest;
         const { usage } = await stream.finalMessage();
         log("usage", { input: usage.input_tokens, cacheRead: usage.cache_read_input_tokens, cacheWrite: usage.cache_creation_input_tokens, output: usage.output_tokens });
@@ -474,22 +476,42 @@ export class BracketStrip {
 /**
  * Drops stage directions from a reply as it streams: "*chuckles softly*" and "(sighs)", even across pieces, with the
  * space they leave collapsed. The instructions forbid them, but a delivery quirk ("chuckles between sentences") still
- * brings them out, and the voice would read them aloud.
+ * brings them out, and the voice would read them aloud. Text after a "*" or "(" is held until it closes; one that
+ * doesn't close within ACTION_MAX characters, or by the end of the reply (flush), wasn't a stage direction ("5 * 3",
+ * ":(") and is said after all, without the symbol.
  */
 export class ActionStrip {
   private close: string | null = null;
+  private held = "";
   private space = false;
+
   push(s: string): string {
     let out = "";
     for (const c of s) {
       if (this.close) {
-        if (c === this.close) this.close = null;
+        if (c === this.close) {
+          this.close = null;
+          this.held = "";
+        } else if ((this.held += c).length > ACTION_MAX) out += this.flush();
         continue;
       }
-      if (c === "*" || c === "(") {
-        this.close = c === "*" ? "*" : ")";
-        continue;
-      }
+      if (c === "*" || c === "(") this.close = c === "*" ? "*" : ")";
+      else out += this.say(c);
+    }
+    return out;
+  }
+
+  /** The text held after an opener that hasn't closed: said after all (at the end of the reply, or once it runs long). */
+  flush(): string {
+    const held = this.held;
+    this.close = null;
+    this.held = "";
+    return this.say(held);
+  }
+
+  private say(text: string): string {
+    let out = "";
+    for (const c of text) {
       const space = /\s/.test(c);
       if (space && this.space) continue;
       this.space = space;

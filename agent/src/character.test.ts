@@ -111,6 +111,17 @@ describe("captions", () => {
     const a = new ActionStrip();
     expect(["Ah, *chuck", "les softly* well. (sig", "hs) Fine."].map((p) => a.push(p)).join("")).toBe("Ah, well. Fine.");
   });
+
+  it("keep words after a * or ( that never closes: it wasn't a stage direction", () => {
+    const said = (...pieces: string[]) => {
+      const a = new ActionStrip();
+      return pieces.map((p) => a.push(p)).join("") + a.flush();
+    };
+    expect(said("Five * three", " is fifteen.")).toBe("Five three is fifteen.");
+    expect(said("Oh :( that's sad.")).toBe("Oh : that's sad.");
+    const long = "a bracket that runs on far longer than any stage direction would, and on";
+    expect(said(`Well (${long}.`)).toBe(`Well ${long}.`);
+  });
 });
 
 describe("job metadata", () => {
