@@ -1,6 +1,6 @@
 """Add-ons on extreme faces: hair, eyebrows, eyelashes and strand beards (strands), and glasses (meshes with targets).
 
-Strands are decoded from the shipped .strands.bin and moved the way the web app moves them (lib/groom.ts):
+Strands are decoded from the shipped .strands.bin and moved the way the web app moves them (lib/groomFollow.ts):
   roots   each root follows its 3 nearest skin vertices (weights 1/d⁴) and the whole strand moves with it
   lashes  also turn about the eye's horizontal axis through the root (eyeFollow: GROOM.lashTurn × the angle the root
           travelled round the eye centre, now vs at rest), plus the shape turn (away from skin the face's shape brought
@@ -102,7 +102,7 @@ class AddonChecker:
         self.skin_tris = g.triangles[tri_owner == names.index("skin")]  # the app's skin mesh (lib/glassesFit.ts rays)
         self.eye_tris = g.triangles[np.isin(tri_owner, [names.index(f"{n}_{s}") for n in ("sclera", "iris", "pupil") for s in "LR"])]
         self.pivot0 = model.pivot0  # lib/groom.ts uEyeL0/R0: the eye centres on the average face
-        self.shape_k = np.array([k in ("identity", "semantic") for k in model.kinds])  # lib/groom.ts SHAPE
+        self.shape_k = np.array([k in ("identity", "semantic") for k in model.kinds])  # lib/groomFollow.ts SHAPE
         self.neutral = np.zeros(len(model.names), np.float32)
         self._base: dict = {}
 
@@ -125,7 +125,7 @@ class AddonChecker:
 
     @lru_cache(maxsize=32)  # noqa: B019 (a few long-lived checkers per run)
     def _points(self, file: str) -> tuple[np.ndarray, np.ndarray]:
-        """Every strand point tied to its 3 nearest skin vertices, 1/d⁴ (lib/groom.ts tieToSkin)."""
+        """Every strand point tied to its 3 nearest skin vertices, 1/d⁴ (lib/groomFollow.ts tieToSkin)."""
         S = self._strands(file)[0]
         d, nn = self.tree.query(S.reshape(-1, 3), k=3)
         w = 1 / (d ** 4 + 1e-16)
@@ -134,7 +134,7 @@ class AddonChecker:
     @lru_cache(maxsize=32)  # noqa: B019 (a few long-lived checkers per run)
     def _tips(self, file: str) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """Lashes: the skin under each tip tied like the roots (ids, weights), that rest point, and whether it is above
-        the lash (lib/groom.ts followSkin `tips`)."""
+        the lash (lib/groomFollow.ts followSkin `tips`)."""
         S = self._strands(file)[0]
         d, nn = self.tree.query(S[:, -1], k=3)
         w = 1 / (d ** 4 + 1e-16)
@@ -146,13 +146,13 @@ class AddonChecker:
         return ids, w, under, above
 
     def strands_at(self, style: dict, w: np.ndarray, P: np.ndarray) -> np.ndarray:
-        """(n, P, 3) strand points on the face with weights w (P = its vertex positions), as lib/groom.ts draws them."""
+        """(n, P, 3) strand points on the face with weights w (P = its vertex positions), as lib/groomFollow.ts moves them."""
         S, nn, wt = self._strands(style["file"])
         T = self.m.gnm.template
         off = np.einsum("nk,nkd->nd", wt, P[nn] - T[nn])
         out = S + off[:, None, :]
         if style["category"] == "eyebrows":
-            # lib/groom.ts followShapePoints: every point gets the face SHAPE's offset at its own skin minus at its root
+            # lib/groomFollow.ts followShapePoints: every point gets the face SHAPE's offset at its own skin minus at its root
             ids, pw = self._points(style["file"])
             Ps = self.m.positions(np.where(self.shape_k, w, 0))
             d = np.einsum("nk,nkd->nd", pw, Ps[ids] - T[ids]).reshape(S.shape)
@@ -366,7 +366,7 @@ class AddonChecker:
 
 
 def _yz(v: np.ndarray) -> np.ndarray:
-    """A direction's angle about the head's x axis (lib/groom.ts yz)."""
+    """A direction's angle about the head's x axis (lib/groomFollow.ts yz)."""
     return np.arctan2(v[..., 1], v[..., 2])
 
 
