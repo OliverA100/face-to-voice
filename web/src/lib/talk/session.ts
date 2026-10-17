@@ -351,6 +351,9 @@ export class TalkSession {
   }
 
   async setMuted(muted: boolean): Promise<void> {
+    // iPhones and iPads (halfDuplex): unmuted while the character speaks, the microphone stays off until it has
+    // finished (duplex turns it on then): with no echo canceller it would hear itself
+    if (!muted && this.halfDuplex && this.agentState === "speaking") return this.set({ muted, muteFailed: false });
     try {
       await this.room.localParticipant.setMicrophoneEnabled(!muted);
       this.set({ muted, muteFailed: false });
