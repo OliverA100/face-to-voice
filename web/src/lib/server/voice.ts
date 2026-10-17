@@ -109,6 +109,28 @@ export async function waitFor<T>(get: () => Promise<T | null>, ms: number): Prom
   return null;
 }
 
+/**
+ * Change a voice record after its design: read it fresh, apply `change`, write the result back, all under the record's
+ * own short lock. Every later write goes through here, so two requests for one description (two takes saved at once, a
+ * choice while another take saves, an evicted voice forgotten) can't write over each other's takes. `change` gets null
+ * when the record is gone; returning null writes nothing.
+ */
+async function updateRecord(descKey: string, change: (record: VoiceRecord | null) => VoiceRecord | null): Promise<void> {
+  const lock = `ftv:lock:record:${descKey}`;
+  let token = await acquireLock(lock, 10);
+  for (let tries = 0; !token && tries < 200; tries++) {
+    await new Promise((r) => setTimeout(r, 25)); // held for one read and one write
+    token = await acquireLock(lock, 10);
+  }
+  if (!token) throw new ApiError("busy", MESSAGES.busy, 409);
+  try {
+    const next = change(await cacheGet<VoiceRecord>(descCacheKey(descKey)));
+    if (next) await cacheSet(descCacheKey(descKey), next);
+  } finally {
+    await releaseLock(lock, token);
+  }
+}
+
 export async function designForFace(input: {
   weights: Record<string, number>;
   imageJpegBase64: string;
@@ -304,7 +326,9 @@ export async function selectPreview(descKey: string, previewIndex: number, opts:
 async function chooseSavedTake(record: VoiceRecord, previewIndex: number): Promise<SelectResult> {
   const have = record.takes[previewIndex];
   if (!have.studioFallback) await poolTouch(poolKey(record.descKey, previewIndex), have.voiceId);
-  await cacheSet(descCacheKey(record.descKey), { ...record, voiceId: have.voiceId, studioFallback: have.studioFallback, chosenIndex: previewIndex });
+  await updateRecord(record.descKey, (now) =>
+    now?.takes[previewIndex]?.voiceId === have.voiceId ? { ...now, voiceId: have.voiceId, studioFallback: have.studioFallback, chosenIndex: previewIndex } : null,
+  );
   return { voiceId: have.voiceId, saved: !have.studioFallback, chosenIndex: previewIndex, message: have.studioFallback ? MESSAGES.voice_quota : undefined };
 }
 
@@ -312,7 +336,6 @@ async function chooseSavedTake(record: VoiceRecord, previewIndex: number): Promi
 async function saveTake(record: VoiceRecord, previewIndex: number): Promise<SelectResult> {
   const descKey = record.descKey;
   const preview = record.previews[previewIndex];
-  const takes = { ...record.takes };
   // Plan quota (when the key can read it): stop before the monthly add/edit budget runs dry.
   // Slots about to be freed by the pool evictions below count as free.
   const evictions = await poolEvictions();
@@ -332,8 +355,10 @@ async function saveTake(record: VoiceRecord, previewIndex: number): Promise<Sele
   const studio = async (why: "month" | "slots" | "day"): Promise<SelectResult> => {
     const voiceId = closestStudioVoice(record.cast, descKey);
     if (!voiceId) throw new ApiError("voice_quota", NO_STUDIO[why], 429);
-    takes[previewIndex] = { voiceId, studioFallback: true };
-    await cacheSet(descCacheKey(descKey), { ...record, takes, voiceId, studioFallback: true, chosenIndex: previewIndex });
+    await updateRecord(descKey, (now) => {
+      const base = now ?? record;
+      return { ...base, takes: { ...base.takes, [previewIndex]: { voiceId, studioFallback: true } }, voiceId, studioFallback: true, chosenIndex: previewIndex };
+    });
     return { voiceId, saved: false, chosenIndex: previewIndex, message: STUDIO_INSTEAD[why] };
   };
   if (blocked) return studio(blocked);
@@ -365,20 +390,21 @@ async function saveTake(record: VoiceRecord, previewIndex: number): Promise<Sele
     }
     throw e;
   }
-  // Re-read: an eviction above may have been another take of this same record.
-  const fresh = (await cacheGet<VoiceRecord>(descCacheKey(descKey))) ?? record;
-  const freshTakes = { ...fresh.takes, [previewIndex]: { voiceId } };
-  await cacheSet(descCacheKey(descKey), { ...fresh, takes: freshTakes, voiceId, studioFallback: false, chosenIndex: previewIndex });
+  await updateRecord(descKey, (now) => {
+    const base = now ?? record;
+    return { ...base, takes: { ...base.takes, [previewIndex]: { voiceId } }, voiceId, studioFallback: false, chosenIndex: previewIndex };
+  });
   await poolTouch(poolKey(descKey, previewIndex), voiceId);
   return { voiceId, saved: true, chosenIndex: previewIndex };
 }
 
 /** A voice is gone (evicted, or deleted upstream): every take of this record that used it forgets it. */
 async function forgetVoice(descKey: string, voiceId: string): Promise<void> {
-  const record = await cacheGet<VoiceRecord>(descCacheKey(descKey));
-  if (!record) return;
-  const takes = Object.fromEntries(Object.entries(record.takes).filter(([, t]) => t.voiceId !== voiceId));
-  await cacheSet(descCacheKey(descKey), { ...record, takes, voiceId: record.voiceId === voiceId ? null : record.voiceId });
+  await updateRecord(descKey, (record) => {
+    if (!record) return null;
+    const takes = Object.fromEntries(Object.entries(record.takes).filter(([, t]) => t.voiceId !== voiceId));
+    return { ...record, takes, voiceId: record.voiceId === voiceId ? null : record.voiceId };
+  });
 }
 
 /** The speak route used this record's take: its voice moves to the back of the pool's eviction queue. */

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // global casting cap, the design's time budget, one design / one save at a time, previews that can no longer become a
 // voice, the free take switch, and the speak route keeping its voice alive.
 const env = vi.hoisted(() => ({
-  hasRedis: false, hasBlob: false, isDeployed: false, rateLimitSalt: "s", studioVoices: [], voicePoolSize: 8,
+  hasRedis: false, hasBlob: false, isDeployed: false, rateLimitSalt: "s", studioVoices: [] as { voiceId: string; slot: string }[], voicePoolSize: 8,
   caps: { castingsPerDay: 50, designsPerDay: 50, savesPerDay: 50, speakCharsPerDay: 1000 },
 }));
 
@@ -23,12 +23,12 @@ vi.mock("../elevenlabs", () => ({
   createVoice: vi.fn(),
   deleteVoice: async () => {},
   listAppVoices: async () => [],
-  subscription: async () => null,
+  subscription: vi.fn(async () => null),
 }));
 
 import { cacheGet, poolList, poolTouch } from "../cache";
 import { describeFace } from "../claude";
-import { createVoice, designVoice, UpstreamError } from "../elevenlabs";
+import { createVoice, designVoice, subscription, UpstreamError } from "../elevenlabs";
 import { dailyUsage } from "../ratelimit";
 import { designForFace, selectPreview, voiceGone, voiceSpoken, type VoiceRecord } from "../voice";
 
@@ -98,6 +98,20 @@ describe("one paid job at a time", () => {
     const [a, b] = await Promise.all([designForFace({ ...f, visitor: "v1" }), designForFace({ ...f, visitor: "v2" })]);
     expect(designVoice).toHaveBeenCalledTimes(1);
     expect(b.previews).toEqual(a.previews);
+  });
+
+  it("two takes of one description saved at once both keep their voices", async () => {
+    const { descKey } = await designForFace(face());
+    env.studioVoices = [{ voiceId: "studio-voice", slot: "feminine-30s" }];
+    // take 2 finds the slots full (slowly) and gets a studio voice; take 0 is saved meanwhile
+    vi.mocked(subscription).mockImplementationOnce(() => later({ voiceSlotsUsed: 10, voiceLimit: 10, voiceAddEditCounter: 0, maxVoiceAddEdits: 100 }, 100) as never);
+    vi.mocked(createVoice).mockImplementation(() => later("voice-0", 10) as never);
+    const [studio, saved] = await Promise.all([selectPreview(descKey, 2), later(null, 5).then(() => selectPreview(descKey, 0))]);
+    env.studioVoices = [];
+    expect([studio.voiceId, saved.voiceId]).toEqual(["studio-voice", "voice-0"]);
+    const { takes } = await record(descKey);
+    expect(takes[0]?.voiceId).toBe("voice-0");
+    expect(takes[2]?.voiceId).toBe("studio-voice");
   });
 
   it("the same take chosen twice at once is saved once", async () => {
