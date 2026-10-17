@@ -61,7 +61,8 @@ export default defineAgent({
     const session = new voice.AgentSession({
       vad: ctx.proc.userData.vad as silero.VAD,
       stt: new inference.STT({ model: "assemblyai/universal-streaming:en" }),
-      // Never called: CharacterAgent.llmNode talks to Claude itself. The session needs an LLM to run the pipeline.
+      // Never called: CharacterAgent.llmNode talks to Claude itself. The session still needs an LLM object: without one
+      // it doesn't run the reply pipeline or start replies early (preemptive generation).
       llm: new anthropic.LLM({ model: LLM_MODEL }),
       tts: voiceOut,
       turnHandling: { turnDetection: new inference.TurnDetector({ version: "v1-mini" }) },

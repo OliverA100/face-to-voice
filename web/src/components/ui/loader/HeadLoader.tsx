@@ -14,7 +14,7 @@ import { type Loader, type LoaderVariant, TIMING, startLoader } from "./engine";
 import { sphereTitle } from "./looks";
 
 /**
- * The look a HeadLoader uses when none is passed: "A2 · Sphere + caption, no %". setDefaultLook swaps it, so a
+ * The look a HeadLoader uses when none is passed: sphereTitle (./looks.tsx). setDefaultLook swaps it, so a
  * local lab (not in the repo) can try other looks on the real head.
  */
 const LOOK: { current: LoaderVariant } = { current: sphereTitle };

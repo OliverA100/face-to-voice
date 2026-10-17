@@ -6,8 +6,9 @@
  *
  * - Face first: a vertex starts later the farther it is from the face point (between the eyes), by uMorphStagger
  *   (a slight lead in the shipped "swing", SWING; region by region in "pieces", MORPH).
- * - Layered, never coincident: each vertex keeps a little of its distance from the centre (LAYER), so surfaces that
- *   would land on the same spot of the sphere (ear and cheek, lips and teeth) keep their order instead of flickering;
+ * - Layered, never coincident: each vertex keeps a little of its distance from the centre (MORPH.layer), so surfaces
+ *   that would land on the same spot of the sphere (ear and cheek, lips and teeth) keep their order instead of
+ *   flickering;
  *   the eyes and the inside of the mouth sit a little inside the bubble (PART_SCALE) until they come out.
  * - Free at rest: uMorph = 1 on every normal frame, and the whole block is skipped.
  *
@@ -16,8 +17,8 @@
  * chromeGl.ts) until the face has almost formed. morphFrame drives both from the reveal's progress. The variant is
  * compiled and drawn once in the background before the reveal (Head.tsx), so the head's first frame doesn't pay for it.
  *
- * Tweak here: SWING (shipped), MORPH ("D · Morph", tried in a local lab, not in the repo, and shared values: behind,
- * span, layer, ao), PIECES.
+ * Tweak here: SWING (the shipped reveal), MORPH (the "pieces" alternative, kept for a local lab, and the values both
+ * share: behind, span, layer, ao), PIECES (hair, brows, lashes, beards, glasses).
  */
 import { type Material, type ShaderMaterial, Vector3 } from "three";
 
@@ -28,7 +29,7 @@ import { type MorphStyle, headMorph } from "@/lib/headMorph";
 
 const DEG = Math.PI / 180;
 
-/** D · Morph ("pieces" in lib/headMorph.ts), a local lab's alternative reveal; also the values both styles share. */
+/** The "pieces" reveal (lib/headMorph.ts), an alternative kept for a local lab; also the values both styles share. */
 export const MORPH = {
   // m, the sphere's centre sits this far behind the face point (inside the head): from a centre at the face, almost the
   // whole head maps onto the sphere's far side (culled), so the ball shrinks to the face oval mid-morph and the
@@ -57,9 +58,10 @@ export const MORPH = {
 };
 
 /**
- * E · One swing ("swing"), the shipped reveal. The morph is the loader's own last swing: from the bubble back towards
+ * The "swing" reveal, the one the app ships. The morph is the loader's own last swing: from the bubble back towards
  * the blob, on the loader's curves, but landing on the face, so it reads as one motion rather than a sequence of
- * separate steps (D reads as a pause, a crumpled ball, hair pouring out on its own, then rainbow → white bust → skin).
+ * separate steps ("pieces" reads as a pause, a crumpled ball, hair pouring out on its own, then rainbow → white bust →
+ * skin).
  * One clock drives it all:
  * - the polish runs 1 → 0 at the loader's own swing pace and curve (its film, halo and gloss drain away as they do in
  *   the loader), and the bumps rise with it by the loader's own formula (polishUniforms: up to the blob's 0.4);
@@ -71,8 +73,8 @@ export const MORPH = {
  * - it starts with the settled bubble's own resting wobble, noise pattern and turn (ScreenCircle), so it never stops.
  */
 export const SWING = {
-  // a slight face-first lead (D: 0.8), so the silhouette grows from the first frame; 0.2 holds the sides and back of
-  // the head still for the morph's first ~0.25 s
+  // a slight face-first lead ("pieces": 0.8), so the silhouette grows from the first frame; 0.2 holds the sides and
+  // back of the head still for the morph's first ~0.25 s
   stagger: 0.05,
   // the polish reaches the blob (0) at this fraction of the morph (set in engine.ts: the loader runs the same curve
   // from the bubble, ChromeDrive.through)
@@ -88,7 +90,7 @@ export const SWING = {
 /**
  * Hair, brows, lashes, beards and glasses come from the sphere at the same time as the face, under the bubble's look:
  * each piece forms with the patch of face under it (the same face-first timing), wears the bubble's
- * look like the skin, and everything turns to its own material together at the end (MORPH.look).
+ * look like the skin, and everything turns to its own material together at the end (SWING.look).
  * - Glasses and shell beards: pulled onto the sphere like the head (just inside it, PIECES.scale, so they don't sit on
  *   the bubble at the hand-over) and released with it.
  * - Strands (hair, brows, lashes, strand beards): each grows from its root as the skin under it forms (its root's own
@@ -216,7 +218,7 @@ ${BUMP}`;
 /** A point's own progress (0 on the sphere … 1 in place) from its view-space position `p`: the face first. */
 const progress = (p: string) =>
   `clamp((clamp(uMorph * (1.0 + uMorphStagger) - uMorphStagger * clamp(length(${p} - uMorphFace) / ${f(MORPH.span)}, 0.0, 1.0), 0.0, 1.0) - ${f(NECK.delay)} * morphNeck(${p})) / (1.0 - ${f(NECK.delay)} * morphNeck(${p})), 0.0, 1.0)`; // (the neck: later, NECK)
-/** Pull the view-space `mv` (vec4) onto the sphere by 1 − `k` (keeps its depth order: LAYER). */
+/** Pull the view-space `mv` (vec4) onto the sphere by 1 − `k` (keeps its depth order: MORPH.layer). */
 const pull = (mv: string, k: string) => `{
   vec3 dC = ${mv}.xyz - uMorphCentre;
   float dist = max(length(dC), 1e-5);
@@ -278,7 +280,8 @@ uniform vec3 uMorphCentre, uMorphFace;
 varying float vMorphGrow;
 ${NECK_GLSL}
 ${BUMP}`;
-/** Before the point goes to view space: the strand grows from its root by its root's progress (D: uMorphGrow 1). */
+/** Before the point goes to view space: the strand grows from its root by its root's progress ("pieces": uMorphGrow
+ *  1). */
 const STRAND_GROW = `
 vMorphGrow = 1.0;
 float sk = 1.0;
@@ -303,7 +306,7 @@ if (uMorph < 1.0) {
 
 /**
  * The bubble's look (variant only): the finished sphere's own shading (components/ui/loader/chromeGl.ts, the same
- * functions the loader draws with), in view space, until the morph reaches MORPH.look, then the part's own colour.
+ * functions the loader draws with), in view space, until the morph reaches SWING.look, then the part's own colour.
  * `normal`/`view`: GLSL for the surface normal and the direction to the eye; `fab`: "lut" reads (scale, bias) from
  * three's DFG table, "schlick" a stand-in for shaders without it (the strands).
  */
@@ -373,7 +376,7 @@ export function installMorph(material: Material, part: string): void {
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", `#include <common>\n${DECLARE}`)
       .replace("#include <project_vertex>", `#include <project_vertex>\n${MESH_VERTEX}`);
-    // D's halfway bumps on every head part, not just the skin: where only the skin dips, the mouth shows through it
+    // the halfway bumps on every head part, not just the skin: where only the skin dips, the mouth shows through it
     if (!piece) shader.vertexShader = `#define FTV_MORPH_SPIKES\n${shader.vertexShader}`;
     if (look) {
       const ao = part === "skin" ? "skinReg.r" : undefined; // lib/skinShader.ts: the regions map's AO (1 until it loads)

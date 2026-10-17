@@ -14,7 +14,7 @@ visitor's mic ─► Silero VAD + turn detector (local) ─► speech to text (L
 |---|---|
 | `src/main.ts` | The session: limits (time, goodbye, idle end after one check-in), errors, logs, the opening line |
 | `src/character.ts` | The agent: Claude, the conversation as Claude reads it, mood tags, word timings and loudness for the lip sync |
-| `src/elevenTimings.ts` | Word times rebased onto the reply's own clock (the plugin's are off on v4's dialogue socket) |
+| `src/elevenTimings.ts` | Word times rebased onto the reply's own clock (the plugin's are off on v3/v4's dialogue socket and early on Flash v2.5's) |
 | `src/onset.ts` | Where the voice starts and its loudness, 10 ms at a time, as the browser measures them |
 | `src/mood.ts` | The leading `[happy 2]` of a reply: a v4 audio tag for the voice, `ftv.mood` for the face |
 | `src/metadata.ts` | The dispatch metadata, checked, with limits the metadata can't raise |

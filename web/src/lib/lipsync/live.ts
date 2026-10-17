@@ -1,7 +1,7 @@
 /**
  * The mouth during a live conversation: the character's voice arrives as a WebRTC track, with no whole line decoded
  * ahead as the speech player has. What the evaluator gets instead (measured against the player on recorded v4 clips:
- * 55 of 63 p/b/m closures where today's lip sync puts them, ~33 ms apart on average, jaw error 0.11):
+ * 55 of 63 p/b/m closures where the speech player puts them, ~33 ms apart on average, jaw error 0.11):
  *
  *   - word timings ahead of the audio: the agent forwards ElevenLabs' word timings ("ftv.words") as the voice is made,
  *     before it is played, so cues exist before their sounds arrive;
@@ -90,8 +90,8 @@ class FtvMeter extends AudioWorkletProcessor {
     this.c = [(1 + cos) / 2 / a0, -(1 + cos) / a0, (1 + cos) / 2 / a0, (-2 * cos) / a0, (1 - alpha) / a0];
     this.done = false;
     // finished blocks wait here and go to the page BATCH at a time: nothing is allocated per render quantum (every
-    // 2.7 ms), and few messages are posted. An array made in every process() and a message per 10 ms block made garbage
-    // on the audio thread, and an iPhone's chats popped (Speak, with no worklet, didn't)
+    // 2.7 ms), and few messages are posted. Garbage on the audio thread (an array per process(), a message per 10 ms
+    // block) makes an iPhone's chats pop
     this.out = new Float64Array(3 * ${METER_BATCH});
     this.k = 0;
     this.port.onmessage = () => (this.done = true); // the chat ended: let the node go
@@ -235,7 +235,7 @@ export class LiveSpeech implements SpeechSource {
     this.source.connect(this.node);
     // pulled by the graph (a node with no route to the output may not run); it writes nothing, so it is silent
     this.node.connect(outputOf(this.ctx));
-    // `gain` (session.ts chatBoost): the voice made louder. It already peaks at full scale, so it is compressed (quiet
+    // `gain` (session.ts CHAT_MAKEUP): the voice made louder. It already peaks at full scale, so it is compressed (quiet
     // syllables up toward the loud ones), raised by `gain`, limited, and soft-clipped so nothing can clip. On a real
     // line: +5 dB of speech loudness at gain 2, nothing clipped, 0.9% of samples rounded off
     let out: AudioNode = outputOf(this.ctx);

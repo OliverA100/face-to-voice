@@ -10,7 +10,7 @@ import type { CSSProperties } from "react";
 import { Chrome, chromeMotion } from "./chrome";
 import { type LoaderVariant, type Rig } from "./engine";
 
-/** A · the sphere and one quiet line: no waveform (the sphere is the only motion, the % the only progress). */
+/** The sphere and one quiet line under it (the sphere is the only motion, the % the only progress). */
 const LAYOUT_A = {
   "--orb": "min(200px, 36cqmin)",
   "--gap": "clamp(20px, 6cqmin, 32px)", // sphere → caption (clears the bumps at the blob end)
@@ -37,7 +37,8 @@ export const sphereCaption: LoaderVariant = {
   create: createA,
 };
 
-/** A2 · as A, but the caption is the title alone: no progress shown at all, only the sphere moving. */
+/** The look the app ships: as sphereCaption, but the caption is the title alone (no progress shown, only the sphere
+ *  moving). */
 export const sphereTitle: LoaderVariant = {
   ...sphereCaption,
   id: "sphere-title",

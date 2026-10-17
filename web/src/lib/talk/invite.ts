@@ -29,7 +29,7 @@ export function talkInvite(): string | null {
   return cached;
 }
 
-/** Whether this visitor may see "Talk to …" (the server decides whether they may actually talk). */
+/** Whether this visitor may see the Chat pill (the server decides whether they may actually talk). */
 export function talkAvailable(): boolean {
   return process.env.NEXT_PUBLIC_TALK_PUBLIC === "1" || !!talkInvite();
 }

@@ -47,8 +47,8 @@ const ENDED: Record<EndReason, string> = {
 
 /**
  * The chats' AudioContext, running: made in the first tap and kept for every chat after it (a session pauses it when
- * it ends). A new context per chat was the second chat's undoing: in "Have another chat" the new context's clock ran
- * ahead of the voice it was measuring (headless Chrome: 120 s of context time in 5 s), and the mouth read silence.
+ * it ends). One context, not one per chat: in "Have another chat" a new context's clock can run ahead of the voice it
+ * measures (headless Chrome: 120 s of context time in 5 s), and the mouth then reads silence.
  * Resumed synchronously, inside the tap (Safari); null without Web Audio.
  */
 let chatCtx: AudioContext | null = null;

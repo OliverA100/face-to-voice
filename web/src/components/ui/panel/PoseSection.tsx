@@ -25,7 +25,7 @@ export function PoseSection() {
   // Stable maps of DOM nodes (created once; never trigger a render).
   const [inputs] = useState(() => new Map<string, HTMLInputElement>());
   const [outputs] = useState(() => new Map<string, HTMLOutputElement>());
-  // On by default with a mouse, off on touch, or the visitor's saved choice (lib/pose.ts); false on the server.
+  // Off until the visitor turns it on (their choice is remembered: lib/pose.ts); false on the server.
   const follow = useSyncExternalStore(subscribeFollow, followSnapshot, () => false);
 
   // "Look at cursor" and the gaze sliders are exclusive: following disables the eye rows and shows them at 0.

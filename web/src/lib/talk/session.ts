@@ -1,6 +1,6 @@
 /**
- * A live conversation with the character, browser side. Loaded only when "Talk to …" is pressed (it carries
- * livekit-client, ~140 KB gzip), never with the page.
+ * A live conversation with the character, browser side. Loaded only when the Chat pill is hovered, focused or pressed
+ * (it carries livekit-client, ~140 KB gzip), never with the page.
  *
  *   mic permission first (no room, no agent, no cost if it is refused)
  *   → POST /api/talk/token → Room.connect(serverUrl, token) → publish the microphone

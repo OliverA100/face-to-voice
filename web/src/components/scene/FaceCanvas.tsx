@@ -4,7 +4,7 @@
  * Lazy entry point for the 3D scene: three.js only loads in the browser and only when this
  * component mounts. head.glb starts downloading as soon as this module loads (lib/headLoad.ts),
  * in parallel with the three.js chunk. Until the head is ready, the loader (components/ui/loader)
- * covers the bust, then cross-fades to it.
+ * covers the bust, then hands over to it (the bubble morphs into the face: components/ui/loader/engine.ts).
  */
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";

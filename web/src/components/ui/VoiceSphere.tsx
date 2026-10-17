@@ -5,7 +5,7 @@
  * sphere and motion as the chat's, components/ui/TalkPanel.tsx). Picked in a local lab (not in the repo):
  *   - the look, "Voice sphere · bumpy": the loader's soap bubble at its finish (full colour), with bumps that stay
  *     (the finish's own `rest`: a lower polish would wash the colour out);
- *   - the motion, "F · Swell in colour" (./loader/chrome.tsx VOICE_STYLES): the bumps swell with the voice and fall
+ *   - the motion, VOICE_STYLES.swellColour (./loader/chrome.tsx): the bumps swell with the voice and fall
  *     back in its pauses.
  * Each voice opens at its own clock (other bumps, another rainbow), on a still of exactly that frame (the stills
  * below), so the live sphere takes over without a change; with prefers-reduced-motion (or without WebGL) the still is
@@ -33,7 +33,7 @@ export const VOICE_SPHERE = {
   size: 34, // px, the sphere's --orb size (its box adds room for the bumps and spills round the 36 px play button)
   clocks: [12, 22, 32], // the loader's clock each voice opens at (its bumps and rainbow), voices 1–3
   finish: { ...SOAP_BUBBLE, rest: 0.18 }, // "Voice sphere · bumpy": the bubble, bumps kept at full colour
-  style: VOICE_STYLES.swellColour.style, // "F · Swell in colour"
+  style: VOICE_STYLES.swellColour.style,
   still: 144, // px, the stills' size (the box is ~42 CSS px: sharp at 3×)
 };
 

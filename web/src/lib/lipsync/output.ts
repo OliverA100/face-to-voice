@@ -6,9 +6,9 @@
  * could fall behind and stay behind: lines and chats ~0.8 s after the mouth, or silent, while Safari reported them on
  * time (outputLatency, getOutputTimestamp), so the page could not tell. A new context or a reload at that rate kept it,
  * and the backlog itself survived: the end of a line cut by a pause played at the next start, even from another
- * context (a chat). Found after a context left running with nothing to play in a tab nobody looked at, and after chats
- * with clicks into other apps. A MediaStream is live, so nothing waits in a queue behind anything: played by an element,
- * the same beeps stayed on time with the context's own output stuck, ROUTE_EXTRA later.
+ * context (a chat). It follows a context left running with nothing to play in a tab nobody looks at, and chats with
+ * clicks into other apps. A MediaStream is live, so nothing waits in a queue behind anything: played by an element,
+ * the same beeps stay on time with the context's own output stuck, ROUTE_EXTRA later.
  */
 import { isAppleTouch } from "./staleTab";
 

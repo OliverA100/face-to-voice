@@ -79,7 +79,8 @@ const REVEAL = {
  *   Without a morphing head on the page (or a focus), it plays "window".
  * - swing: the morph as the loader's own last swing (bubble → blob, landing on the face), one curve for size, bumps
  *   and look, starting the moment the sphere settles (lib/morphShader.ts SWING). Falls back the same way.
- * The quick fade of a cached head plays the same motion at half the length; reduced motion is always a plain fade.
+ * A cached head plays the same motion faster (each style's `quick`, 0.5 for pop and rise); reduced motion is always a
+ * plain fade.
  */
 export type RevealStyle = "crossfade" | "pop" | "window" | "rise" | "morph" | "swing";
 const STYLE: { current: RevealStyle } = { current: "swing" };
@@ -108,7 +109,8 @@ export const REVEALS = {
 };
 
 export interface Loader {
-  /** "full" = the REVEAL cross-fade, "fade" = a quicker plain one (cached head, reduced motion). */
+  /** "full" = the reveal style (the swing in the app), "fade" = the same, quicker (a cached head); reduced motion: a
+   *  plain fade. */
   reveal(kind: "full" | "fade"): void;
   dispose(): void;
 }
@@ -136,7 +138,7 @@ export function startLoader(o: {
   let last = t0;
 
   const tick = (time: number) => {
-    s.dt = s.reduced ? 0 : Math.min(time - last, 0.1); // a stalled frame must not make the wave jump
+    s.dt = s.reduced ? 0 : Math.min(time - last, 0.1); // a stalled frame must not make the motion jump
     s.t = s.reduced ? 0 : time - t0;
     last = time;
     if (!tl) {
@@ -223,7 +225,8 @@ export function startLoader(o: {
   return loader;
 }
 
-/** The pop, window and rise reveals (see RevealStyle) on `tl`, every time scaled by `k` (0.5 for a cached head). */
+/** Every reveal but the cross-fade (see RevealStyle) on `tl`, every time scaled by `k` (the style's `quick` for a cached
+ *  head). */
 function buildReveal(tl: gsap.core.Timeline, style: Exclude<RevealStyle, "crossfade">, k: number, root: HTMLElement, stage: HTMLElement | null, rig: Rig) {
   const caption = root.querySelector("[data-loader-caption]");
   const sphere = root.querySelector("[data-chrome]");
