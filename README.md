@@ -40,7 +40,7 @@ More: [voice and lip sync](docs/ARCHITECTURE.md#voice-and-lip-sync), [live conve
 - **Smooth:** 60 fps on a phone profile while dragging sliders, switching emotions and speaking.
 - **Only impossible faces are blocked:** weird faces are fine, skin through the eyeball isn't. A stress test checks
   thousands of app states exactly.
-- **Tested:** over 500 tests (web, agent and pipeline) run in CI on every push.
+- **Tested:** over 600 tests (web, agent and pipeline) run in CI on every pull request and push to main.
 
 All the numbers and how they were measured: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#numbers).
 

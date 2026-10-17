@@ -37,7 +37,7 @@ agent talk to Claude and ElevenLabs; the browser never holds a key.
 | Load | head visible after 0.44 s on desktop, 0.70 s on a phone (4× CPU); 531 KB of JS in the page's HTML (gzip), the 3D scene loading after it |
 | Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 desktop / 62 mobile |
 | Accessibility | Built toward WCAG 2.2 AA: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; axe finds nothing on desktop or phone; Lighthouse 100 / 100. Known gap: the slider track, thumb edge, switch track and group chevrons are below 3:1 contrast (kept for the soft look) |
-| Tests | 438 vitest tests for the web app, 32 for the agent and 150 pytest tests for the pipeline, plus a smoke test of the built app in headless Chrome, run in CI on every push |
+| Tests | 438 vitest tests for the web app, 32 for the agent and 150 pytest tests for the pipeline, plus a smoke test of the built app in headless Chrome, run in CI on pull requests and pushes to main; the pipeline tests that need the GNM model run locally |
 
 Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
 
