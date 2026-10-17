@@ -34,10 +34,10 @@ agent talk to Claude and ElevenLabs; the browser never holds a key.
 | Model export | 125 morph targets, every vertex and delta within 6 µm of the source; 2.88 MB brotli for both files |
 | Limiter | blocks only impossible geometry; a slider grab costs one frame, per-face animation caps run off the main thread |
 | Stress test | 8 families of states, each exact-checked: Random face, Random character and animation driven in the real app in headless Chrome, single sliders, pairs, multi-slider faces, fine-tune and add-ons generated with the limiter's Python mirror; 0 of 223 single-slider ends and 0 of 4,224 slider pairs broken ([table](#the-limiter-and-the-stress-test)) |
-| Load | head visible after 0.42 s on desktop, 0.66–0.75 s on a phone (4× CPU); 569 KB initial JS gzip |
-| Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 / 61–62 |
-| Accessibility | WCAG 2.2 AA pass: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; Lighthouse 100 / 96 |
-| Tests | 340 vitest tests (web, plus 31 for the agent) and 162 pytest tests (pipeline), run in CI on every push |
+| Load | head visible after 0.43 s on desktop, 0.68 s on a phone (4× CPU); 532 KB of JS in the page's HTML (gzip), the 3D scene loading after it |
+| Frame time | 60 fps on a phone profile while dragging, switching emotions and speaking; Lighthouse performance 99 desktop / 62 mobile |
+| Accessibility | WCAG 2.2 AA: radio-group chip rows, sliders that announce their value in words, a text alternative for the head; axe finds nothing on desktop or phone; Lighthouse 100 / 100 |
+| Tests | 439 vitest tests for the web app, 32 for the agent and 158 pytest tests for the pipeline, plus a smoke test of the built app in headless Chrome, run in CI on every push |
 
 Measured on an M4 Pro with headless Chrome; phone numbers use a 390×844 viewport at DPR 3 with 4× CPU throttling.
 
