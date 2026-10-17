@@ -98,7 +98,7 @@ export function strandMeshes(groom: Mesh, m: Matrix4, mode: StrandMode, name: st
   for (let s = 0; s < n; s++) {
     const off = new Vector3(root[s * 4], root[s * 4 + 1], root[s * 4 + 2]);
     raw0.set(pos[s * p * 4], pos[s * p * 4 + 1], pos[s * p * 4 + 2]);
-    // lashes: turn round the eye's horizontal axis as the lid closes (groom.ts VERTEX, uEyeFollow)
+    // lashes: turn round the eye's horizontal axis as the lid closes (groomShader.ts VERTEX, uEyeFollow)
     let cs = 1, sn = 0;
     if (eyeFollow > 0.5) {
       const c = raw0.x > 0 ? eyeL : eyeR;
@@ -149,7 +149,7 @@ export function strandMeshes(groom: Mesh, m: Matrix4, mode: StrandMode, name: st
         side.crossVectors(T, ref);
         if (side.lengthSq() < 0.09) side.crossVectors(T, up);
         side.normalize().multiplyScalar(0.5 * Math.max(width * (1 + (def.tipWidth - 1) * t), minW));
-        // colour: the strand shader's albedo × its baked self-shadow (groom.ts FRAGMENT)
+        // colour: the strand shader's albedo × its baked self-shadow (groomShader.ts FRAGMENT)
         const i = s * p + k;
         const ramp = Math.min(1, Math.hypot(pos[i * 4] - raw0.x, pos[i * 4 + 1] - raw0.y, pos[i * 4 + 2] - raw0.z) / rampLen);
         const mix = Math.pow(ramp, 0.8) * rampAmount;

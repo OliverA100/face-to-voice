@@ -9,6 +9,7 @@
 export type SkinGrid = { head: Float32Array; grid: Map<number, number[]>; cell: number };
 export type Tie = { idx: Int32Array; wts: Float32Array };
 
+/** A grid cell's key: a number, not an "x,y,z" string (a hair attach looks up ~1M cells: strings were most of the time). */
 export const cellKey = (x: number, y: number, z: number) => ((x + 1024) * 2048 + (y + 1024)) * 2048 + (z + 1024);
 
 /**

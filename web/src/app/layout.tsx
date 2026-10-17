@@ -14,7 +14,7 @@ const TITLE = "Face to Voice — Build a face, hear its voice";
 const DESCRIPTION = "Shape a 3D head with sliders, get a matching ElevenLabs voice, hear it speak with lip sync, then talk to the character live.";
 
 export const metadata: Metadata = {
-  // The address link previews resolve against; the preview image is app/opengraph-image.jpg (and twitter-image.jpg).
+  // The address link previews resolve against; the preview image is app/opengraph-image.jpg (X falls back to it too).
   metadataBase: new URL("https://facetovoice.com"),
   // Pages set just their own name; the template adds the suffix.
   title: { default: TITLE, template: "%s · Face to Voice" },
