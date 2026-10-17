@@ -276,8 +276,9 @@ export interface SelectOptions {
   /** The preview the visitor heard: refused when the record was designed again since (another visitor, an expiry). */
   generatedVoiceId?: string;
   /**
-   * The visitor's limit on new voices (ratelimit "select"), called only when this choice saves one: going back to a
-   * take that is already saved is free.
+   * The visitor's limit on new voices (ratelimit "select"), called only when this choice is about to save one, before
+   * anything is evicted or created: going back to a saved take, waiting for the same take someone else is saving, and
+   * a studio stand-in are free.
    */
   chargeVisitor?: () => Promise<void>;
 }
@@ -301,7 +302,6 @@ export async function selectPreview(descKey: string, previewIndex: number, opts:
   if (opts.generatedVoiceId && opts.generatedVoiceId !== preview.generatedVoiceId) throw new ApiError("expired", EXPIRED.redesigned, 409);
   if (record.takes[previewIndex]) return chooseSavedTake(record, previewIndex);
 
-  await opts.chargeVisitor?.();
   // One request saves a take at a time: a second one (another visitor, a double click) waits for that voice instead of
   // saving a second copy of it (a slot and an add/edit each, and one of the two would be orphaned).
   const lock = `ftv:lock:save:${descKey}#${previewIndex}`;
@@ -316,7 +316,7 @@ export async function selectPreview(descKey: string, previewIndex: number, opts:
   }
   try {
     const now = (await cacheGet<VoiceRecord>(descCacheKey(descKey))) ?? record; // it may have been saved meanwhile
-    return now.takes[previewIndex] ? await chooseSavedTake(now, previewIndex) : await saveTake(now, previewIndex);
+    return now.takes[previewIndex] ? await chooseSavedTake(now, previewIndex) : await saveTake(now, previewIndex, opts.chargeVisitor);
   } finally {
     await releaseLock(lock, token);
   }
@@ -333,7 +333,7 @@ async function chooseSavedTake(record: VoiceRecord, previewIndex: number): Promi
 }
 
 /** Save a take as a voice (or hand out a studio stand-in when the quota says no). */
-async function saveTake(record: VoiceRecord, previewIndex: number): Promise<SelectResult> {
+async function saveTake(record: VoiceRecord, previewIndex: number, chargeVisitor?: () => Promise<void>): Promise<SelectResult> {
   const descKey = record.descKey;
   const preview = record.previews[previewIndex];
   // Plan quota (when the key can read it): stop before the monthly add/edit budget runs dry.
@@ -369,6 +369,12 @@ async function saveTake(record: VoiceRecord, previewIndex: number): Promise<Sele
   if (pinned.size && sub && sub.voiceSlotsUsed - (evictions.length - pinned.size) >= sub.voiceLimit) {
     await refundDailyCap("saves", 1);
     return studio("slots");
+  }
+  try {
+    await chargeVisitor?.(); // a new voice from here on: it counts against the visitor's picks
+  } catch (e) {
+    await refundDailyCap("saves", 1);
+    throw e;
   }
   for (const old of evictions) {
     if (pinned.has(old.voiceId)) continue;

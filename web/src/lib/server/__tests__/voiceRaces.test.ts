@@ -45,6 +45,8 @@ const designed = (tag: string) => ({
   previews: [0, 1, 2].map((i) => ({ generatedVoiceId: `${tag}-${i}`, audio: new Uint8Array([i]), mediaType: "audio/mpeg", durationSecs: 1 })),
 });
 const later = <T>(v: T, ms = 50) => new Promise<T>((r) => setTimeout(() => r(v), ms));
+/** A face no visitor has had cast before (face() repeats after 19, and castings are cached per visitor). */
+const fresh = () => ({ ...face(), visitor: `visitor-${n}` });
 const record = async (descKey: string) => (await cacheGet<VoiceRecord>(`ftv:desc:${descKey}`))!;
 
 beforeEach(() => {
@@ -101,7 +103,7 @@ describe("one paid job at a time", () => {
   });
 
   it("two takes of one description saved at once both keep their voices", async () => {
-    const { descKey } = await designForFace(face());
+    const { descKey } = await designForFace(fresh());
     env.studioVoices = [{ voiceId: "studio-voice", slot: "feminine-30s" }];
     // take 2 finds the slots full (slowly) and gets a studio voice; take 0 is saved meanwhile
     vi.mocked(subscription).mockImplementationOnce(() => later({ voiceSlotsUsed: 10, voiceLimit: 10, voiceAddEditCounter: 0, maxVoiceAddEdits: 100 }, 100) as never);
@@ -152,6 +154,31 @@ describe("the visitor's limit on new voices", () => {
     await selectPreview(descKey, 1, { chargeVisitor: charge });
     await selectPreview(descKey, 0, { chargeVisitor: charge });
     expect(charge).toHaveBeenCalledTimes(2);
+  });
+
+  it("doesn't count waiting for the same take someone else is saving, or a studio stand-in", async () => {
+    const { descKey } = await designForFace(fresh());
+    vi.mocked(createVoice).mockImplementation(() => later("the-voice") as never);
+    const charge = vi.fn(async () => {});
+    await Promise.all([selectPreview(descKey, 1, { chargeVisitor: charge }), selectPreview(descKey, 1, { chargeVisitor: charge })]);
+    expect(charge).toHaveBeenCalledTimes(1);
+    env.studioVoices = [{ voiceId: "studio-voice", slot: "feminine-30s" }];
+    vi.mocked(subscription).mockResolvedValueOnce({ voiceSlotsUsed: 10, voiceLimit: 10, voiceAddEditCounter: 0, maxVoiceAddEdits: 100 } as never);
+    const studio = await selectPreview(descKey, 2, { chargeVisitor: charge });
+    env.studioVoices = [];
+    expect(studio.voiceId).toBe("studio-voice");
+    expect(charge).toHaveBeenCalledTimes(1);
+  });
+
+  it("at their limit: refused before anything is saved, and the site's save comes back", async () => {
+    const { descKey } = await designForFace(fresh());
+    const before = await used("saves");
+    const refuse = vi.fn(async () => {
+      throw new Error("visitor_limit");
+    });
+    await expect(selectPreview(descKey, 0, { chargeVisitor: refuse })).rejects.toThrow("visitor_limit");
+    expect(createVoice).not.toHaveBeenCalled();
+    expect(await used("saves")).toBe(before);
   });
 });
 
