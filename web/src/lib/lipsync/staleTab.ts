@@ -7,17 +7,9 @@
  * clear it): the player's context, left running with nothing to play, sticks the tab's output. The player handles that
  * by resting its context between lines (player.ts setState), so nothing here asks for a reload.
  */
+import { isAppleTouch } from "./platform";
 const LONG_HIDE_S = 2 * 60;
 
-/**
- * iPhone or iPad, in any browser (every browser there is WebKit). iPadOS says it is a Mac, so a "Macintosh" with touch
- * counts too; Chrome and Edge everywhere also say "AppleWebKit", so that alone doesn't.
- */
-export function isAppleTouch(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-}
 
 let longHide = false; // a long time hidden since the player last took it (takeLongHide)
 let hiddenAt: number | null = null;

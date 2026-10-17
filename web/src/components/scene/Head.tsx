@@ -81,7 +81,7 @@ function drawEyesBack(): void {
 }
 
 /** GNM's neck joint: the bust nods and turns around this point (IdleLife). */
-export const NECK = new Vector3(0, 0.134, -0.007);
+export const NECK_PIVOT = new Vector3(0, 0.134, -0.007);
 
 // One parse per download: a remount (or a lab's replay) reuses the parsed head, as useGLTF's cache would.
 // The loader is imported statically so it ships inside the Scene chunk (lib/hair.ts's lazy gltfLoader() would cost
@@ -353,8 +353,8 @@ export function Head() {
   });
 
   return (
-    <group ref={swayRef} position={NECK}>
-      <primitive object={scene} position={NECK.clone().negate()} />
+    <group ref={swayRef} position={NECK_PIVOT}>
+      <primitive object={scene} position={NECK_PIVOT.clone().negate()} />
     </group>
   );
 }

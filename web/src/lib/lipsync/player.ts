@@ -12,7 +12,8 @@ import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
 import { dropOutput, outputOf, restOutput, wakeOutput } from "./output";
 import { addPhonemes } from "./phonemes";
-import { isAppleTouch, takeLongHide } from "./staleTab";
+import { isAppleTouch, setAudioSession } from "./platform";
+import { takeLongHide } from "./staleTab";
 
 const SPEECH_FAILED = "The line couldn't be spoken. Please try again.";
 
@@ -24,7 +25,6 @@ const SYNC_KEY = "ftv-sync-ms"; // localStorage: extra ms the listener's audio p
 const syncSeconds = (ms: number) => Math.max(-300, Math.min(500, ms)) / 1000;
 
 /** Safari 16.4+: the page's audio session (not in TypeScript's DOM types yet). */
-type AudioSessionNavigator = Navigator & { audioSession: { type: string } };
 
 export interface SpeechMetrics {
   tapAt: number;
@@ -112,9 +112,9 @@ class SpeechPlayer {
       dropOutput(this.ctx); // its <audio> element too (output.ts)
       void this.ctx.close().catch(() => {});
       this.ctx = null;
-      audioSession("auto"); // asked for again below, so iOS sets the playback session up afresh
+      setAudioSession("auto"); // asked for again below, so iOS sets the playback session up afresh
     }
-    audioSession("playback");
+    setAudioSession("playback");
     if (!this.ctx) this.ctx = new AudioContext();
     if (this.ctx.state !== "running") void this.ctx.resume();
     // the route's <audio> element is made and played here, in the tap (Safari starts media only from a gesture)
@@ -388,7 +388,7 @@ class SpeechPlayer {
   private setState(s: PlayerState): void {
     this.state = s;
     if (s !== "loading" && s !== "playing") {
-      audioSession("auto"); // the line is over: other apps' audio may come back
+      setAudioSession("auto"); // the line is over: other apps' audio may come back
       // and the context rests until the next Speak (unlock() resumes it in the tap). Safari on a Mac: a
       // context left running with nothing to play, ~10 min in a tab nobody looks at, stuck that tab's audio output at
       // its sample rate (lines came 0.8 s late or silent, reported on time; a new context or a reload at that rate
@@ -396,23 +396,6 @@ class SpeechPlayer {
       if (this.ctx?.state === "running") void restOutput(this.ctx).catch(() => {});
     }
     for (const fn of this.listeners) fn();
-  }
-}
-
-/**
- * iOS (Safari 16.4+): Web Audio follows the ringer's silent switch unless the session says this is playback (the <audio>
- * previews already ignore it, so Speak was the only silent thing). "playback" pauses other apps' audio (music, a
- * podcast), so it is asked for only while a line is loading or playing and handed back ("auto") when it ends.
- * iPhone and iPad only (touch: iPadOS says it is a Mac): on a Mac there is no silent switch, and Safari answered these
- * switches by muting the tab's Web Audio after it had sat in the background a while, until a new tab was opened.
- */
-function audioSession(type: "playback" | "auto"): void {
-  if (typeof navigator === "undefined" || !("audioSession" in navigator) || !(navigator.maxTouchPoints > 1)) return;
-  try {
-    const session = (navigator as AudioSessionNavigator).audioSession;
-    if (session.type !== type) session.type = type;
-  } catch {
-    /* not settable here */
   }
 }
 

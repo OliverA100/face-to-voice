@@ -14,7 +14,7 @@
  */
 import { Color, PerspectiveCamera, Vector2, type WebGLRenderer } from "three";
 
-import { headRig, NECK } from "@/components/scene/Head";
+import { headRig, NECK_PIVOT } from "@/components/scene/Head";
 import { sceneRig } from "@/lib/sceneRig";
 import { characterSettled } from "@/lib/character";
 import { visemes } from "@/lib/data";
@@ -76,7 +76,7 @@ export function holdStill(): () => void {
       sway.position.y = y;
     });
     sway.rotation.set(-clamp(b.headPitch, POSE_LIMITS.headPitch) * DEG, clamp(b.headYaw, POSE_LIMITS.headYaw) * DEG, -clamp(b.headRoll, POSE_LIMITS.headRoll) * DEG, "YXZ");
-    sway.position.y = NECK.y;
+    sway.position.y = NECK_PIVOT.y;
   }
   // While "look at cursor" is on, the gaze sliders are off: the eyes look straight ahead.
   const gazeYaw = poseRig.follow.on ? 0 : clamp(b.gazeYaw, POSE_LIMITS.gazeYaw);

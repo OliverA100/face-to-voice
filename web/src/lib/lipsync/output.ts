@@ -10,18 +10,12 @@
  * clicks into other apps. A MediaStream is live, so nothing waits in a queue behind anything: played by an element,
  * the same beeps stay on time with the context's own output stuck, ROUTE_EXTRA later.
  */
-import { isAppleTouch } from "./staleTab";
+import { isAppleTouch, isDesktopSafari } from "./platform";
 
 /** s the element route adds to the context's reported output delay (Safari on a Mac, built-in speakers: the app's
  *  beeps −29…−48 ms against −16…+1 direct with 45 ms allowed). */
 const ROUTE_EXTRA = 0.075;
 
-/** Safari (WebKit) on a Mac: not Chrome, Edge, Firefox or Opera there, and not an iPhone or iPad. */
-function isDesktopSafari(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /Safari\//.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua) && !isAppleTouch();
-}
 
 /**
  * Whether sound takes the element route on this page: Safari, on a Mac and on iPhones and iPads (the iPhone simulator's

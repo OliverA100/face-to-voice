@@ -21,7 +21,7 @@ import { morphs } from "@/lib/morphs/store";
 import { currentPose, POSE, stepFollow, trackPointer } from "@/lib/pose";
 import { reducedMotion } from "@/lib/reducedMotion";
 
-import { headRig, NECK } from "./Head";
+import { headRig, NECK_PIVOT } from "./Head";
 
 const DEG = Math.PI / 180;
 // Module state written by the frame loop (this component is a singleton): the lids' gaze follow last applied.
@@ -123,7 +123,7 @@ export function IdleLife() {
         // a live conversation: nodding along while the visitor talks (not with reduced motion), and a nod to answer
         calm * s.listenNod * lipsyncState.listening * Math.max(0, Math.sin(2 * Math.PI * s.listenNodHz * t)) + calm * s.ackNod * lipsyncState.nod;
       sway.rotation.z = -pose.headRoll * DEG + calm * s.roll * wander(t * s.speed * 2 * Math.PI, 2);
-      sway.position.y = NECK.y + br.bob * breath;
+      sway.position.y = NECK_PIVOT.y + br.bob * breath;
     }
     const drift = IDLE.saccade.driftAmplitude;
     const yaw = pose.gazeYaw * DEG + state.eyeYaw + drift * wander(t * IDLE.saccade.driftSpeedYaw, 4);

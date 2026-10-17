@@ -321,7 +321,7 @@ describe("SpeechPlayer", () => {
 
   it("unlock() asks iOS for a playback audio session, so the silent switch does not mute speech", async () => {
     const audioSession = { type: "auto" };
-    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5 });
+    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15" });
     const { speechPlayer } = await import("../player");
     speechPlayer.unlock();
     expect(audioSession.type).toBe("playback");
@@ -329,7 +329,7 @@ describe("SpeechPlayer", () => {
 
   it("leaves the audio session alone on a computer (Safari on a Mac muted Web Audio after a while in the background)", async () => {
     const audioSession = { type: "auto" };
-    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 0 });
+    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 0, userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15" });
     const { speechPlayer } = await import("../player");
     await speechPlayer.speak(async () => stream(1));
     expect(audioSession.type).toBe("auto");
@@ -339,7 +339,7 @@ describe("SpeechPlayer", () => {
 
   it("hands the audio session back when the line ends, is stopped or fails, so other apps' audio can resume", async () => {
     const audioSession = { type: "auto" };
-    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5 });
+    vi.stubGlobal("navigator", { audioSession, maxTouchPoints: 5, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15" });
     const { speechPlayer } = await import("../player");
     await speechPlayer.speak(async () => stream(1));
     expect(audioSession.type).toBe("playback"); // while the line plays

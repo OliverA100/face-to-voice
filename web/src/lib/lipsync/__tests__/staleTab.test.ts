@@ -32,7 +32,7 @@ describe("isAppleTouch", () => {
   it("is every browser on an iPhone or iPad, and nothing else", async () => {
     const appleTouch = async (ua: string, maxTouchPoints: number) => {
       vi.stubGlobal("navigator", { userAgent: ua, maxTouchPoints });
-      return (await import("../staleTab")).isAppleTouch();
+      return (await import("../platform")).isAppleTouch();
     };
     expect(await appleTouch(IPHONE, 5)).toBe(true);
     expect(await appleTouch(IPHONE.replace("Version/26.0", "CriOS/141.0.0.0"), 5)).toBe(true); // Chrome on an iPhone

@@ -13,7 +13,7 @@
  * Safari before outputLatency: the delay comes from getOutputTimestamp, carried forward to now and eased.
  */
 import { routeDelay } from "./output";
-import { isAppleTouch } from "./staleTab";
+import { isAppleTouch } from "./platform";
 
 export const BLUETOOTH = { reported: 0.1, extra: 0.08 };
 export const IOS_EXTRA = -0.05;

@@ -21,7 +21,7 @@ vi.mock("@/lib/lipsync/state", () => ({ lipsyncState: { energy: 0 } }));
 vi.mock("@/lib/morphs/store", () => ({ morphs: { setLayerValue: (...a: [string, string, number]) => hooks.setLayerValue(...a), clearLayer: () => {} } }));
 vi.mock("@/lib/pose", () => ({ currentPose: () => ({}), POSE: { lidFollow: 0 }, stepFollow: () => {}, trackPointer: () => () => {} }));
 vi.mock("@/lib/reducedMotion", () => ({ reducedMotion: { on: false } }));
-vi.mock("../Head", () => ({ headRig: {}, NECK: { y: 0 } }));
+vi.mock("../Head", () => ({ headRig: {}, NECK_PIVOT: { y: 0 } }));
 
 let now = 0;
 /** Run GSAP's clock forward up to `seconds` in 1/60 s frames, calling `each` after every frame; it returns true to stop. */

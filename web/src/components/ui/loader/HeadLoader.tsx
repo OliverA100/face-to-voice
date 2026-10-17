@@ -9,6 +9,7 @@ import { type CSSProperties, type RefObject, useEffect, useRef } from "react";
 
 import { headLoad, loadProgress, whenPartsReady } from "@/lib/headLoad";
 import { onHeadVisible, perf } from "@/lib/perf";
+import { reducedMotion as motionPreference } from "@/lib/reducedMotion";
 
 import { type Loader, type LoaderVariant, TIMING, startLoader } from "./engine";
 import { sphereTitle } from "./looks";
@@ -66,7 +67,7 @@ export function HeadLoader({
     perf.loaderLiveMs = Math.round(performance.now());
     page.firstMount = false;
 
-    const reduced = reducedMotion ?? matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduced = reducedMotion ?? motionPreference.on;
     let loader: Loader;
     try {
       loader = startLoader({

@@ -24,7 +24,7 @@ import { MediaDeviceFailure, type Participant, type RemoteTrack, Room, RoomEvent
 
 import { LIVE, LiveSpeech, type LiveWord } from "@/lib/lipsync/live";
 import { restOutput, wakeOutput } from "@/lib/lipsync/output";
-import { isAppleTouch } from "@/lib/lipsync/staleTab";
+import { isAppleTouch, setAudioSession } from "@/lib/lipsync/platform";
 import { setLiveSpeech } from "@/lib/lipsync/source";
 import { HeardLine } from "@/lib/talk/heard";
 import { type LevelMeter, micMeter } from "@/lib/talk/meter";
@@ -62,21 +62,6 @@ const WAKING_AFTER_MS = 2500;
  * quiet spell would ever start).
  */
 const GIVE_UP_MS = 90_000;
-
-type AudioSessionNavigator = Navigator & { audioSession?: { type: string } };
-/**
- * iPhone and iPad: talking needs the play-and-record session (speaker and mic together); computers
- * are left alone (lib/lipsync/player.ts).
- */
-function audioSession(type: "play-and-record" | "auto") {
-  const nav = navigator as AudioSessionNavigator;
-  if (!(nav.maxTouchPoints > 1) || !nav.audioSession) return;
-  try {
-    nav.audioSession.type = type;
-  } catch {
-    /* not settable here: the chat still runs on the default session */
-  }
-}
 
 /** Ask for the microphone before anything is paid for. Null when it is allowed, else why not. */
 export async function checkMicrophone(): Promise<EndReason | null> {
@@ -144,7 +129,7 @@ export class TalkSession {
 
   /** Call inside the tap that starts the call (iOS only lets audio start from a user gesture). */
   unlockAudio(): void {
-    audioSession("play-and-record");
+    setAudioSession("play-and-record");
     void this.room.startAudio();
   }
 
@@ -401,6 +386,6 @@ export class TalkSession {
     this.live?.detach();
     if (this.ctx) void restOutput(this.ctx).catch(() => {}); // kept for the next chat (TalkPanel audioContextNow)
     chatFaceEnd();
-    audioSession("auto");
+    setAudioSession("auto");
   }
 }
