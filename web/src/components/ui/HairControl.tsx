@@ -72,7 +72,7 @@ export function HairControl() {
       {/* The filter's styles at once: the thumbnails wrap onto as many rows as they need (no sideways scrolling).
           The padding leaves room for the selection ring. */}
       {/* a new filter fades its styles in (keyed: the grid is remade); not on first show, the tab fades it in */}
-      <RadioGroup key={filter} label="Hair style" className={`${picked ? "enter " : ""}mt-2 flex flex-wrap gap-2 py-0.5`}>
+      <RadioGroup key={filter} label="Hair style" chooseOnArrow={false} className={`${picked ? "enter " : ""}mt-2 flex flex-wrap gap-2 py-0.5`}>
         <button
           type="button"
           role="radio"

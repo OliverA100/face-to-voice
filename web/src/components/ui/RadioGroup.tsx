@@ -4,7 +4,8 @@
  * A row of role="radio" buttons (emotions, hair filters and styles, swatches, add-ons, Line chips) with the WAI-ARIA
  * radio group keyboard: the group is ONE Tab stop (the chosen radio, or the first when none is chosen in view), and the
  * arrow keys move to the next or previous radio and choose it (Home / End: the first / last). Disabled radios are
- * skipped. Renders the role="radiogroup" <div>; the radios inside need no extra props.
+ * skipped. `chooseOnArrow` false (the hair and add-on grids, where choosing downloads a style and rebuilds the head):
+ * the arrows only move, and Space or Enter chooses. Renders the role="radiogroup" <div>; the radios inside need no extra props.
  *
  * The roving tabindex is written on the DOM by a MutationObserver watching aria-checked, so nothing re-renders.
  */
@@ -27,7 +28,7 @@ export function nextRadio(key: string, at: number, n: number): number {
   return key === "Home" ? 0 : key === "End" ? n - 1 : -1;
 }
 
-export function RadioGroup({ label, className, children }: { label: string; className?: string; children: ReactNode }) {
+export function RadioGroup({ label, className, chooseOnArrow = true, children }: { label: string; className?: string; chooseOnArrow?: boolean; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const group = ref.current;
@@ -49,7 +50,7 @@ export function RadioGroup({ label, className, children }: { label: string; clas
     const r = radios[next];
     for (const x of radios) x.tabIndex = x === r ? 0 : -1;
     r.focus();
-    if (r.getAttribute("aria-checked") !== "true") r.click();
+    if (chooseOnArrow && r.getAttribute("aria-checked") !== "true") r.click();
   };
 
   return (

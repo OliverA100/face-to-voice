@@ -58,7 +58,7 @@ function AddonRow({ category, state }: { category: AddonCategory; state: AddonSn
         </span>
       </div>
       {/* Every style visible at once: the thumbnails wrap onto more rows (no sideways scrolling). */}
-      <RadioGroup label={`${label} style`} className="mt-2 flex flex-wrap gap-2 py-0.5">
+      <RadioGroup label={`${label} style`} chooseOnArrow={false} className="mt-2 flex flex-wrap gap-2 py-0.5">
         <button
           type="button"
           role="radio"
