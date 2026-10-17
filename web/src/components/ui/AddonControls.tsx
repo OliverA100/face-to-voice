@@ -45,6 +45,7 @@ function AddonRow({ category, state }: { category: AddonCategory; state: AddonSn
   const { label } = ADDONS[category];
   const chosen = state[category];
   const loading = state.loading[category];
+  const failed = state.failed[category];
   const current = chosen === "none" ? "None" : (addonStyleById(category, chosen)?.label ?? "");
 
   return (
@@ -52,7 +53,7 @@ function AddonRow({ category, state }: { category: AddonCategory; state: AddonSn
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-ink">{label}</span>
         <span className="text-label text-ink-3" aria-live="polite">
-          {loading ? "Loading…" : current}
+          {loading ? "Loading…" : failed ? "Couldn't load. Try again" : current}
         </span>
       </div>
       {/* Every style visible at once: the thumbnails wrap onto more rows (no sideways scrolling). One Tab stop, the arrows

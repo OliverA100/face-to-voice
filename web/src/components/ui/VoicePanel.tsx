@@ -17,6 +17,7 @@ import { type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject,
 
 import { captureFace } from "@/components/scene/Capture";
 import { extraReady } from "@/lib/headExtra";
+import { SceneFailedError, unlessSceneFails } from "@/lib/sceneFailure";
 import { characterSettled } from "@/lib/character";
 import { Alert } from "@/components/ui/Alert";
 import { ExportButton } from "@/components/ui/ExportButton";
@@ -184,8 +185,9 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
   };
 
   const fail = (e: unknown) => {
-    if (!(e instanceof VoiceApiError)) console.error("[voice]", e);
-    setError(e instanceof VoiceApiError ? { code: e.code, message: e.message } : { code: "upstream", message: "Something went wrong. Please try again." });
+    if (!(e instanceof VoiceApiError || e instanceof SceneFailedError)) console.error("[voice]", e);
+    if (e instanceof SceneFailedError) setError({ code: "scene", message: e.message });
+    else setError(e instanceof VoiceApiError ? { code: e.code, message: e.message } : { code: "upstream", message: "Something went wrong. Please try again." });
   };
 
   const findVoice = async () => {
@@ -197,7 +199,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
     // Claude answers in ~3 s, ElevenLabs takes ~8 s more: switch the hint so the wait reads as progress.
     const stageTimer = setTimeout(() => setStage("design"), 3500);
     try {
-      await extraReady; // the picture must show every slider: wait for head.extra.glb's targets (lib/headExtra.ts)
+      await unlessSceneFails(extraReady); // the picture must show every slider: wait for head.extra.glb's targets (lib/headExtra.ts)
       await characterSettled(); // and a Random character / Reset mid-change: wait for its morph and piece fade (lib/character.ts)
       const image = captureFace();
       const face = currentFaceSignature(); // as sent with the picture
@@ -449,6 +451,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
               saving={phase === "selecting" ? chosen : null}
               inUse={phase === "previews" ? inUse : null}
               onChoose={(i) => (i === inUse ? setPhase("ready") : chooseVoice(i))}
+              onPlayProblem={(message) => setError((now) => (message ? { code: "preview", message } : now?.code === "preview" ? null : now))}
             />
           </div>
         )}
@@ -547,6 +550,8 @@ const sphereOrb: PreviewOrb = ({ index, preview, playing, audios }) => <VoiceSph
  * at a time. Playback state is local to this list, so it resets whenever new previews arrive.
  * `inUse`: the take the current voice came from; its pill reads "In use" and goes back to Speak.
  */
+const PLAY_FAILED = "Couldn't play this voice. Check your connection and try again.";
+
 export function PreviewList({
   previews,
   line,
@@ -554,6 +559,7 @@ export function PreviewList({
   saving,
   inUse,
   onChoose,
+  onPlayProblem,
   orb = sphereOrb,
   dim = false,
 }: {
@@ -564,6 +570,8 @@ export function PreviewList({
   saving: number | null;
   inUse: number | null;
   onChoose: (index: number) => void;
+  /** A take that couldn't play (offline, an expired link): a message; null once one plays. */
+  onPlayProblem?: (message: string | null) => void;
   orb?: PreviewOrb;
   dim?: boolean; // the orb darkens on hover and focus and its icon turns white (the old image orbs, in /dev/voice-sphere)
 }) {
@@ -581,7 +589,11 @@ export function PreviewList({
     audios.current.forEach((a, j) => {
       if (a && j !== i) a.pause();
     });
-    el.play().catch(() => setPlaying(null));
+    setPlaying(i); // at once: with preload="none" the first play downloads the clip before it sounds
+    el.play().catch((e: unknown) => {
+      setPlaying((v) => (v === i ? null : v));
+      if (!(e instanceof DOMException && e.name === "AbortError")) onPlayProblem?.(PLAY_FAILED); // AbortError: paused before it began
+    });
   };
 
   return (
@@ -629,7 +641,14 @@ export function PreviewList({
               }}
               preload="none"
               src={p.url}
-              onPlay={() => setPlaying(i)}
+              onPlay={() => {
+                setPlaying(i);
+                onPlayProblem?.(null);
+              }}
+              onError={() => {
+                setPlaying((v) => (v === i ? null : v));
+                onPlayProblem?.(PLAY_FAILED);
+              }}
               onPause={() => setPlaying((v) => (v === i ? null : v))}
               onEnded={() => setPlaying((v) => (v === i ? null : v))}
             />

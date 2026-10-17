@@ -70,6 +70,10 @@ let lastRoom: string | undefined;
 
 /** The time left is shown only in the last stretch: a clock running all along makes a chat feel like a test. */
 const SHOW_LEFT_SECONDS = 30;
+const secondsLeft = (left: number) => {
+  const n = Math.max(0, left);
+  return `${n} ${n === 1 ? "second" : "seconds"} left`;
+};
 
 /**
  * The sphere beside the chat's state. While someone talks it answers their voice (how: ./loader/chrome.tsx
@@ -253,6 +257,7 @@ export function LiveTalk({
     listening: "Listening",
     thinking: "Thinking…",
     speaking: `${name} is speaking`,
+    reconnecting: "Reconnecting…",
     ended: "Conversation over",
   };
   const ended = snap.state === "ended";
@@ -265,7 +270,7 @@ export function LiveTalk({
           <LoaderSphere size={`${size}px`} voice={{ style: sphere?.style ?? VOICE_STYLES[VOICE_STYLE.id].style, read: voice.read }} />
         </div>
         <p className="min-w-0 flex-1 text-label text-ink">{label[snap.state]}</p>
-        {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{Math.max(0, left)} seconds left</span>}
+        {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{secondsLeft(left)}</span>}
       </header>
       {snap.caption && <p className="text-body text-ink">“{snap.caption}”</p>}
       {snap.heard && !ended && <p className="text-meta text-ink-3">You: {snap.heard}</p>}
@@ -275,6 +280,7 @@ export function LiveTalk({
           Tap to hear them
         </button>
       )}
+      {snap.muteFailed && !ended && <Alert>Couldn&apos;t switch the microphone. Try again.</Alert>}
       {ended && reason && <p className="text-label text-ink-2">{reason}</p>}
       <div className="flex items-center justify-end gap-2">
         {ended ? (
@@ -302,8 +308,20 @@ export function LiveTalk({
           </>
         )}
       </div>
-      {/* announced: connecting, joining and the end; not every turn (it would talk over the character) */}
-      <Status message={ended ? `Conversation over. ${reason}` : snap.joinedAt ? `${name} has joined` : label[snap.state]} />
+      {/* announced: connecting, joining, a reconnect, the last seconds and the end; not every turn (it would talk over the character) */}
+      <Status
+        message={
+          ended
+            ? `Conversation over. ${reason}`
+            : snap.state === "reconnecting"
+              ? label.reconnecting
+              : snap.joinedAt && left <= SHOW_LEFT_SECONDS
+                ? `Less than ${SHOW_LEFT_SECONDS} seconds left`
+                : snap.joinedAt
+                  ? `${name} has joined`
+                  : label[snap.state]
+        }
+      />
     </section>
   );
 }

@@ -14,6 +14,8 @@ import { dropOutput, outputOf, restOutput, wakeOutput } from "./output";
 import { addPhonemes } from "./phonemes";
 import { isAppleTouch, takeLongHide } from "./staleTab";
 
+const SPEECH_FAILED = "The line couldn't be spoken. Please try again.";
+
 const SAMPLE_RATE = ENVELOPE_RATE;
 const PRIME_SECONDS = 0.25; // audio buffered before playback starts (raised when chunks arrive slowly)
 const LEAD = 0.03; // s between "now" and the first scheduled sample
@@ -209,7 +211,7 @@ class SpeechPlayer {
       const res = await fetchResponse();
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
-        throw Object.assign(new Error(data.message ?? "Speech failed"), { code: data.error }); // the code: a limit links to the limits dialog
+        throw Object.assign(new Error(data.message ?? SPEECH_FAILED), { code: data.error ?? "upstream" }); // the code: a limit links to the limits dialog
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -230,7 +232,7 @@ class SpeechPlayer {
         if (done) break;
       }
       if (buffer.trim()) this.handleLine(buffer.trim());
-      if (!this.gotAudio) throw new Error("Speech failed"); // a 200 that wasn't the stream (an empty body, a proxy's page)
+      if (!this.gotAudio) throw Object.assign(new Error(SPEECH_FAILED), { code: "upstream" }); // a 200 that wasn't the stream (an empty body, a proxy's page)
       this.streamEnded = true;
       if (!this.started) this.startWhenRunning();
       this.watchEnd();

@@ -68,6 +68,8 @@ export const hairRig = {
   parent: null as Object3D | null,
   /** True while a style's file is on its way. */
   loading: false,
+  /** The last style asked for couldn't be loaded (offline, a server error); the picker went back to what is on the head. */
+  failed: false,
   /** Development: a strand file is missing (404), so the hair files aren't installed; HairControl says how to get them. */
   filesMissing: false,
 };
@@ -77,9 +79,9 @@ export const hairState: { style: HairStyle; colour: HairColourId } = { ...HAIR_D
 
 // --- UI sync (useSyncExternalStore in HairControl) -------------------------------------------
 
-export type HairSnapshot = { style: HairStyle; colour: HairColourId; loading: boolean; filesMissing: boolean };
+export type HairSnapshot = { style: HairStyle; colour: HairColourId; loading: boolean; failed: boolean; filesMissing: boolean };
 /** What the server renders (and the client's first paint), before sessionStorage is consulted. */
-export const HAIR_SERVER_SNAPSHOT: HairSnapshot = { ...HAIR_DEFAULTS, loading: false, filesMissing: false };
+export const HAIR_SERVER_SNAPSHOT: HairSnapshot = { ...HAIR_DEFAULTS, loading: false, failed: false, filesMissing: false };
 let snapshot: HairSnapshot = HAIR_SERVER_SNAPSHOT;
 
 /** `blendSeconds` > 0: the colour is blending (Random character), and whatever follows it should blend as long (addons.ts). */
@@ -98,7 +100,7 @@ export function hairSnapshot(): HairSnapshot {
   return snapshot;
 }
 const notify = (blendSeconds = 0) => {
-  snapshot = { style: hairState.style, colour: hairState.colour, loading: hairRig.loading, filesMissing: hairRig.filesMissing };
+  snapshot = { style: hairState.style, colour: hairState.colour, loading: hairRig.loading, failed: hairRig.failed, filesMissing: hairRig.filesMissing };
   for (const fn of listeners) fn(blendSeconds);
 };
 
@@ -358,6 +360,7 @@ async function syncHair(crossfade = false): Promise<void> {
   const id = ++request;
   inflight?.abort();
   inflight = null;
+  hairRig.failed = false;
   const style = hairState.style === "none" ? undefined : hairStyleById(hairState.style);
   if (!style || !hairRig.parent) {
     swapOut(null, crossfade && !!hairRig.parent);
@@ -400,6 +403,7 @@ async function syncHair(crossfade = false): Promise<void> {
       // doesn't ask for the failed file again.
       if (id === request) {
         hairState.style = (hairRig.mesh?.userData.style as HairStyle | undefined) ?? "none";
+        hairRig.failed = true;
         persist();
       }
       if (process.env.NODE_ENV !== "production") void checkHairFiles(style);

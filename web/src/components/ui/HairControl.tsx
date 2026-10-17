@@ -32,7 +32,7 @@ export function HairControl() {
   // The server (and the hydrating client) render the defaults; the saved choice comes in with
   // the first client snapshot, the same state the head reads when it mounts.
   const state = useSyncExternalStore(onHairChange, hairSnapshot, () => HAIR_SERVER_SNAPSHOT);
-  const { loading, filesMissing } = state;
+  const { loading, failed, filesMissing } = state;
 
   const chosen = state.style === "none" ? undefined : hairStyleById(state.style);
   const current = state.style === "none" ? "None" : (chosen?.label ?? "");
@@ -45,7 +45,7 @@ export function HairControl() {
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-ink">Hair</span>
         <span className="text-label text-ink-3" aria-live="polite">
-          {loading ? "Loading…" : current}
+          {loading ? "Loading…" : failed ? "Couldn't load. Try again" : current}
         </span>
       </div>
       {/* Development only (lib/hair.ts checkHairFiles): a fresh clone has no strand files. */}

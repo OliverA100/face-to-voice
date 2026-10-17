@@ -120,14 +120,16 @@ export const addonRig = {
   meshes: perCategory(() => null as Object3D | null),
   /** True while a category's style is on its way. */
   loading: perCategory(() => false),
+  /** The last style asked for in a category couldn't be loaded; the picker went back to what is on the head. */
+  failed: perCategory(() => false),
   /** The head's root node, set by Head.tsx. */
   parent: null as Object3D | null,
 };
 
 // --- UI sync (useSyncExternalStore in AddonControls) ------------------------------------------
 
-export type AddonSnapshot = Styles & { facialHairColour: FacialHairColour; loading: Record<AddonCategory, boolean> };
-export const ADDON_SERVER_SNAPSHOT: AddonSnapshot = { ...ADDON_DEFAULTS, loading: perCategory(() => false) };
+export type AddonSnapshot = Styles & { facialHairColour: FacialHairColour; loading: Record<AddonCategory, boolean>; failed: Record<AddonCategory, boolean> };
+export const ADDON_SERVER_SNAPSHOT: AddonSnapshot = { ...ADDON_DEFAULTS, loading: perCategory(() => false), failed: perCategory(() => false) };
 let snapshot = ADDON_SERVER_SNAPSHOT;
 
 const listeners = new Set<() => void>();
@@ -143,7 +145,7 @@ export function addonSnapshot(): AddonSnapshot {
   return snapshot;
 }
 const notify = () => {
-  snapshot = { ...addonState, loading: { ...addonRig.loading } };
+  snapshot = { ...addonState, loading: { ...addonRig.loading }, failed: { ...addonRig.failed } };
   for (const fn of listeners) fn();
 };
 
@@ -457,6 +459,7 @@ export async function syncAddon(category: AddonCategory, crossfade = false): Pro
   const id = ++requests[category];
   inflight[category]?.abort();
   inflight[category] = null;
+  addonRig.failed[category] = false;
   const chosen = addonState[category];
   const style = chosen === "none" ? undefined : addonStyleById(category, chosen);
   if (!style || !addonRig.parent || addonRig.meshes[category]?.userData.style === style.id) {
@@ -483,6 +486,7 @@ export async function syncAddon(category: AddonCategory, crossfade = false): Pro
       // doesn't ask for the failed file again.
       if (id === requests[category]) {
         addonState[category] = (addonRig.meshes[category]?.userData.style as AddonStyle | undefined) ?? "none";
+        addonRig.failed[category] = true;
         persist();
       }
     }

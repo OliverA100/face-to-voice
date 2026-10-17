@@ -31,7 +31,7 @@ import { type LevelMeter, micMeter } from "@/lib/talk/meter";
 import { chatFaceEnd, chatFaceStart, chatListening, chatMood, chatNod } from "@/lib/talk/face";
 import type { TalkTicket } from "@/lib/voice/client";
 
-export type TalkState = "connecting" | "waking" | "listening" | "thinking" | "speaking" | "ended";
+export type TalkState = "connecting" | "waking" | "listening" | "thinking" | "speaking" | "reconnecting" | "ended";
 export type EndReason = "user" | "time_up" | "idle" | "voice_error" | "left" | "disconnected" | "no_agent" | "mic_denied" | "no_mic" | "mic_busy" | "error";
 
 export interface TalkSnapshot {
@@ -45,6 +45,8 @@ export interface TalkSnapshot {
   /** When the character joined (the clock starts then), ms since epoch. */
   joinedAt: number | null;
   muted: boolean;
+  /** The last Mute or Unmute didn't take (the button still says what it would do). */
+  muteFailed: boolean;
   /** The browser blocked playback: a tap on "Tap to hear them" (room.startAudio) unblocks it. */
   needsAudioTap: boolean;
 }
@@ -103,7 +105,7 @@ export class TalkSession {
   private readonly halfDuplex = echoOff();
   readonly room = new Room({ audioCaptureDefaults: { echoCancellation: !this.halfDuplex, noiseSuppression: !this.halfDuplex, autoGainControl: !this.halfDuplex } });
   private duplexTimer: ReturnType<typeof setTimeout> | null = null;
-  private snap: TalkSnapshot = { state: "connecting", caption: "", heard: "", mood: null, endReason: null, joinedAt: null, muted: false, needsAudioTap: false };
+  private snap: TalkSnapshot = { state: "connecting", caption: "", heard: "", mood: null, endReason: null, joinedAt: null, muted: false, muteFailed: false, needsAudioTap: false };
   private readonly listeners = new Set<() => void>();
   private readonly audio: HTMLMediaElement[] = [];
   private wakeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -211,6 +213,13 @@ export class TalkSession {
     room.on(RoomEvent.AudioPlaybackStatusChanged, () => this.set({ needsAudioTap: !room.canPlaybackAudio }));
     room.on(RoomEvent.MediaDevicesError, (e: Error) => this.finish(micFailure(e)));
     room.on(RoomEvent.Disconnected, () => this.finish("disconnected"));
+    // A network blip: livekit-client tries to get the room back; until then the line is dead, so say so.
+    room.on(RoomEvent.Reconnecting, () => this.snap.state !== "ended" && this.set({ state: "reconnecting" }));
+    room.on(RoomEvent.Reconnected, () => {
+      if (this.snap.state !== "reconnecting") return;
+      const s = this.agentState;
+      this.set({ state: s === "thinking" || s === "speaking" ? s : "listening" });
+    });
     // The visitor talking (livekit-client's own voice detection on the mic): the character nods along while it listens.
     room.on(RoomEvent.ActiveSpeakersChanged, (speakers: Participant[]) => chatListening(speakers.some((p) => p.isLocal) && this.agentState !== "speaking"));
     // Each reply's word timings, ahead of its audio (one stream per reply, JSON lines): the lip sync's cues. One line
@@ -329,9 +338,10 @@ export class TalkSession {
   async setMuted(muted: boolean): Promise<void> {
     try {
       await this.room.localParticipant.setMicrophoneEnabled(!muted);
-      this.set({ muted });
+      this.set({ muted, muteFailed: false });
     } catch (e) {
-      console.warn("[talk] mute failed:", e); // stays as it was; the button shows which
+      console.warn("[talk] mute failed:", e);
+      this.set({ muteFailed: true });
     }
   }
 

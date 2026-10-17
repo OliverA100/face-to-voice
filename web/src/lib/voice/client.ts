@@ -41,6 +41,8 @@ export class VoiceApiError extends Error {
   }
 }
 
+export const NETWORK_MESSAGE = "Couldn't reach the server. Check your connection and try again.";
+
 async function post<T>(path: string, body: unknown): Promise<T> {
   let res: Response;
   try {
@@ -48,7 +50,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   } catch (e) {
     // Network failure, or a wrapper (bot protection) rejecting with a non-Error value.
     console.warn("[voice] request failed:", e instanceof Error ? e.message : e);
-    throw new VoiceApiError("network", "Couldn't reach the server. Check your connection and try again.", 0);
+    throw new VoiceApiError("network", NETWORK_MESSAGE, 0);
   }
   const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string } & T;
   if (!res.ok) throw new VoiceApiError(data.error ?? "upstream", data.message ?? "Something went wrong. Please try again.", res.status);

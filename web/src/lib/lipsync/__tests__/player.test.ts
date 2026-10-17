@@ -148,7 +148,7 @@ describe("SpeechPlayer", () => {
 
   it("a 200 without any audio (an empty body, a proxy's page) is an error, not a silent line", async () => {
     const { speechPlayer } = await import("../player");
-    await expect(speechPlayer.speak(async () => new Response("<html>challenge</html>"))).rejects.toThrow("Speech failed");
+    await expect(speechPlayer.speak(async () => new Response("<html>challenge</html>"))).rejects.toThrow("couldn't be spoken");
     expect(speechPlayer.state).toBe("error");
   });
 

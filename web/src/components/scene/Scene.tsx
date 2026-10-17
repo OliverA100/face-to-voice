@@ -12,6 +12,7 @@ import { ACESFilmicToneMapping, type Object3D, type PerspectiveCamera } from "th
 import { registerView } from "@/lib/debugView";
 import { revealedSnapshot, subscribeRevealed } from "@/lib/headLoad";
 import { dropTier, probeTier } from "@/lib/quality";
+import { setSceneFailure } from "@/lib/sceneFailure";
 import { setTextureRenderer } from "@/lib/textures";
 
 import { Capture } from "./Capture";
@@ -37,6 +38,9 @@ const maxDpr = () => Math.min(MAX_DPR, typeof window === "undefined" ? 1 : windo
 
 // After this many real DPR changes the device is clearly borderline: stay at the low setting.
 const MAX_DPR_CHANGES = 3;
+
+/** How long a lost WebGL context may take to come back before the card says the head stopped. */
+const CONTEXT_RESTORE_WAIT_MS = 3000;
 
 /**
  * Orbit controls around the head; on a portrait canvas the whole view is lifted by CAMERA.portraitLift. No rotating
@@ -120,6 +124,10 @@ export default function Scene() {
       gl={{ antialias: true, alpha: false, stencil: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping }} // Lighting.tsx owns tone mapping + exposure
       shadows={false}
       onCreated={({ gl }) => {
+        // A context the browser doesn't give back (GPU reset, too many contexts on a phone) leaves a blank card: say so.
+        let lost: ReturnType<typeof setTimeout> | undefined;
+        gl.domElement.addEventListener("webglcontextlost", () => (lost = setTimeout(() => setSceneFailure("webgl"), CONTEXT_RESTORE_WAIT_MS)));
+        gl.domElement.addEventListener("webglcontextrestored", () => clearTimeout(lost));
         probeTier(gl.getContext()); // the start quality tier (lib/quality.ts)
         setTextureRenderer(gl); // KTX2 transcoding picks a format this GPU supports (lib/textures.ts)
       }}

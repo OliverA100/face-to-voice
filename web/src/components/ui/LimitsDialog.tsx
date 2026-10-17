@@ -160,7 +160,7 @@ export function LimitsDialog() {
         </p>
 
         {failed ? (
-          <p className="text-label text-danger">
+          <p role="alert" className="text-label text-danger">
             Couldn’t load your limits.{" "}
             <button type="button" onClick={load} className="text-ink underline underline-offset-2 hover:text-ink-hover">
               Try again

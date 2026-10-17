@@ -12,6 +12,7 @@ import { currentEmotion } from "@/lib/emotion";
 import { isLimitError } from "@/lib/limits/open";
 import { speechPlayer, type PlayerState } from "@/lib/lipsync/player";
 import { perf } from "@/lib/perf";
+import { NETWORK_MESSAGE } from "@/lib/voice/client";
 
 const PRESET_LINES = [
   "Hello there. I'm the face you just made, and this is what I sound like.",
@@ -91,7 +92,9 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
       .then(() => {
         perf.speakFirstAudibleMs = speechPlayer.metrics.firstAudibleMs;
       })
-      .catch((e: unknown) => setError({ message: e instanceof Error ? e.message : "Speech failed", limits: isLimitError(e) }));
+      // A server reply carries a code and a message written for visitors; anything else is the browser's own wording
+      // for a dropped connection ("Failed to fetch", "Load failed").
+      .catch((e: unknown) => setError({ message: e instanceof Error && "code" in e ? e.message : NETWORK_MESSAGE, limits: isLimitError(e) }));
   };
 
   return (
@@ -141,7 +144,7 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
           >
             Sync
           </button>
-          {state === "playing" && (
+          {(state === "playing" || busy) && (
             <button
               type="button"
               onClick={() => speechPlayer.stop()}
