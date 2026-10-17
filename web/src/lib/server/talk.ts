@@ -83,6 +83,8 @@ const roomOf = (member: string) => member.slice(member.indexOf("|") + 1);
  */
 const LIVEKIT_TIMEOUT_SECONDS = 4;
 const SLOTS_LOCK_SECONDS = 30;
+/** How long a request waits for another one taking a slot (a room check or two) before saying everyone is busy. */
+const SLOTS_WAIT_MS = 3000;
 
 function roomService(): RoomServiceClient {
   return new RoomServiceClient(env.livekit.url.replace(/^ws/, "http"), env.livekit.apiKey(), env.livekit.apiSecret(), {
@@ -103,8 +105,14 @@ async function liveRooms(names: string[]): Promise<Set<string>> {
  * network id never is limited this way, or one chat would block everyone behind the same address.
  */
 export async function takeSlot(room: string, visitor: string, replaces?: string, ownBrowser = false): Promise<void> {
-  const lock = await acquireLock("ftv:lock:talk-slots", SLOTS_LOCK_SECONDS).catch(() => null);
-  if (!lock) throw new ApiError("busy", TALK_MESSAGES.busy, 409);
+  const busy = () => new ApiError("busy", TALK_MESSAGES.busy, 409);
+  const take = () =>
+    acquireLock("ftv:lock:talk-slots", SLOTS_LOCK_SECONDS).catch(() => {
+      throw busy(); // Redis failing: busy at once (fail closed)
+    });
+  let lock = await take();
+  for (const until = Date.now() + SLOTS_WAIT_MS; !lock && Date.now() < until; lock = await take()) await new Promise((r) => setTimeout(r, 100));
+  if (!lock) throw busy();
   try {
     await takeSlotLocked(room, visitor, replaces, ownBrowser);
   } finally {

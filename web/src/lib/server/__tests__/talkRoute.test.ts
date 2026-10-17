@@ -40,7 +40,7 @@ import { TokenVerifier } from "livekit-server-sdk";
 
 import { POST } from "@/app/api/talk/token/route";
 import type { CharacterProfile } from "@/lib/character/profile";
-import { pinnedVoices } from "@/lib/server/cache";
+import { acquireLock, pinnedVoices, releaseLock } from "@/lib/server/cache";
 import { savedProfile } from "@/lib/server/characterProfile";
 import type { TalkMetadata } from "@/lib/server/characterPrompt";
 import type { DescriptionFields } from "@/lib/server/prompt";
@@ -134,6 +134,12 @@ describe("POST /api/talk/token", () => {
       vi.useRealTimers();
       await releaseSlot(room);
     }
+  });
+
+  it("waits a moment for another request taking a slot, rather than saying everyone is busy", async () => {
+    const held = (await acquireLock("ftv:lock:talk-slots", 30))!; // another visitor's request, mid-way
+    setTimeout(() => void releaseLock("ftv:lock:talk-slots", held), 300);
+    expect((await ticket({}, "3.3.3.3")).status).toBe(200);
   });
 
   it("'Have another chat': the browser's new conversation replaces the one it names, and closes its room", async () => {
