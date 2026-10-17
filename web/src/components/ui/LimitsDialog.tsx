@@ -107,7 +107,6 @@ export function LimitsDialog() {
 
   const close = () => ref.current?.close();
   const localTime = resetAt ? new Date(resetAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
-  const picks = limits?.yours.find((row) => row.id === "select"); // the numbers in the note under the rows
 
   return (
     <dialog
@@ -147,7 +146,7 @@ export function LimitsDialog() {
 
           <p className="text-label text-ink-2">
             Speaking, chatting and finding voices have no limits. Picking a voice makes a new voice at ElevenLabs, which
-            has room for only so many, so each browser can pick a few a day.
+            has room for only so many, so picks are limited each day.
           </p>
 
           <p className="rounded-tray bg-surface px-3 py-2 text-label text-ink" aria-live="off">
@@ -184,18 +183,12 @@ export function LimitsDialog() {
                     <Row key={row.id} row={row} />
                   ))}
                 </ul>
-                <p className="text-meta text-ink-3">
-                  {limits.per === "browser" ? (
-                    picks && (
-                      <>
-                        {picks.limit} a day on this browser, counted with a cookie that holds only a random id. Each network can pick{" "}
-                        {picks.network.limit} a day in all, so a very busy Wi-Fi can run out sooner.
-                      </>
-                    )
-                  ) : (
-                    "This browser isn't keeping cookies, so these are counted per network connection: people on the same Wi-Fi share them."
-                  )}
-                </p>
+                {limits.per !== "browser" && (
+                  <p className="text-meta text-ink-3">
+                    This browser isn&apos;t keeping cookies, so these are counted per network connection: people on the same
+                    Wi-Fi share them.
+                  </p>
+                )}
               </section>
             </>
           )}

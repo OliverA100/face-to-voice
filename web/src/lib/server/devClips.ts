@@ -14,7 +14,7 @@ import { TTS_MODEL } from "./elevenlabs";
 import { completeClip } from "./speech";
 
 /** Where the saved clips live (the repository's gitignored pipeline/out). */
-const clipsDir = () => path.join(/* turbopackIgnore: true */ process.cwd(), "..", "pipeline", "out", "lipsync", "clips");
+export const clipsDir = () => path.join(/* turbopackIgnore: true */ process.cwd(), "..", "pipeline", "out", "lipsync", "clips");
 
 export type ClipMeta = {
   text: string; // the visitor's line
