@@ -10,3 +10,6 @@ minimumReleaseAgeExclude:
 # uses Timer itself.
 patchedDependencies:
   '@react-three/fiber@9.8.0': patches/@react-three__fiber@9.8.0.patch
+# source-map-js 1.2.1 has an advisory (GHSA-68fv-2mgg-jv7q); next's postcss still pins it. Drop once next ships 1.2.2.
+overrides:
+  source-map-js@<1.2.2: 1.2.2
