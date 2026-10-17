@@ -21,8 +21,13 @@
  *   - the plugin's stream: when it pushes words (pushTimedTranscript), each word takes its times from those characters
  *     (the words are consecutive slices of the same character stream), from its first letter to its last, before
  *     anything reads them: the captions' pacing and the lip sync's "ftv.words" both get true times.
+ * Both reach into the plugin's internals, so they go in only for the plugin version they were written against, with
+ * every method they wrap present (pluginMismatch); otherwise the plugin's own timings are used, and the log says why.
  */
+import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { SynthesizeStream } from "@livekit/agents-plugin-elevenlabs";
 import type { voice } from "@livekit/agents";
@@ -132,11 +137,34 @@ export function timeWord(t: Timeline, text: string): [number, number] | null {
   return [t.starts[at], t.ends[end]];
 }
 
+/** The plugin version the patches were written and checked against (package.json pins it). */
+export const PATCHED_PLUGIN = "1.9.2";
+
+const pluginEntry = () => import.meta.resolve("@livekit/agents-plugin-elevenlabs");
+type WsPrototype = { on: (...a: unknown[]) => unknown };
+const pluginWebSocket = () => (createRequire(pluginEntry())("ws") as { WebSocket?: { prototype?: WsPrototype } }).WebSocket;
+
+/** Why the patches can't go in (null when they can): another plugin version, or something they wrap is missing. */
+export function pluginMismatch(): string | null {
+  const pkg = JSON.parse(readFileSync(join(dirname(fileURLToPath(pluginEntry())), "..", "package.json"), "utf8")) as { version?: string };
+  if (pkg.version !== PATCHED_PLUGIN) return `plugin ${pkg.version}, patched for ${PATCHED_PLUGIN}`;
+  const proto = SynthesizeStream.prototype as unknown as Record<string, unknown>;
+  for (const name of ["pushTimedTranscript", "markDone", "close"]) if (typeof proto[name] !== "function") return `no SynthesizeStream.${name}`;
+  if (!Object.getOwnPropertyDescriptor(proto, "contextId")?.get) return "no SynthesizeStream.contextId";
+  if (typeof pluginWebSocket()?.prototype?.on !== "function") return "no ws WebSocket.on";
+  return null;
+}
+
 let installed = false;
 
-/** `sampleRate`: the TTS output's (the plugin's encoding, pcm_22050 by default). */
-export function fixWordTimings(sampleRate: number): void {
-  if (installed) return;
+/** `sampleRate`: the TTS output's (the plugin's encoding, pcm_22050 by default). False: left out (pluginMismatch). */
+export function fixWordTimings(sampleRate: number): boolean {
+  if (installed) return true;
+  const mismatch = pluginMismatch();
+  if (mismatch) {
+    console.warn(`[ftv] word timings left to the plugin: ${mismatch}`);
+    return false;
+  }
   installed = true;
   const timelines = new Map<string, Timeline>();
   const finished = new Set<string>(); // contexts done with (a late message must not start a timeline again)
@@ -146,11 +174,10 @@ export function fixWordTimings(sampleRate: number): void {
     finished.add(id);
   };
 
-  // 1. The socket: the same `ws` module instance the plugin uses.
-  const pluginRequire = createRequire(import.meta.resolve("@livekit/agents-plugin-elevenlabs"));
-  const { WebSocket } = pluginRequire("ws") as { WebSocket: { prototype: { on: (...a: unknown[]) => unknown } } };
-  const on = WebSocket.prototype.on;
-  WebSocket.prototype.on = function (this: { url?: string }, event: unknown, listener: unknown) {
+  // 1. The socket: the same `ws` module instance the plugin uses (every socket in the process, matched by its URL).
+  const wsProto = pluginWebSocket()!.prototype!;
+  const on = wsProto.on;
+  wsProto.on = function (this: { url?: string }, event: unknown, listener: unknown) {
     const dialogue = !!this.url?.includes("/text-to-dialogue/");
     if (event === "message" && typeof listener === "function" && (dialogue || this.url?.includes("/multi-stream-input"))) {
       const read = listener as (data: unknown, ...rest: unknown[]) => unknown;
@@ -201,4 +228,5 @@ export function fixWordTimings(sampleRate: number): void {
     forget(this.contextId);
     return close.call(this);
   };
+  return true;
 }

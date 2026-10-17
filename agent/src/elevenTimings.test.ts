@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
-import { type DialogueMessage, newTimeline, recordMessage, timeWord } from "./elevenTimings.ts";
+import { type DialogueMessage, newTimeline, PATCHED_PLUGIN, pluginMismatch, recordMessage, timeWord } from "./elevenTimings.ts";
 
 const RATE = 1000; // samples per second: 0.1 s of audio is 100 samples
 const audio = (seconds: number) => Buffer.alloc(Math.round(seconds * RATE) * 2).toString("base64");
@@ -54,5 +56,16 @@ describe("words from the characters", () => {
 
   it("wait for characters that haven't come yet", () => {
     expect(times(timeline("Hi"), ["Hi ", "there"])).toEqual([[0, 0.2], null]);
+  });
+});
+
+describe("the patches' fit to the plugin", () => {
+  it("match the installed plugin (after a plugin upgrade: re-check the patches, then raise PATCHED_PLUGIN)", () => {
+    expect(pluginMismatch()).toBeNull();
+  });
+
+  it("are written for the version package.json pins", () => {
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { dependencies: Record<string, string> };
+    expect(pkg.dependencies["@livekit/agents-plugin-elevenlabs"]).toBe(PATCHED_PLUGIN);
   });
 });
