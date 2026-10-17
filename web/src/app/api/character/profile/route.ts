@@ -10,11 +10,11 @@ import { profileFor } from "@/lib/server/characterProfile";
 import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { checkVisitorLimit, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { Key } from "@/lib/server/schemas";
 
 export const maxDuration = 60;
 
-const Hex = z.string().regex(/^[a-f0-9]{64}$/);
-const Body = z.object({ faceKey: Hex, descKey: Hex, regenerate: z.boolean().default(false) });
+const Body = z.object({ faceKey: Key, descKey: Key, regenerate: z.boolean().default(false) });
 
 export async function POST(request: Request) {
   try {

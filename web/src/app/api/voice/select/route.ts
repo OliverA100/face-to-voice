@@ -8,13 +8,14 @@ import { z } from "zod";
 import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { checkVisitorLimit, requireStore } from "@/lib/server/ratelimit";
+import { Key, Take } from "@/lib/server/schemas";
 import { selectPreview } from "@/lib/server/voice";
 
 export const maxDuration = 120; // a save may wait up to 30 s for the same take being saved by another request
 
 const Body = z.object({
-  descKey: z.string().regex(/^[a-f0-9]{64}$/),
-  previewIndex: z.number().int().min(0).max(2),
+  descKey: Key,
+  previewIndex: Take,
   generatedVoiceId: z.string().max(128).optional(), // the preview the visitor heard
 });
 

@@ -10,13 +10,14 @@ import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { LookSchema } from "@/lib/server/look";
 import { checkVisitorLimit, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { JpegDataUrl, Weights } from "@/lib/server/schemas";
 import { DESIGN_BUDGET_MS, designForFace } from "@/lib/server/voice";
 
 export const maxDuration = 120; // Fluid compute (300 s on every plan); voice.ts DESIGN_BUDGET_MS keeps the work inside it
 
 const Body = z.object({
-  image: z.string().regex(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/).max(1_500_000),
-  weights: z.record(z.string().max(64), z.number().min(-1).max(1)),
+  image: JpegDataUrl,
+  weights: Weights,
   look: LookSchema.default({}),
 });
 

@@ -14,6 +14,7 @@ import { guard } from "@/lib/server/guards";
 import { SpeakEmotion, spokenText } from "@/lib/server/emotion";
 import { checkVisitorLimit, consumeDailyCap, refundDailyCap, requireStore } from "@/lib/server/ratelimit";
 import { withPhonemes } from "@/lib/server/pronounce";
+import { Key, Take } from "@/lib/server/schemas";
 import { cachedSpeech, generateSpeech, speechHeaders } from "@/lib/server/speech";
 import { env } from "@/lib/server/env";
 import { closestStudioVoice, takeVoice, voiceGone, voiceRecord, voiceSpoken } from "@/lib/server/voice";
@@ -21,8 +22,8 @@ import { closestStudioVoice, takeVoice, voiceGone, voiceRecord, voiceSpoken } fr
 export const maxDuration = 60;
 
 const Body = SpeakEmotion.extend({
-  descKey: z.string().regex(/^[a-f0-9]{64}$/),
-  take: z.number().int().min(0).max(2).optional(), // the preview the visitor chose (each take has its own voice)
+  descKey: Key,
+  take: Take.optional(), // the preview the visitor chose (each take has its own voice)
   text: z.string().trim().min(1).max(300),
 });
 

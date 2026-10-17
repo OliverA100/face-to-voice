@@ -9,14 +9,14 @@ import { z } from "zod";
 import { ApiError, errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { checkVisitorLimit, consumeDailyCap, refundDailyCap, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { Key, Take } from "@/lib/server/schemas";
 import { browserId } from "@/lib/server/visitor";
 import { inviteOk, startTalk, TALK_MESSAGES, talkIsPublic } from "@/lib/server/talk";
 
-const Hex = z.string().regex(/^[a-f0-9]{64}$/);
 const Body = z.object({
-  faceKey: Hex,
-  descKey: Hex,
-  take: z.number().int().min(0).max(2).optional(),
+  faceKey: Key,
+  descKey: Key,
+  take: Take.optional(),
   invite: z.string().max(128).optional(),
   replaces: z.string().regex(/^talk-[0-9a-f-]{36}$/).optional(), // this browser's previous conversation
 });

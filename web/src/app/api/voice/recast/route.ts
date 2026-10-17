@@ -11,17 +11,17 @@ import { errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { LookSchema } from "@/lib/server/look";
 import { checkVisitorLimit, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { JpegDataUrl, Key, Weights } from "@/lib/server/schemas";
 import { recastFor } from "@/lib/server/voice";
 
 export const maxDuration = 60;
 
-const Hex = z.string().regex(/^[a-f0-9]{64}$/);
 const Body = z.object({
-  image: z.string().regex(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/).max(1_500_000).optional(),
-  weights: z.record(z.string().max(64), z.number().min(-1).max(1)),
+  image: JpegDataUrl.optional(),
+  weights: Weights,
   look: LookSchema.default({}),
-  faceKey: Hex,
-  descKey: Hex,
+  faceKey: Key,
+  descKey: Key,
 });
 
 export async function POST(request: Request) {
