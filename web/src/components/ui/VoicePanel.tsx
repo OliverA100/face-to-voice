@@ -22,7 +22,7 @@ import { characterSettled } from "@/lib/character";
 import { Alert } from "@/components/ui/Alert";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { SpeakBar } from "@/components/ui/SpeakBar";
-import { BusyPill, BusySwap, Spinner } from "@/components/ui/Spinner";
+import { BusyPill, BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { useHeightTransition } from "@/components/ui/useHeightTransition";
 import { VoiceSphere, VoiceSpherePlaceholder } from "@/components/ui/VoiceSphere";
@@ -327,13 +327,7 @@ export function VoicePanel() {
                     <path d="M6 4l4 4-4 4" />
                   </svg>
                 )}
-                {i === 3 && meeting ? (
-                  // Meet asked for: its profile is on its way (the Speak step's pill spins too)
-                  <span className="flex items-center gap-1.5 text-ink-3">
-                    {s}
-                    <Spinner />
-                  </span>
-                ) : i !== step && reachable[i] && !busy && !meeting ? (
+                {i !== step && reachable[i] && !busy && !meeting ? (
                   // hover as the panel tabs (SliderPanel): grey → ink, no underline (an underline
                   // here stands out from the rest)
                   <button type="button" onClick={() => (i === 3 ? void meet() : goTo(i))} className="text-ink-3 transition-colors hover:text-ink">
