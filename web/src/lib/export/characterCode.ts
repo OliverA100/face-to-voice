@@ -8,6 +8,7 @@
  * keys a reload reads, so the app's usual restore code checks every value (unknown ids and targets are ignored,
  * numbers clamped to their ranges).
  */
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
 export const CHARACTER_FORMAT = "face-to-voice/character";
 export const CHARACTER_VERSION = 1;
@@ -52,16 +53,16 @@ export function decodeCharacter(code: string): CharacterFile | null {
 }
 
 /**
- * The sessionStorage entries a reload reads (keys and shapes as in lib/faceSession.ts, pose.ts, hair.ts, addons.ts,
- * skin.ts and eyes.ts). Each module validates its own entry when it restores.
+ * The sessionStorage entries a reload reads (shapes as in lib/faceSession.ts, pose.ts, hair.ts, addons.ts, skin.ts and
+ * eyes.ts). Each module validates its own entry when it restores.
  */
 export function storageEntries(c: CharacterFile): Record<string, string> {
   return {
-    "ftv-face": JSON.stringify({ shape: c.shape, emotion: c.emotion, intensity: c.intensity }),
-    "ftv-pose": JSON.stringify(c.pose),
-    "ftv-hair": JSON.stringify(c.hair),
-    "ftv-addons": JSON.stringify(c.addons),
-    "ftv-skin": String(c.skin),
-    "ftv-eyes": String(c.eyes),
+    [STORAGE_KEYS.face]: JSON.stringify({ shape: c.shape, emotion: c.emotion, intensity: c.intensity }),
+    [STORAGE_KEYS.pose]: JSON.stringify(c.pose),
+    [STORAGE_KEYS.hair]: JSON.stringify(c.hair),
+    [STORAGE_KEYS.addons]: JSON.stringify(c.addons),
+    [STORAGE_KEYS.skin]: String(c.skin),
+    [STORAGE_KEYS.eyes]: String(c.eyes),
   };
 }

@@ -14,8 +14,9 @@ import { emotionDefs, manifest, MODELS_BASE, sliders } from "@/lib/data";
 import { applyEmotion, emotionRig } from "@/lib/emotion";
 import { prefetchPart } from "@/lib/headLoad";
 import { morphs } from "@/lib/morphs/store";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
-const STORAGE_KEY = "ftv-face"; // sessionStorage: kept across reloads, but a new tab opens on the blank head
+const STORAGE_KEY = STORAGE_KEYS.face;
 
 type Saved = { shape?: Record<string, number>; emotion?: string; intensity?: number };
 

@@ -19,6 +19,7 @@ import { hairIndex, MODELS_BASE, type HairStyleDef } from "@/lib/data";
 import { partDone, prefetchPart, takePrefetched } from "@/lib/headLoad";
 import { MOTION } from "@/lib/motion";
 import { finishPieceFade, pieceFade, swapPiece } from "@/lib/pieceFade";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 import { HAIR_COLOURS, NATURAL_HAIR } from "@/lib/swatches";
 
 /** "none" or a style id from hair/index.json ("haircs-v0-00681", "bystedt-long", …). */
@@ -32,7 +33,7 @@ const HAIR_MATERIAL = {
   natural: { saturation: 0.8 },
 };
 
-const STORAGE_KEY = "ftv-hair"; // sessionStorage: kept across reloads, but a new tab opens on the blank head
+const STORAGE_KEY = STORAGE_KEYS.hair;
 const DEFAULT_STYLE: HairStyle = "none"; // the first-visit style: a blank head; Reset uses it too
 const CACHE_SIZE = 4; // built styles kept in memory (each is a few MB of GPU buffers on a phone)
 

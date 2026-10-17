@@ -11,13 +11,14 @@ import gsap from "gsap";
 import { Color, type MeshPhysicalMaterial } from "three";
 
 import { MOTION } from "@/lib/motion";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 import { SKIN_TONES } from "@/lib/swatches";
 
 export { SKIN_TONES } from "@/lib/swatches"; // plain data, shared with the server's allowlist (lib/server/look.ts)
 export type SkinToneId = (typeof SKIN_TONES)[number]["id"];
 
 export const SKIN_DEFAULT: SkinToneId = "beige";
-const STORAGE_KEY = "ftv-skin";
+const STORAGE_KEY = STORAGE_KEYS.skin;
 /** How far the peach-fuzz sheen is lifted towards white from the tone (0 = the tone itself). */
 const SHEEN_LIFT = 0.6;
 

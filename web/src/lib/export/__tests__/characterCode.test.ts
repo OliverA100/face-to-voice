@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { STORAGE_KEYS } from "@/lib/storageKeys";
+
 import { CHARACTER_FORMAT, decodeCharacter, encodeCharacter, storageEntries, type CharacterFile } from "../characterCode";
 
 const character: CharacterFile = {
@@ -35,10 +37,10 @@ describe("character link code", () => {
 
   it("writes the entries a reload reads", () => {
     const e = storageEntries(character);
-    expect(JSON.parse(e["ftv-face"])).toEqual({ shape: character.shape, emotion: "happy", intensity: 0.8 });
-    expect(JSON.parse(e["ftv-pose"])).toEqual(character.pose);
-    expect(JSON.parse(e["ftv-hair"])).toEqual(character.hair);
-    expect(JSON.parse(e["ftv-addons"])).toEqual(character.addons);
-    expect([e["ftv-skin"], e["ftv-eyes"]]).toEqual(["beige", "blue-grey"]);
+    expect(JSON.parse(e[STORAGE_KEYS.face])).toEqual({ shape: character.shape, emotion: "happy", intensity: 0.8 });
+    expect(JSON.parse(e[STORAGE_KEYS.pose])).toEqual(character.pose);
+    expect(JSON.parse(e[STORAGE_KEYS.hair])).toEqual(character.hair);
+    expect(JSON.parse(e[STORAGE_KEYS.addons])).toEqual(character.addons);
+    expect([e[STORAGE_KEYS.skin], e[STORAGE_KEYS.eyes]]).toEqual(["beige", "blue-grey"]);
   });
 });

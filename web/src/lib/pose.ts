@@ -11,6 +11,7 @@
 import gsap from "gsap";
 
 import { MOTION } from "@/lib/motion";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 
 /** Tweak freely. Limits come from sliders.json (pipeline sliders_json.py POSE_SLIDERS); these are the dynamics. */
 export const POSE = {
@@ -94,7 +95,7 @@ export function currentPose(withCursor = true): Record<PoseKey, number> {
 
 // --- kept across reloads -------------------------------------------------------------------------------------
 
-const POSE_KEY = "ftv-pose"; // sessionStorage, like the face (lib/faceSession.ts): kept across reloads, a new tab starts centred
+const POSE_KEY = STORAGE_KEYS.pose;
 /** Where the sliders asked the head to go (poseRig.base eases towards it): what is saved. */
 const posed = zero();
 

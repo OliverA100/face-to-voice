@@ -8,13 +8,14 @@ import gsap from "gsap";
 import { Color, type MeshPhysicalMaterial } from "three";
 
 import { MOTION } from "@/lib/motion";
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 import { EYE_COLOURS } from "@/lib/swatches";
 
 export { EYE_COLOURS } from "@/lib/swatches";
 export type EyeColourId = (typeof EYE_COLOURS)[number]["id"];
 
 export const EYE_DEFAULT: EyeColourId = "blue-grey";
-const STORAGE_KEY = "ftv-eyes";
+const STORAGE_KEY = STORAGE_KEYS.eyes;
 
 export const eyeRig = { material: null as MeshPhysicalMaterial | null };
 export const eyeState: { colour: EyeColourId } = { colour: EYE_DEFAULT };

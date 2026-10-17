@@ -16,6 +16,7 @@
  */
 import { Color, DoubleSide, Group, LinearSRGBColorSpace, MeshPhysicalMaterial, type MeshStandardMaterial, type Object3D } from "three";
 
+import { STORAGE_KEYS } from "@/lib/storageKeys";
 import { NATURAL_HAIR } from "@/lib/swatches";
 import { skinRig } from "@/lib/skin";
 import { skinSurface } from "@/lib/skinSurface";
@@ -93,7 +94,7 @@ const GLASSES_MATERIAL = {
   lensRenderOrder: 2, // after the skin, the strands and the shell beards (1)
 };
 
-const STORAGE_KEY = "ftv-addons"; // sessionStorage: kept across reloads, but a new tab opens on the blank head
+const STORAGE_KEY = STORAGE_KEYS.addons;
 
 export type AddonStyle = "none" | (string & {});
 /** "hair" = wear the hair colour (the default), or a swatch of its own. */
