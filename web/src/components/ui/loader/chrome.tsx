@@ -11,6 +11,7 @@
  *
  * Tweak here: CHROME (the scene itself: ./chromeGl.ts CHROME_GL).
  */
+import type { CSSProperties } from "react";
 import { preloadModule } from "react-dom";
 
 import type { ScreenCircle } from "@/lib/headMorph";
@@ -18,7 +19,6 @@ import type { ScreenCircle } from "@/lib/headMorph";
 import type { LoaderState } from "./engine";
 import type { ChromeFinish, ChromeFlowConfig, ChromeGl, ChromeLook, ChromeVoice, ChromeVoiceStyle, createChromeFlow } from "./chromeGl";
 import type { FromChromeWorker, ToChromeWorker } from "./chromeWorker";
-import { centred } from "./wave";
 
 export const CHROME = {
   finish: null as ChromeFinish | null, // what it settles into (null = SOAP_BUBBLE; a local lab, not in the repo, sets others)
@@ -116,6 +116,9 @@ export const BALL_IN_FRAME = 1 / (Math.tan(((CHROME.fov / 2) * Math.PI) / 180) *
 
 /** Without WebGL and without a poster: a still, CSS-only silvery ball. */
 const FALLBACK = "radial-gradient(circle at 42% 30%, #ffffff 0, #eef0f3 22%, #a7adb6 52%, #e9ebef 72%, #6b717a 100%)";
+
+/** An absolutely positioned box centred on the loader's focal point (--cy). No transform, so GSAP owns transforms. */
+const centred = (w: string, h: string = w): CSSProperties => ({ position: "absolute", left: "50%", top: "var(--cy)", width: w, height: h, marginLeft: `calc(${w} / -2)`, marginTop: `calc(${h} / -2)` });
 
 /** The canvas's width for a ball `size` wide: the ball plus room for the bumps. */
 export const chromeBox = (size: string) => `calc(${size} * ${+(CHROME.ball / BALL_IN_FRAME).toFixed(4)})`;
