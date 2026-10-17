@@ -259,6 +259,8 @@ export function LiveTalk({
   };
   const ended = snap.state === "ended";
   const reason = snap.endReason ? ENDED[snap.endReason] : "";
+  const caption = snap.caption.trim();
+  const cutShort = !!caption && snap.state !== "speaking" && !/[.!?…"”')]$/.test(caption); // interrupted mid-sentence
 
   return (
     <section aria-label={`Conversation with ${name}`} className="enter flex flex-col gap-3 rounded-tray bg-surface p-4">
@@ -269,8 +271,19 @@ export function LiveTalk({
         <p className="min-w-0 flex-1 text-label text-ink">{label[snap.state]}</p>
         {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{secondsLeft(left)}</span>}
       </header>
-      {snap.caption && <p className="text-body text-ink">“{snap.caption}”</p>}
-      {snap.heard && !ended && <p className="text-meta text-ink-3">You: {snap.heard}</p>}
+      {/* what you said last above, while the character answers (live while you speak); its words below, the main line.
+          A reply cut short ends with "…" rather than mid-word. */}
+      {snap.heard && !ended && (
+        <p className="text-meta text-ink-3">
+          {snap.state === "listening" ? "You" : "You said"}: {snap.heard}
+        </p>
+      )}
+      {caption && (
+        <p className="text-body text-ink">
+          “{caption}
+          {cutShort ? "…" : ""}”
+        </p>
+      )}
       {snap.state === "waking" && <p className="text-meta text-ink-3">The first conversation in a while can take up to a minute to start.</p>}
       {snap.needsAudioTap && !ended && (
         <button type="button" onClick={() => session.resumeAudio()} className="pill-secondary h-8 self-start px-3 text-label">
