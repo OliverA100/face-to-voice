@@ -8,12 +8,12 @@
  * and the backlog itself survived: the end of a line cut by a pause played at the next start, even from another
  * context (a chat). Found after a context left running with nothing to play in a tab nobody looked at, and after chats
  * with clicks into other apps. A MediaStream is live, so nothing waits in a queue behind anything: played by an element,
- * the same beeps stayed on time with the context's own output stuck (qa/lipsync stale.mjs), ROUTE_EXTRA later.
+ * the same beeps stayed on time with the context's own output stuck, ROUTE_EXTRA later.
  */
 import { isAppleTouch } from "./staleTab";
 
 /** s the element route adds to the context's reported output delay (Safari on a Mac, built-in speakers: the app's
- *  beeps −29…−48 ms against −16…+1 direct with 45 ms allowed, qa/lipsync appstale.mjs). */
+ *  beeps −29…−48 ms against −16…+1 direct with 45 ms allowed). */
 const ROUTE_EXTRA = 0.075;
 
 /** Safari (WebKit) on a Mac: not Chrome, Edge, Firefox or Opera there, and not an iPhone or iPad. */

@@ -57,7 +57,6 @@ uv run validate --stress --quick   # drive the app (dev server on :3000) through
 uv run haircs-review select|build|apply   # pick, fit and keep HairCS styles (reviewed on /dev/hair-review)
 uv run import-hair bystedt <style>        # Daniel Bystedt's Blender demo hair (CC BY-SA)
 uv run groom-preview <id> && uv run export-groom <id>   # procedural grooms from config/grooms.toml
-uv run groom-metrics <source:id> …        # compare grooms by numbers (volume, bend, locks, spread)
 uv run brow-strands && uv run lash-strands
 uv run beard-strands && uv run stubble
 uv run glasses-gen                        # frames from config/glasses.toml, seated by glasses_fit.py (~1 min each)
@@ -69,13 +68,11 @@ Strand files (`*.strands.bin`) of the hair are git-ignored and uploaded to Verce
 `head_context.py` (the head and its targets), `landmarks.py`, `eyelids.py` (lid margins and lash lines),
 `addon_fit.py` (rigid binding), `guides.py` (the saved CC0 shape guides in `config/guides/`), `hair_index.py`.
 
-## Textures, renders and naming
+## Textures, renders and the speech fixture
 
 ```bash
 uv run skin-maps && uv run eye-maps       # → web/public/textures/*.ktx2
 uv run bake-ao                            # Blender (headless) AO bake; needs Blender and basisu (brew install basis_universal)
 uv run render --views front,quarter       # every component at −3σ / 0 / +3σ → out/renders/
-uv run name-sliders                       # Claude names the raw identity/expression sliders from their renders (sliders.json `ai` blocks)
-uv run propose-visemes && uv run viseme-sheet
-uv run el-probe                           # live check of the ElevenLabs account (spends credits; re-records tests/fixtures/stream.ndjson)
+uv run el-probe                           # re-records tests/fixtures/stream.ndjson from ElevenLabs (~100 characters of credit)
 ```

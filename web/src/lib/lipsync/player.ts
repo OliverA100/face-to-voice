@@ -304,8 +304,8 @@ class SpeechPlayer {
 
   /**
    * Start once the context runs. It rests between lines (setState) and unlock() resumes it, but Safari played audio
-   * scheduled before the resume had finished ~1 s late (a cached line arrives that fast; qa/lipsync appstale.mjs). If it
-   * doesn't run within RESUME_WAIT_MS, start anyway.
+   * scheduled before the resume had finished ~1 s late (a cached line arrives that fast). If it doesn't run within
+   * RESUME_WAIT_MS, start anyway.
    */
   private startWhenRunning(): void {
     const ctx = this.ctx!;
@@ -389,8 +389,7 @@ class SpeechPlayer {
       // and the context rests until the next Speak (unlock() resumes it in the tap). Safari on a Mac: a
       // context left running with nothing to play, ~10 min in a tab nobody looks at, stuck that tab's audio output at
       // its sample rate (lines came 0.8 s late or silent, reported on time; a new context or a reload at that rate
-      // inherited it, only a new tab didn't). Suspended while idle, the same 10 minutes left it on time
-      // (qa/lipsync stale.mjs).
+      // inherited it, only a new tab didn't). Suspended while idle, the same 10 minutes left it on time.
       if (this.ctx?.state === "running") void restOutput(this.ctx).catch(() => {});
     }
     for (const fn of this.listeners) fn();

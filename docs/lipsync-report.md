@@ -483,7 +483,7 @@ All three were measured before changing anything; none called for an app change.
 
 The phone played saved lines from a local build (a test-only overlay, never committed: tap-to-play buttons and the
 camera on the mouth, so the mouth is ~250 px wide in the film), filmed by the Mac's camera with QuickTime. Each film has
-the new timing and `?lipsync=v1` (the old) on the same 4 lines. `qa/lipsync/phone2.py` finds each line in the film's
+the new timing and `?lipsync=v1` (the old) on the same 4 lines. `qa/lipsync/phone.py` finds each line in the film's
 sound by its clip, maps the clip's audio truth onto the film, and measures the mouth's opening per frame. The camera's
 own delay (93 ms) is from the phone-cal film's clap in Step 1, so absolute numbers carry about ±15–30 ms; new vs old in
 the same film doesn't depend on it.

@@ -27,10 +27,6 @@ cd qa/lipsync && pnpm install
 | `node speak.mjs --url <deployment> --char A [--restore A] [--random --skin fair] [--emotion -,Happy] [--lines plosive,fv] [--cached\|--cachedOnly] [--browser b]` | Real Speak presses; saves every line to `out/clips/` for replays | TTS credits; `--random` = 1 design + 1 save |
 | `node chat.mjs --url <deployment> --char A [--restore A] [--turns 3] [--browser b] [--tag t]` | A live chat. The visitor is `out/visitor/*.wav` (macOS `say`); each reply is one run (`<tag>-A-chat<k>-<browser>`), with the page's reply data (words, the agent's loudness, anchors, cues) in `meta.json` "live" | Chat minutes (the site's daily talk cap) |
 | `node room.mjs --browser b cal` / `replay clip…` | The screen + Mac mic (`screencapture`); needs Screen Recording permission | free |
-| `STALE_IDLE=1 STALE_TAB=1 node stale.mjs --hide 600` then `uv run calmark.py` | Safari's stuck output after an idle tab: calibrate.html left idle behind another tab, then measured in the same tab (same context, new ones, other sample rates, the `<audio>` route); `STALE_SUSPEND=1` suspends it while idle | free |
-| `uv run beeps.py`, `node appstale.mjs --cal --clip out/beeps.ndjson [--url2 …]`, then `uv run appcal.py` | The same in the app: a beep track through the app's player, a patch flashing on its clock, before and after the idle (`APP_IDLER=1`: a context left running, forcing the stuck output; `APP_RELOAD=1`: then reloaded; `APP_CUT=1`: a line cut, then the next) | free |
-| `node otherstale.mjs --browser chrome\|firefox` then `uv run appcal.py` | The same trigger in Chrome or Firefox (plain settings, no background-throttling switches) | free |
-| `node serve.mjs`, then in the iPhone simulator `xcrun simctl openurl booted http://localhost:3199/calibrate.html`; tap Direct / Element / Idle while `screencapture -v -V 15 -g -x -R <Simulator window>` records; `uv run simcal.py out/room/<name>.mov` | The same in iOS Safari (the Simulator in front; background Safari with `xcrun simctl launch booted com.apple.Preferences`, back with `com.apple.mobilesafari`) | free |
 | `node cal.mjs b raw` | The in-page recorder's self-check on `calibrate.html` | free |
 | `node perf.mjs [--cpu 4] clip.ndjson` | Frame rate and script time per frame, phone screen, slowed CPU | free |
 
@@ -55,7 +51,7 @@ uv run events.py --app <run> # the app's own mouth values instead of pixels (nee
 uv run summary.py --md       # pooled table per path × browser (docs/lipsync-report.md)
 uv run strips.py <run> closure|vowel|fv|word:<w> [--all]   # frame strips around events, for checking by eye
 uv run room.py <room run>    # flash vs beep (cal runs) or mouth vs mic (line runs) on the capture's clock
-uv run phone.py film.mov <mouth x> <mouth y> <camera delay ms> <line starts…>
+uv run phone.py film.mov auto <camera delay ms> <clip> …   # a phone filmed playing saved clips (mouth box or auto)
 ```
 
 **Before and after a deploy** (free, same audio):

@@ -13,7 +13,7 @@ import { ApiError, MESSAGES } from "./errors";
 const API = "https://api.elevenlabs.io";
 const DESIGN_MODEL = "eleven_ttv_v3";
 // eleven_v4_turbo rather than Flash v2.5: it reads audio tags, so a line can sound happy or sad, and it streams
-// timestamps like Flash. The cost is first audio at ~0.40 s vs Flash's ~0.26 s (`uv run el-probe --emotion`).
+// timestamps like Flash. The cost is first audio at ~0.40 s vs Flash's ~0.26 s.
 export const TTS_MODEL = "eleven_v4_turbo";
 const TTS_OUTPUT_FORMAT = "pcm_24000"; // raw 16-bit mono: not tier-gated, and the browser decodes it in one line
 const MOCK = env.mockElevenLabs;
