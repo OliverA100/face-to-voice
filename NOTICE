@@ -51,15 +51,16 @@ refitted onto the GNM head, cleaned of stray strands, resampled and re-encoded
 (pipeline/src/ftv_pipeline/haircs_review.py, import_hair.py). See
 web/public/models/hair/haircs/LICENSE.md.
 
-web/public/models/hair/bystedt-* (4 styles): from "Hair Styles"
+web/public/models/hair/bystedt-* (4 styles; the strand files are served from Vercel
+Blob, their thumbnails are in web/public/models/hair/thumbs/bystedt-*.webp): from "Hair Styles"
 (hair_nodes-female_hair_styles.blend, https://www.blender.org/download/demo-files/)
 by Daniel Bystedt, licensed CC BY-SA 4.0
 (https://creativecommons.org/licenses/by-sa/4.0/). Changes: the evaluated strands
 were refitted onto the GNM head, resampled and re-encoded
-(pipeline/src/ftv_pipeline/import_hair.py). These derived files are shared under
-CC BY-SA 4.0.
+(pipeline/src/ftv_pipeline/import_hair.py). These derived files, and the thumbnails
+rendered from them, are shared under CC BY-SA 4.0.
 
-web/public/models/hair/side_part.*: a procedural groom grown by this project
+web/public/models/hair/side_part.* (and thumbs/side_part.webp): a procedural groom grown by this project
 (pipeline/src/ftv_pipeline/groom.py, config/grooms.toml), MIT.
 
 ================================================================================
