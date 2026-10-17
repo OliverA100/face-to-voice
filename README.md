@@ -26,9 +26,9 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 
 | | |
 |---|---|
-| **Timestamps → lip sync** | The character timestamps from the speech stream drive the mouth. Closures (p/b/m, f/v, th) and vowels are then snapped to the audio itself, since stamps inside a word can be ~100 ms off. Live chats do the same with word timings from the dialogue websocket. |
 | **Voice Design from the face** | `eleven_ttv_v3`, with a description built from Claude's casting by a fixed template. The preview text is the character's own line, so all three previews already sound in character. |
-| **Text to speech** | `eleven_v4_turbo` streamed with timestamps as `pcm_24000` straight to the browser, the expression riding along as an audio tag. First audio about a second after the request for a new line (it is aligned on its own audio first), under 0.1 s for a line said before. |
+| **Text to speech** | `eleven_v4_turbo` as `pcm_24000` with timestamps, the expression riding along as an audio tag. The server reads the whole line, times it, caches it in Vercel Blob and sends it to the browser as NDJSON: the words' phonemes, the aligned times, then the audio. First audio about a second after the request for a new line, under 0.1 s for a line said before. |
+| **Forced Alignment → lip sync** | Each new line is timed by Forced Alignment on its own audio before it plays: v4 Turbo's character stamps spread a word's letters evenly and can put a word ~0.2 s off. Closures (p/b/m, f/v, th) and vowels are then snapped to the audio itself. Live chats use the word timings from the dialogue websocket instead. |
 | **Live conversations** | A LiveKit agent answers as the character with Claude Haiku 5.5 and speaks in their designed voice over the text-to-dialogue websocket. |
 | **Cost and limits** | A design is never paid for twice (voices cached per description, spoken lines in Vercel Blob). Saved voices live in a small pool sized to the plan, with a studio voice as the fallback. Every paid call has a daily cap, and picking voices is limited per browser. |
 
@@ -60,7 +60,7 @@ All the numbers and how they were measured: [docs/ARCHITECTURE.md](docs/ARCHITEC
                                                        ElevenLabs Voice Design → 3 previews
                                                  pick one ──► /api/voice/select (save, voice pool)
                                                  speak    ──► /api/voice/speak
-                                                       eleven_v4_turbo stream with character timestamps
+                                                       eleven_v4_turbo line, timed by Forced Alignment
                                                        ──► Web Audio + viseme cues ──► mouth morphs
                                                  meet     ──► /api/character/profile
                                                        Claude writes who the character is

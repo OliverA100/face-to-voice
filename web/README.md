@@ -35,7 +35,7 @@ Tuning lives in named objects at the top of each module: `LIMITS`, `RANDOM`, `MO
 |---|---|
 | `POST /api/voice/design` | screenshot + slider values + look ids → Claude casting (`claude.ts`, cached per visitor and face) → prompt (`prompt.ts`) → Voice Design previews (cached per description, shared) |
 | `POST /api/voice/select` | saves the chosen take as a voice: daily cap, plan quota, LRU pool, studio fallback (`voice.ts`) |
-| `POST /api/voice/speak` | `eleven_v4_turbo` stream with timestamps (NDJSON passed through), cached in Blob per voice and line |
+| `POST /api/voice/speak` | `eleven_v4_turbo` line read in full and timed by Forced Alignment (`speech.ts`, `alignSpeech.ts`), cached in Blob per voice and line; sent as NDJSON: the words' phonemes, the aligned times, then the audio with its timestamps |
 | `POST /api/voice/recast` | casts the face again for a voice the visitor has but whose casting is missing (castings are per browser): the voice's identity is kept, so the voice is unchanged |
 | `GET /api/limits` | this browser's daily limits, its network's ceiling and the reset time, for the Limits dialog |
 | `GET /api/usage` | today's caps, the pool and plan quotas; `Authorization: Bearer $USAGE_ADMIN_TOKEN` |
@@ -48,9 +48,10 @@ signed cookie holding a random id (`visitor.ts`), and those limits also count pe
 
 ## Lip sync
 
-`player.ts` schedules the streamed 24 kHz PCM gaplessly in Web Audio and uses the AudioContext clock as the master
-clock; `cues.ts` turns the per-character timestamps into viseme cues (`lipsync-en.ts`, adapted from TalkingHead);
-`placement.ts` places the line on the voice onset and snaps closures and vowels to the audio; `evaluator.ts` blends the
+`player.ts` schedules the 24 kHz PCM gaplessly in Web Audio and uses the AudioContext clock as the master clock;
+`cues.ts` turns the aligned times (or, without them, the speech model's own timestamps) and each word's phonemes into
+viseme cues (letter rules from `lipsync-en.ts`, adapted from TalkingHead, for words not in the dictionary);
+`placement.ts` snaps closures and vowels to the audio, and places a line without aligned times on the voice onset; `evaluator.ts` blends the
 cues each frame (anticipation, closure dominance, smoothing: `shapes.ts`); `LipSync.tsx` writes the result into the
 viseme morph layer every frame.
 Presets live in `src/data/visemes.json` and can be tuned by eye on `/dev/visemes`.
