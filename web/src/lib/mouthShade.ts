@@ -10,7 +10,7 @@ import { Color, Matrix4, type Mesh, type MeshPhysicalMaterial } from "three";
 
 import { headSpaceMatrix } from "@/lib/age";
 
-export const MOUTH = {
+const MOUTH = {
   front: 0.13, // z where the light is still `frontLight` (the front of the front teeth)
   back: 0.104, // z where it reaches `deep`: 2.5 cm in, the tongue's visible top is already in shadow
   side: 0.03, // |x| (m) out from the middle where the side shade alone reaches `deep` (the cheeks hide the back teeth)

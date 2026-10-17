@@ -180,7 +180,7 @@ export async function loadEyeMaps(iris: MeshPhysicalMaterial): Promise<void> {
 }
 
 /** How much brighter the cornea's reflections are than the scene's environment light (a clear catchlight). */
-export const CORNEA_BOOST = 1.8;
+const CORNEA_BOOST = 1.8;
 let cornea: MeshPhysicalMaterial | null = null;
 let lastScene: Scene | null = null;
 

@@ -24,7 +24,7 @@ import { closestStudioVoice, takeVoice, voiceRecord, voiceSpoken } from "./voice
 import type { TalkTicket } from "@/lib/talk/ticket";
 
 /** The agent's name: it only joins rooms that dispatch it by name (explicit dispatch). */
-export const AGENT_NAME = "ftv-character";
+const AGENT_NAME = "ftv-character";
 /** How long the token may be used to join (the browser joins at once); a reconnect after that is still allowed by
  *  LiveKit. Short: within it the token could create its room again (and dispatch another agent) once the first closed. */
 const TOKEN_TTL_SECONDS = 20;
@@ -166,7 +166,6 @@ export async function releaseSlot(room: string): Promise<void> {
   else await r.zrem(SLOTS_KEY, ...gone);
 }
 
-export type { TalkTicket };
 
 /**
  * Everything after the guards: the voice, the profile, the slot and the token. Gives the slot back if it fails. The

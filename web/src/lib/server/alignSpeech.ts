@@ -31,7 +31,7 @@ export function hasAligned(ndjson: string): boolean {
 }
 
 /** The clip's 16-bit audio, and the text its stamps say with audio tags left out ("[happy] " is not said). */
-export function clipAudio(ndjson: string): { pcm: Buffer; text: string } {
+function clipAudio(ndjson: string): { pcm: Buffer; text: string } {
   const parts: Buffer[] = [];
   let chars = "";
   for (const l of ndjson.split("\n")) {
@@ -138,7 +138,7 @@ export function fixSqueezed(chars: ForcedAlignment["characters"], pcm: Buffer, p
   return fixed;
 }
 
-export function toAlignment(chars: ForcedAlignment["characters"]): Alignment {
+function toAlignment(chars: ForcedAlignment["characters"]): Alignment {
   return { characters: chars.map((c) => c.text), character_start_times_seconds: chars.map((c) => c.start), character_end_times_seconds: chars.map((c) => c.end) };
 }
 

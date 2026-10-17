@@ -36,7 +36,7 @@ export type StrandMode = "guides" | "children";
  * Tweak freely: the ribbons' surface. A flat ribbon reflects the room like a card (4% at full specular), which on dark
  * hair outweighs the colour and reads grey; the app's own strand highlights are faint (GROOM.spec1/spec2).
  */
-export const STRANDS = { roughness: 0.7, specular: 0.15 };
+const STRANDS = { roughness: 0.7, specular: 0.15 };
 
 const DEG = Math.PI / 180;
 const MAX_VERTS = 65535;

@@ -153,17 +153,16 @@ export async function visitorUsage(request: Request): Promise<{ per: Scope; usag
 
 export type CapKind = "castings" | "designs" | "saves" | "speakChars" | "profiles" | "talks";
 const CAP_KINDS: readonly CapKind[] = ["castings", "designs", "saves", "speakChars", "profiles", "talks"];
-/** What each site-wide cap counts: `label` for the limits dialog, `budget` for its message. */
-export const CAP_LABELS: Record<CapKind, { label: string; budget: string }> = {
-  castings: { label: "faces read", budget: "reading faces" },
-  designs: { label: "new voice designs", budget: "designing new voices" },
-  saves: { label: "voices picked", budget: "picking voices" },
-  speakChars: { label: "characters spoken", budget: "speech" },
-  profiles: { label: "character profiles", budget: "character profiles" },
-  talks: { label: "live chats", budget: "live chats" },
+/** What each site-wide cap pauses, for its message. */
+const CAP_BUDGETS: Record<CapKind, string> = {
+  castings: "reading faces",
+  designs: "designing new voices",
+  saves: "picking voices",
+  speakChars: "speech",
+  profiles: "character profiles",
+  talks: "live chats",
 };
-const capMessage = (kind: CapKind) =>
-  `The site is very busy today, so ${CAP_LABELS[kind].budget} is paused for everyone until midnight UTC. It isn't anything you did.`;
+const capMessage = (kind: CapKind) => `The site is very busy today, so ${CAP_BUDGETS[kind]} is paused for everyone until midnight UTC. It isn't anything you did.`;
 const capLimit = (kind: CapKind) =>
   ({ castings: env.caps.castingsPerDay, designs: env.caps.designsPerDay, saves: env.caps.savesPerDay, speakChars: env.caps.speakCharsPerDay, profiles: env.caps.profilesPerDay, talks: env.caps.talksPerDay })[kind];
 const todayKey = (kind: CapKind) => `ftv:cap:${new Date().toISOString().slice(0, 10)}:${kind}`;

@@ -28,7 +28,7 @@ export { HAIR_COLOURS } from "@/lib/swatches"; // plain data, shared with the se
 export type HairColourId = (typeof HAIR_COLOURS)[number]["id"];
 
 /** The Natural chip (naturalHex): `saturation` < 1 takes a style's painted colour toward its own grey. */
-export const HAIR_MATERIAL = {
+const HAIR_MATERIAL = {
   natural: { saturation: 0.8 },
 };
 

@@ -5,10 +5,10 @@ import { ApiError, errorResponse, jsonBody, MESSAGES } from "../errors";
 
 describe("errorResponse", () => {
   it("sends an ApiError as it is, with its extra fields and no caching", async () => {
-    const res = errorResponse(new ApiError("visitor_limit", MESSAGES.visitor_limit, 429, { resetAt: "2030-01-01T00:00:00.000Z" }));
+    const res = errorResponse(new ApiError("visitor_limit", "Used up.", 429, { resetAt: "2030-01-01T00:00:00.000Z" }));
     expect(res.status).toBe(429);
     expect(res.headers.get("cache-control")).toBe("no-store");
-    expect(await res.json()).toEqual({ error: "visitor_limit", message: MESSAGES.visitor_limit, resetAt: "2030-01-01T00:00:00.000Z" });
+    expect(await res.json()).toEqual({ error: "visitor_limit", message: "Used up.", resetAt: "2030-01-01T00:00:00.000Z" });
   });
 
   it("turns a request body that fails validation into a 400", async () => {

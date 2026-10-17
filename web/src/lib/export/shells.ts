@@ -28,7 +28,7 @@ import {
 import { BANDS, fur, SHELLS, type ShellSource } from "@/lib/beardShells";
 
 /** Tweak freely: how many layers the file gets (the app draws SHELLS.layers per quality tier). */
-export const SHELL_EXPORT = { layers: SHELLS.layers.high };
+const SHELL_EXPORT = { layers: SHELLS.layers.high };
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));

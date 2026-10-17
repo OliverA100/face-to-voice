@@ -84,12 +84,12 @@ export function cleanText(s: string): string {
 }
 
 /** Spoken text without stage directions: "*chuckles*" and "(sighs)" are left out whole (the voice would read them). */
-export function withoutActions(s: string): string {
+function withoutActions(s: string): string {
   return s.replace(/\*[^*]*\*|\([^)]*\)/g, " ");
 }
 
 /** `s` cleaned and cut to `max` characters, at a word boundary when one is near (a generated sentence can run long). */
-export function clip(s: string, max: number): string {
+function clip(s: string, max: number): string {
   const t = cleanText(s);
   if (t.length <= max) return t;
   const cut = t.slice(0, max);
@@ -99,7 +99,7 @@ export function clip(s: string, max: number): string {
 
 /** Spoken text cut to `max` characters at the end of a sentence, when one fits: a greeting cut mid-sentence is said
  *  that way ("…you ain't here to tell me, are"). Otherwise as `clip`. */
-export function clipSentences(s: string, max: number): string {
+function clipSentences(s: string, max: number): string {
   const t = cleanText(s);
   if (t.length <= max) return t;
   const end = Math.max(...[...t.slice(0, max + 1).matchAll(/[.!?…](?=\s|$)/g)].map((m) => m.index! + 1), 0);

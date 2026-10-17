@@ -29,7 +29,7 @@ import { setLiveSpeech } from "@/lib/lipsync/source";
 import { HeardLine } from "@/lib/talk/heard";
 import { type LevelMeter, micMeter } from "@/lib/talk/meter";
 import { chatFaceEnd, chatFaceStart, chatListening, chatMood, chatNod } from "@/lib/talk/face";
-import type { TalkTicket } from "@/lib/voice/client";
+import type { TalkTicket } from "@/lib/talk/ticket";
 
 export type TalkState = "connecting" | "waking" | "listening" | "thinking" | "speaking" | "reconnecting" | "ended";
 export type EndReason = "user" | "time_up" | "idle" | "voice_error" | "left" | "disconnected" | "no_agent" | "mic_denied" | "no_mic" | "mic_busy" | "error";

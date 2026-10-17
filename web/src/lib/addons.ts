@@ -82,7 +82,7 @@ export const ADDONS = {
  * front wall of each lens (the pipeline drops the back wall), so the tint is one layer in one draw call. Clear glass
  * reads through its reflection, not through a haze: low opacity, a strong environment.
  */
-export const GLASSES_MATERIAL = {
+const GLASSES_MATERIAL = {
   acetate: { clearcoat: 0.8, clearcoatRoughness: 0.06, envMapIntensity: 1.2 },
   metal: { envMapIntensity: 1.4 },
   lens: { roughness: 0.05, envMapIntensity: 1.8 },
@@ -188,7 +188,7 @@ function addonColour(category: AddonCategory): HairColourId {
  * Push the current colours onto everything attached (runs on every hair colour change too; `seconds` > 0 blends).
  * `only` limits it to one category, so attaching a beard doesn't cut short the brows' colour blend.
  */
-export function applyAddons(seconds = 0, only?: AddonCategory): void {
+function applyAddons(seconds = 0, only?: AddonCategory): void {
   for (const c of only ? [only] : ADDON_CATEGORIES) {
     const node = addonRig.meshes[c];
     const colours = node?.userData.colours as StrandColours | undefined;

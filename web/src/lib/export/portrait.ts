@@ -138,7 +138,7 @@ function renderOn(gl: WebGLRenderer, cam: PerspectiveCamera, background: string,
  * Difference matte. On black a pixel is alpha·colour; on white it is alpha·colour + (1 − alpha). So
  * alpha = 1 − (white − black) and colour = black / alpha (averaged over R, G, B against 8-bit noise).
  */
-export function matte(onBlack: ImageData, onWhite: ImageData): ImageData {
+function matte(onBlack: ImageData, onWhite: ImageData): ImageData {
   const k = onBlack.data, w = onWhite.data;
   const out = new ImageData(onBlack.width, onBlack.height);
   const o = out.data;

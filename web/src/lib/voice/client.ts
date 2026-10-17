@@ -94,7 +94,6 @@ export async function withCasting<T>(design: Pick<DesignResult, "faceKey" | "des
   return call();
 }
 
-export type { TalkTicket };
 
 /**
  * A room and a token to talk to this character; the server picks the voice and the instructions. `replaces`: the room

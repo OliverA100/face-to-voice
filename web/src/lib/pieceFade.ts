@@ -23,7 +23,7 @@ import { MOTION } from "@/lib/motion";
 import { type SkinPieces, snapshotSkinPieces } from "@/lib/skinShader";
 
 /** Tweak freely. */
-export const PIECE_FADE = {
+const PIECE_FADE = {
   ease: MOTION.ease.crossfade,
 };
 

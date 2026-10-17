@@ -6,7 +6,7 @@
  * The microphone's level is mapped from decibels: with auto gain on, speech sits around -35 to -15 dBFS and the room
  * under -50, so a linear scale would leave quiet talkers barely moving it.
  */
-export const MIC_METER = {
+const MIC_METER = {
   floorDb: -55, // RMS at or under this reads 0 (the room)
   topDb: -18, // and at or over this 1 (talking up close)
 };

@@ -86,7 +86,7 @@ export const SWING = {
  *   progress), and the whole strand is pulled with the skin, so it never floats off the morphing scalp. On the bubble
  *   they are shaded as part of its surface (the sphere's normal at their point).
  */
-export const PIECES = {
+const PIECES = {
   scale: 0.97, // glasses and shell beards start at this × the bubble's radius (just inside it)
   strandScale: 1.005, // strands ride just outside the skin they grow from
 };

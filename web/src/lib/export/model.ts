@@ -51,7 +51,7 @@ import { shellMesh } from "./shells";
 import { strandMeshes, type StrandMode } from "./strands";
 
 /** Tweak freely: texture sizes (px, square) per part, how far seams are padded, JPEG quality. */
-export const MODEL = {
+const MODEL = {
   size: { skin: 1024, sclera: 512, iris: 512, pupil: 64, mouth: 256, teeth: 256, gums: 256, tongue: 256 } as Record<string, number>,
   pad: 6, // px the colour is grown past each UV island's edge
   jpeg: 0.9,
@@ -239,7 +239,7 @@ function beforeEnd(shader: string, line: string): string {
  * Grow each UV island's colour `passes` px into the empty texels round it (each takes the average of its painted
  * neighbours), so mipmaps and filtering at a seam never pull in the background. Then everything is opaque.
  */
-export function pad(px: Uint8Array, size: number, passes: number): void {
+function pad(px: Uint8Array, size: number, passes: number): void {
   let edge: number[] = [];
   for (let i = 0; i < size * size; i++) if (px[i * 4 + 3] === 0) edge.push(i);
   for (let p = 0; p < passes && edge.length; p++) {

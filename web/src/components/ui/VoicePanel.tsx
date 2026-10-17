@@ -61,7 +61,7 @@ function readsAs(f: DesignResult["fields"]): string {
   );
 }
 
-export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, descKey: string) => void }) {
+export function VoicePanel() {
   const [phase, setPhase] = useState<Phase>("idle");
   // An invite code in the URL (/?talk=…) is kept for this tab and taken out of the address bar, after the first render
   useEffect(() => void talkInvite(), []);
@@ -212,7 +212,6 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
       if (result.voiceId) {
         setSelection({ voiceId: result.voiceId, saved: !result.studioFallback, chosenIndex: result.chosenIndex ?? undefined });
         setPhase("ready");
-        onVoiceReady?.(result.voiceId, result.descKey);
       } else {
         setPhase("previews");
       }
@@ -232,7 +231,6 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
       const result = await requestSelect(design.descKey, index, design.previews[index]?.generatedVoiceId);
       setSelection(result);
       setPhase("ready");
-      onVoiceReady?.(result.voiceId, design.descKey);
     } catch (e) {
       fail(e);
       // These previews can't become a voice any more (expired, or designed again): "New voices" gets new ones,

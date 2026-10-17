@@ -53,7 +53,7 @@ export interface ProfileInput {
  * What a reimagined character's life centres on, one picked at random: sent the same request again, Claude wrote a
  * close variant of the same person (same job and setting from the casting's persona, a few details changed).
  */
-export const LIVES = [
+const LIVES = [
   "animals", "a trade they do with their hands", "the sea", "the stage or music", "science or invention", "food and cooking",
   "the outdoors", "a shop, stall or market", "travel and far-off places", "the law (on either side of it)", "a sport",
   "art or craft", "the past (collecting, history, old things)", "machines and engines", "a small town where everyone knows them",
@@ -61,7 +61,7 @@ export const LIVES = [
   "a family business", "magic, spells and potions", "myths, monsters and legends",
 ] as const;
 
-export function reimagineBrief(previous: CharacterProfile, life: string): string {
+function reimagineBrief(previous: CharacterProfile, life: string): string {
   return (
     `Reimagine this character: write a completely different person for the same face and voice. A new name, a different ` +
     `line of work and setting, a different backstory, and new traits, habits, quirks, interests, dislikes, catchphrases ` +
@@ -72,7 +72,7 @@ export function reimagineBrief(previous: CharacterProfile, life: string): string
 }
 
 /** The casting as Claude reads it: every field the voice was designed from, said in plain words. */
-export function castingBrief(f: DescriptionFields, look: string): string {
+function castingBrief(f: DescriptionFields, look: string): string {
   const heritage = f.ethnicity && f.ethnicity !== "unclear" ? `\nHeritage (as cast): ${f.ethnicity}` : "";
   const quirk = f.quirk ? `\nDelivery quirk: ${f.quirk}` : "";
   return (
