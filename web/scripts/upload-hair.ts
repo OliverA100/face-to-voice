@@ -1,5 +1,5 @@
 /**
- * Hair on Vercel Blob: the strand files (0.3–1.3 MB each, 228 of them, ~220 MB) are too big to commit, so production
+ * Hair on Vercel Blob: the strand files (0.3–1.3 MB each, ~220 MB in all) are too big to commit, so production
  * fetches them from the project's public Blob store instead of /models/hair/. Run from web/ before deploying, after
  * any change to the hair set (`uv run haircs-review apply …`, `uv run import-hair …`):
  *

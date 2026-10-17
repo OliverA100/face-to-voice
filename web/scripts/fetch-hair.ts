@@ -1,6 +1,6 @@
 /**
- * Hair files for development: the strand files (~1 MB each, ~230 of them, ~215 MB) are too big to commit, so they live
- * on the project's public Vercel Blob store (scripts/upload-hair.ts uploads them and lists them in src/data/hairBlob.json).
+ * Hair files for development: the strand files (~1 MB each, ~220 MB in all) are too big to commit, so they live on
+ * the project's public Vercel Blob store (scripts/upload-hair.ts uploads them and lists them in src/data/hairBlob.json).
  * This downloads them into public/models/, where development serves them from. Run from web/:
  *
  *   pnpm fetch-hair               downloads every file that is missing or differs from the store (the Blob paths are

@@ -36,7 +36,7 @@ const PER_LEVEL = quick ? 40 : 300;
 const CHARACTERS = quick ? 10 : 50;
 
 const identities = JSON.parse(fs.readFileSync(path.join(VAL, "stress_identities.json"), "utf8")).identities;
-const browser = await puppeteer.launch({ executablePath: CHROME, headless: "new", protocolTimeout: 1_800_000, args: ["--use-angle=metal"], defaultViewport: { width: 1280, height: 800 } });
+const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, protocolTimeout: 1_800_000, args: ["--use-angle=metal"], defaultViewport: { width: 1280, height: 800 } });
 const page = await browser.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(e.message));

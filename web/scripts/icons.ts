@@ -3,8 +3,8 @@
  *
  * SOURCE picks the master image:
  *   "blob"    (shipped) the loader's sphere mid-swing, bumpy with a little rainbow, its shading deepened, to match the
- *             header logo: src/lib/brand/blob.png (1024 px, transparent). it is rendered with the
- *             loader's shader (loader/chromeGl.ts), so it changes only when the loader's finish does.
+ *             header logo: src/lib/brand/blob.png (1024 px, transparent). It is rendered with the loader's shader
+ *             (loader/chromeGl.ts), so it changes only when the loader's finish does.
  *   "bubble"  the loader's sphere finished as a soap bubble: src/lib/brand/bubble.png.
  *   "mark"    the oscilloscope mark (src/lib/brand/marks.ts) on a rounded white tile.
  *
