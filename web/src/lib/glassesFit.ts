@@ -24,6 +24,7 @@ import { meshesOf } from "@/lib/hair";
 import { type FitResult, prepareSolve, type Solve, solveFit, type SolveInput } from "@/lib/glassesSolve";
 import type { FromGlassesWorker, ToGlassesWorker } from "@/lib/glassesWorker";
 import { onSkinShape, skinShape, skinSurface } from "@/lib/skinSurface";
+import { whenIdle } from "@/lib/whenIdle";
 
 export const GLASSES_FIT = {
   toleranceMm: 0.25, // a frame point may be this much further in than on the average face before the fit acts
@@ -131,8 +132,7 @@ export function fitGlasses(node: Object3D, root: Object3D): { fitted: Promise<vo
       queued = false;
       void run();
     };
-    if (typeof requestIdleCallback === "function") requestIdleCallback(go, { timeout: 200 });
-    else setTimeout(go, 0);
+    whenIdle(go, 200, 0);
   };
   // the first fit at once (the frame is not shown yet when it goes on in a cross-fade)
   const first = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(run).catch((err: unknown) => console.warn("glasses: fit failed", err));

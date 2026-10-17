@@ -13,6 +13,7 @@ import { gltfLoader } from "@/lib/hair";
 import { partDone, takePrefetched, whenRevealed } from "@/lib/headLoad";
 import { morphs } from "@/lib/morphs/store";
 import type { NormalRefresher } from "@/lib/morphs/normals";
+import { whenIdle } from "@/lib/whenIdle";
 
 /** Resolves when the extra targets are merged (or there are none, or loading failed: the head works without). Each mount
  *  (loadHeadExtra) makes its own; before the first, it waits. */
@@ -23,9 +24,7 @@ const partOf = (m: Object3D) => m.parent?.name || m.name;
 /** How long the head has been on screen, fully revealed, before the extra targets are merged in (ms). */
 const SETTLE_MS = 1500;
 
-/** Resolves in the browser's next idle period (Safari has no requestIdleCallback: a short timeout instead). */
-const idle = (timeout: number) =>
-  new Promise<void>((resolve) => (typeof requestIdleCallback === "function" ? requestIdleCallback(() => resolve(), { timeout }) : setTimeout(resolve, 50)));
+const idle = (timeout: number) => new Promise<void>((resolve) => whenIdle(resolve, timeout, 50));
 
 /** Uniform scale of a mesh's own node: gltfpack puts the position dequantisation there. */
 const nodeScale = (m: Object3D) => m.scale.x;

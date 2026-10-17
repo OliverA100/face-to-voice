@@ -49,6 +49,7 @@ import { MOTION } from "@/lib/motion";
 import { morphs } from "@/lib/morphs/store";
 import { centrePose } from "@/lib/pose";
 import { setSkinTone, SKIN_DEFAULT, SKIN_TONES, type SkinToneId } from "@/lib/skin";
+import { whenIdle } from "@/lib/whenIdle";
 
 /** Tweak freely. Chances are 0..1; weights are relative. */
 export const CHARACTER = {
@@ -182,13 +183,12 @@ export function prepareNext(): void {
   for (const url of sideFilesFor(next)) void fetch(url, { priority: "low" }).then((r) => r.arrayBuffer()).catch(() => {});
 }
 
-const whenIdle = (fn: () => void) => (typeof requestIdleCallback === "function" ? requestIdleCallback(fn, { timeout: 2000 }) : setTimeout(fn, 200));
 
 /** The first character, rolled ahead a little after the page has loaded (Toolbar mounts it), so even the first tap finds its files. */
 export function prepareFirst(): void {
   void whenRevealed(20_000)
     .then(() => wait(CHARACTER.aheadAfterLoad))
-    .then(() => whenIdle(prepareNext));
+    .then(() => whenIdle(prepareNext, 2000, 200));
 }
 
 // One transition at a time: a newer click supersedes an older one that is still downloading.
@@ -259,7 +259,7 @@ function transition(style: Style, motion: () => void, faceReady: Promise<unknown
     .then(() => {
       if (id !== run) return; // a newer change is building its own
       building = false;
-      whenIdle(() => !building && prepareNext()); // the next character's files, during this one's morph
+      whenIdle(() => !building && prepareNext(), 2000, 200); // the next character's files, during this one's morph
     });
   const landed = (async () => {
     try {

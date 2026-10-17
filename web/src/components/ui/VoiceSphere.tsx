@@ -21,6 +21,7 @@ import still0 from "@/lib/brand/voice-sphere-0.webp";
 import still1 from "@/lib/brand/voice-sphere-1.webp";
 import still2 from "@/lib/brand/voice-sphere-2.webp";
 import { loudnessAt, previewLoudness } from "@/lib/voice/previewLoudness";
+import { whenIdle } from "@/lib/whenIdle";
 
 import { CHROME, SOAP_BUBBLE, VOICE_STYLES, chromeBox } from "./loader/chrome";
 import type { ChromeVoice } from "./loader/chromeGl";
@@ -60,11 +61,10 @@ export function VoiceSphere({ index, url, playing, audios }: { index: number; ur
   useEffect(() => {
     let live = true;
     const go = () => void previewLoudness(url).then((l) => live && (loudness.current = l));
-    const id = typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(go, { timeout: 1500 }) : window.setTimeout(go, 200);
+    const cancel = whenIdle(go, 1500, 200);
     return () => {
       live = false;
-      if (typeof window.cancelIdleCallback === "function") window.cancelIdleCallback(id);
-      else window.clearTimeout(id);
+      cancel();
     };
   }, [url]);
 

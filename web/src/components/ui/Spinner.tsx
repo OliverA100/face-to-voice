@@ -5,6 +5,7 @@ import { type ButtonHTMLAttributes, type ReactNode, type Ref, useEffect, useStat
 import spinnerStrip from "@/lib/brand/spinner.webp";
 import { whenRevealed } from "@/lib/headLoad";
 import { MOTION } from "@/lib/motion";
+import { whenIdle } from "@/lib/whenIdle";
 
 /**
  * The busy spinner: the loader's sphere. The loader's whole swing, blob → bubble, with the rainbow film and halo at 30 %
@@ -24,9 +25,7 @@ if (typeof window !== "undefined") {
     img.src = spinnerStrip.src;
     void img.decode?.().catch(() => {}); // decoded too, or the first busy pill shows an empty slot for a frame
   };
-  void whenRevealed(15000).then(() =>
-    typeof window.requestIdleCallback === "function" ? window.requestIdleCallback(fetchStrip, { timeout: 2000 }) : setTimeout(fetchStrip, 200), // (Safari: no idle callback)
-  );
+  void whenRevealed(15000).then(() => whenIdle(fetchStrip, 2000, 200));
 }
 
 /**

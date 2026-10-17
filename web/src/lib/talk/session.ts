@@ -64,7 +64,12 @@ type AudioSessionNavigator = Navigator & { audioSession?: { type: string } };
 /** iPhone and iPad: talking needs the play-and-record session (speaker and mic together); computers are left alone (lib/lipsync/player.ts). */
 function audioSession(type: "play-and-record" | "auto") {
   const nav = navigator as AudioSessionNavigator;
-  if (nav.maxTouchPoints > 1 && nav.audioSession) nav.audioSession.type = type;
+  if (!(nav.maxTouchPoints > 1) || !nav.audioSession) return;
+  try {
+    nav.audioSession.type = type;
+  } catch {
+    /* not settable here: the chat still runs on the default session */
+  }
 }
 
 /** Ask for the microphone before anything is paid for. Null when it is allowed, else why not. */

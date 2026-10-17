@@ -33,6 +33,7 @@ import { morphs, PASSING_LAYERS } from "@/lib/morphs/store";
 import { markHeadVisible, onHeadVisible } from "@/lib/perf";
 import { applyEyes, eyeRig } from "@/lib/eyes";
 import { applySkin, skinRig } from "@/lib/skin";
+import { whenIdle } from "@/lib/whenIdle";
 
 import { disposeMaterials, materialFor } from "./materials";
 
@@ -261,16 +262,14 @@ export function Head() {
     const unsubscribe = morphs.onSettle(() => settle());
     settle();
     settleRef.current = settle;
-    // One delta array per idle slice (requestIdleCallback where it exists, else a timer). Only the raw identity targets
-    // (head_000 …, what Random face and Random character drive, ~12 MB as floats): semantic and emotion targets stay lazy.
-    let warmHandle = 0;
-    const hasIdle = typeof window.requestIdleCallback === "function"; // Safari only has it recently
-    const idle = (fn: () => void) => (hasIdle ? window.requestIdleCallback(fn, { timeout: 500 }) : window.setTimeout(fn, 50));
+    // One delta array per idle slice. Only the raw identity targets (head_000 …, what Random face and Random character
+    // drive, ~12 MB as floats): semantic and emotion targets stay lazy.
+    let cancelWarm = () => {};
     const warmNormals = () => {
-      warmHandle = idle(() => {
+      cancelWarm = whenIdle(() => {
         if (headMorph.t < 1) return warmNormals(); // not during the morph reveal: one slice froze a frame (50–120 ms)
         if (refresher.warmStep((t) => !t.startsWith("sem_") && !t.startsWith("emo_"))) warmNormals();
-      });
+      }, 500, 50);
     };
     // The semantic + emotion targets come in a second file once the head is on screen (lib/headExtra.ts).
     // After warmNormals: on a remount the head is already visible and onHeadVisible runs this at once.
@@ -293,8 +292,7 @@ export function Head() {
       window.clearTimeout(limiterTimer);
       limiter.attach(null);
       attachCapsWorker(null);
-      if (hasIdle) window.cancelIdleCallback(warmHandle);
-      else window.clearTimeout(warmHandle);
+      cancelWarm();
       abortExtra();
       unsubscribe();
       settleRef.current = null;
