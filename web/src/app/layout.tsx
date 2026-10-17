@@ -7,7 +7,7 @@ import { TooltipLayer } from "@/components/ui/TooltipLayer";
 
 // Inter for everything (400 for titles and text, 500 for labels), JetBrains Mono for the voice prompt and debug readouts.
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500"] });
-const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400"] });
+const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400"], preload: false }); // only behind "Show prompt"
 
 const TITLE = "Face to Voice — Build a face, hear its voice";
 const DESCRIPTION = "Shape a 3D head with sliders, get a matching ElevenLabs voice, hear it speak with lip sync, then talk to the character live.";

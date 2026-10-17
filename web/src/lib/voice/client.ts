@@ -1,5 +1,5 @@
 /** Browser-side calls to our own API routes (never to ElevenLabs or Anthropic directly). */
-import { captureFace } from "@/components/scene/Capture";
+import { captureFace } from "@/lib/sceneRig";
 import type { ProfileResult } from "@/lib/character/profile";
 import { quantiseFace } from "@/lib/voice/faceSignature";
 import { currentLook } from "@/lib/look";

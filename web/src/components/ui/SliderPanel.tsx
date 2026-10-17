@@ -115,9 +115,21 @@ export function SliderPanel() {
     };
     // the inputs render at the defaults; a face restored after a reload (lib/faceSession.ts) is already in the store
     for (const target of refs.inputs.keys()) if (morphs.base[target] !== morphs.defaults[target]) sync(target, morphs.base[target]);
-    return morphs.onChange((target, value, source) => {
-      if (source !== "ui") sync(target, value); // the input itself is the source of truth while dragging
+    // A whole-face tween moves ~100 sliders a frame; the ones in other tabs and closed groups catch up once it settles.
+    const behind = new Set<string>();
+    const offChange = morphs.onChange((target, value, source) => {
+      if (source === "ui") return; // the input itself is the source of truth while dragging
+      if (source === "tween" && refs.inputs.get(target)?.closest("[hidden], details:not([open])")) behind.add(target);
+      else sync(target, value);
     });
+    const offSettle = morphs.onSettle(() => {
+      for (const target of behind) sync(target, morphs.base[target]);
+      behind.clear();
+    });
+    return () => {
+      offChange();
+      offSettle();
+    };
   }, [refs]);
 
   const choose = (id: TabId) => {

@@ -15,7 +15,7 @@
  */
 import { type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 
-import { captureFace } from "@/components/scene/Capture";
+import { captureFace } from "@/lib/sceneRig";
 import { extraReady } from "@/lib/headExtra";
 import { SceneFailedError, unlessSceneFails } from "@/lib/sceneFailure";
 import { characterSettled } from "@/lib/character";

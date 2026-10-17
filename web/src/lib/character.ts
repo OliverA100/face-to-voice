@@ -22,7 +22,7 @@
  *
  * Tweak the odds and timings in CHARACTER.
  */
-import { precompile } from "@/components/scene/Capture";
+import { precompile } from "@/lib/sceneRig";
 import {
   ADDON_CATEGORIES,
   ADDON_DEFAULTS,

@@ -41,7 +41,7 @@ import {
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
 import { headRig } from "@/components/scene/Head";
-import { sceneRig } from "@/components/scene/Capture";
+import { sceneRig } from "@/lib/sceneRig";
 import { addonRig } from "@/lib/addons";
 import { characterSettled } from "@/lib/character";
 import { extraReady } from "@/lib/headExtra";

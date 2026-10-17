@@ -72,13 +72,16 @@ export function splitLook(yaw: number, pitch: number, headShare = POSE.follow.he
   return { headYaw, headPitch, gazeYaw, gazePitch };
 }
 
+/** The cursor follow at rest (read every frame: one object, not a new one each time). */
+const NO_LOOK = Object.freeze({ headYaw: 0, headPitch: 0, gazeYaw: 0, gazePitch: 0 });
+
 /**
  * The pose actually shown (base + cursor follow, clamped): what IdleLife draws and the look reports. `withCursor` false:
  * the pose the visitor set, without what following the cursor adds (the voice panel's "has the face changed").
  */
 export function currentPose(withCursor = true): Record<PoseKey, number> {
   const b = poseRig.base;
-  const c = withCursor ? poseRig.cursor : { headYaw: 0, headPitch: 0, gazeYaw: 0, gazePitch: 0 };
+  const c = withCursor ? poseRig.cursor : NO_LOOK;
   return {
     headYaw: clamp(b.headYaw + c.headYaw, LIMITS.headYaw),
     headPitch: clamp(b.headPitch + c.headPitch, LIMITS.headPitch),
@@ -217,7 +220,7 @@ export function stepFollow(dt: number): void {
   const f = poseRig.follow;
   const c = poseRig.cursor;
   const active = f.on && performance.now() - f.lastMove < POSE.follow.returnAfter * 1000;
-  const target = active ? splitLook(f.x * POSE.follow.reach.yaw, f.y * POSE.follow.reach.pitch) : { headYaw: 0, headPitch: 0, gazeYaw: 0, gazePitch: 0 };
+  const target = active ? splitLook(f.x * POSE.follow.reach.yaw, f.y * POSE.follow.reach.pitch) : NO_LOOK;
   c.gazeYaw = damp(c.gazeYaw, target.gazeYaw, POSE.follow.eyeRate, dt);
   c.gazePitch = damp(c.gazePitch, target.gazePitch, POSE.follow.eyeRate, dt);
   c.headYaw = damp(c.headYaw, target.headYaw, POSE.follow.headRate, dt);

@@ -4,7 +4,7 @@
  * The R3F canvas. Cheap by construction: capped DPR that PerformanceMonitor lowers on slow
  * devices, MSAA on, no shadow maps, environment lighting, one head. Only `dpr` is React state.
  */
-import { AdaptiveDpr, OrbitControls, PerformanceMonitor } from "@react-three/drei";
+import { OrbitControls, PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ACESFilmicToneMapping, type Object3D, type PerspectiveCamera } from "three";
@@ -77,7 +77,7 @@ function Controls() {
 }
 
 /**
- * Compiles the scene's shaders as the canvas mounts, before its first frame: drei's <Preload all /> without its
+ * Compiles the scene's shaders as the head mounts, before its first frame: drei's <Preload all /> without its
  * "for good measure" cube camera, which renders the whole scene six more times into a throwaway 128 px target (with
  * shader variants of its own for render targets) before the head can show: ~0.15 s on a slow phone.
  */
@@ -134,18 +134,18 @@ export default function Scene() {
     >
       <color attach="background" args={["#f5f3f1"]} /> {/* matches --surface in app/tokens.css */}
       <PerformanceMonitor onIncline={() => adjust(maxDpr())} onDecline={() => dropTier() || adjust(1)} />
-      <AdaptiveDpr />
       <Lighting />
       <Suspense fallback={null}>
         <Head />
         <IdleLife />
         <LipSync />
+        {/* in the commit that adds the head (head.glb arrives after the canvas mounts on a first visit) */}
+        <Precompile />
       </Suspense>
       <Controls />
       <PerfProbe />
       <Capture />
       <PieceFadeRender />
-      <Precompile />
     </Canvas>
   );
 }

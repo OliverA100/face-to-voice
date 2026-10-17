@@ -46,6 +46,10 @@ export function PieceFadeRender() {
   useFrame(({ gl, scene, camera }) => {
     const { leaving, arriving, running, t, skinBefore } = pieceFade;
     if (!leaving.length && !arriving.length) {
+      if (overlay?.frame) {
+        overlay.frame.dispose(); // a screen-sized copy (~10 MB of GPU memory): the next fade makes a new one
+        overlay.frame = null;
+      }
       gl.render(scene, camera);
       return;
     }

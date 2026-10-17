@@ -15,7 +15,7 @@
 import { Color, PerspectiveCamera, Vector2, type WebGLRenderer } from "three";
 
 import { headRig, NECK } from "@/components/scene/Head";
-import { sceneRig } from "@/components/scene/Capture";
+import { sceneRig } from "@/lib/sceneRig";
 import { characterSettled } from "@/lib/character";
 import { visemes } from "@/lib/data";
 import { updateEyeUniforms } from "@/lib/eyeShader";

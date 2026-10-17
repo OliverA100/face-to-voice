@@ -8,10 +8,9 @@
  * classes in app/globals.css.
  */
 import "@/lib/export/openLink"; // FIRST: a rebuild link (/#c=…) must reach sessionStorage before anything restores from it
-import { captureFace } from "@/components/scene/Capture";
+import { captureFace } from "@/lib/sceneRig";
 import { applySkinShade, SKIN_SHADE, skinUniforms } from "@/lib/skinShader";
 import { EYE_LOOK, eyeUniforms } from "@/lib/eyeShader";
-import { LIGHTING, lightingRig } from "@/components/scene/Lighting";
 import { FaceCanvas } from "@/components/scene/FaceCanvas";
 import { LipSyncOverlay } from "@/components/ui/LipSyncOverlay";
 import { PerfOverlay } from "@/components/ui/PerfOverlay";
@@ -104,7 +103,8 @@ if (debugHandle) {
     glassesFit: { GLASSES_FIT, state: glassesFitState },
     pieceFade,
     // rendering, camera and capture
-    lighting: { LIGHTING, rig: lightingRig },
+    // the studio lights, once the canvas chunk has them (importing them here would put the canvas code in the first load)
+    lighting: () => import("@/components/scene/Lighting").then((m) => ({ LIGHTING: m.LIGHTING, rig: m.lightingRig })),
     quality: { state: quality, set: setTier },
     view,
     still: (on: boolean) => void (idleDebug.still = on),
