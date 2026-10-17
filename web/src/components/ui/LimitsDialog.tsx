@@ -40,7 +40,7 @@ function Row({ row }: { row: LimitRow }) {
       <div className="flex items-baseline justify-between gap-3 text-label">
         <span className="text-ink first-letter:uppercase">{row.label}</span>
         <span className={out || paused ? "text-danger" : "text-ink-3"}>
-          {out ? "used up · " : paused ? "paused on your network · " : ""}
+          {out ? "used up · " : paused ? "paused for today · " : ""}
           {row.used.toLocaleString()} of {row.limit.toLocaleString()}
         </span>
       </div>
@@ -185,8 +185,7 @@ export function LimitsDialog() {
                 </ul>
                 {limits.per !== "browser" && (
                   <p className="text-meta text-ink-3">
-                    This browser isn&apos;t keeping cookies, so these are counted per network connection: people on the same
-                    Wi-Fi share them.
+                    Allow cookies for this site to keep a count of your own.
                   </p>
                 )}
               </section>

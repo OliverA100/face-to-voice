@@ -59,7 +59,7 @@ const from = (ip: string, cookie?: string) =>
 const browser = () => newVisitorCookie()!;
 const pick = (ip: string, cookie?: string) => checkVisitorLimit(from(ip, cookie), "select");
 const day = () => Math.floor(Date.now() / 86_400_000); // the fixed window's bucket: the UTC day
-const NETWORK_MESSAGE = "So many voices were picked on your network today that picking is paused here until midnight UTC.";
+const NETWORK_MESSAGE = "Picking voices is paused here for today. It comes back at midnight UTC.";
 const MIDNIGHT = new Date((day() + 1) * 86_400_000).toISOString();
 
 beforeEach(() => {

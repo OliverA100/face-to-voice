@@ -37,14 +37,14 @@ export const VISITOR_LIMITS: Record<Route, { tokens: number; network: number; la
     network: 30,
     label: "voices picked",
     message: (n) => `You've picked all ${n} of your voices for today. More come back at midnight UTC.`,
-    networkMessage: "So many voices were picked on your network today that picking is paused here until midnight UTC.",
+    networkMessage: "Picking voices is paused here for today. It comes back at midnight UTC.",
   },
   invite: {
     tokens: 30,
     network: 60,
     label: "invite code tries",
     message: (n) => `You've used all ${n} of your invite code tries for today. They come back at midnight UTC.`,
-    networkMessage: "So many invite codes were tried on your network today that trying is paused here until midnight UTC.",
+    networkMessage: "Trying invite codes is paused here for today. It comes back at midnight UTC.",
   },
 };
 

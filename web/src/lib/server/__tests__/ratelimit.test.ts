@@ -13,7 +13,7 @@ import { newVisitorCookie } from "../visitor";
 const from = (ip: string, cookie?: string) =>
   new Request("http://localhost/api/voice/select", { method: "POST", headers: { "x-forwarded-for": `${ip}, 10.0.0.1`, ...(cookie ? { cookie: `ftv_visitor=${cookie}` } : {}) } });
 const browser = () => newVisitorCookie()!;
-const NETWORK_MESSAGE = "So many voices were picked on your network today that picking is paused here until midnight UTC.";
+const NETWORK_MESSAGE = "Picking voices is paused here for today. It comes back at midnight UTC.";
 
 describe("visitor limits without Redis", () => {
   it("allow 10× the per-visitor limit, per browser: two browsers on one network have one each", async () => {
