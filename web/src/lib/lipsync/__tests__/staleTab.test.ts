@@ -28,6 +28,22 @@ afterEach(() => {
   vi.resetModules();
 });
 
+describe("isAppleTouch", () => {
+  it("is every browser on an iPhone or iPad, and nothing else", async () => {
+    const appleTouch = async (ua: string, maxTouchPoints: number) => {
+      vi.stubGlobal("navigator", { userAgent: ua, maxTouchPoints });
+      return (await import("../staleTab")).isAppleTouch();
+    };
+    expect(await appleTouch(IPHONE, 5)).toBe(true);
+    expect(await appleTouch(IPHONE.replace("Version/26.0", "CriOS/141.0.0.0"), 5)).toBe(true); // Chrome on an iPhone
+    expect(await appleTouch(SAFARI, 5)).toBe(true); // an iPad, which says it is a Mac
+    expect(await appleTouch(SAFARI, 0)).toBe(false); // a Mac
+    // Chrome says "AppleWebKit" everywhere: a touchscreen laptop and an Android phone aren't Apple touch devices
+    expect(await appleTouch(CHROME.replace("Macintosh; Intel Mac OS X 10_15_7", "Windows NT 10.0; Win64; x64"), 10)).toBe(false);
+    expect(await appleTouch("Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36", 5)).toBe(false);
+  });
+});
+
 describe("staleTab", () => {
   it("on an iPhone: tells the player once per return from 2 minutes hidden to start its audio over", async () => {
     vi.useFakeTimers();

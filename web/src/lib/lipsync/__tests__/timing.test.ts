@@ -10,6 +10,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+const IPHONE_SAFARI = "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1";
+const IPHONE_CHROME = "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/141.0.0.0 Mobile/15E148 Safari/604.1";
+const ANDROID_CHROME = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Mobile Safari/537.36";
+const WINDOWS_CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+
 describe("the heard clock", () => {
   const ctxWith = (currentTime: number, outputLatency: number) => ({ currentTime, outputLatency }) as unknown as AudioContext;
 
@@ -35,10 +40,22 @@ describe("the heard clock", () => {
 
   it("takes iPhone Safari's over-reported delay off", () => {
     vi.spyOn(performance, "now").mockReturnValue(1000);
-    vi.stubGlobal("navigator", { maxTouchPoints: 5, userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1" });
+    vi.stubGlobal("navigator", { maxTouchPoints: 5, userAgent: IPHONE_SAFARI });
     expect(new HeardClock(() => ctxWith(5, 0.08)).heard()).toBeCloseTo(5 - (0.08 + IOS_EXTRA), 9);
     // as an iPhone really reports (12 ms): the whole correction, past zero, not clamped to 12 ms
     expect(new HeardClock(() => ctxWith(5, 0.012)).heard()).toBeCloseTo(5 - (0.012 + IOS_EXTRA), 9);
+  });
+
+  it("applies the iPhone correction to every iPhone browser, and only there", () => {
+    vi.spyOn(performance, "now").mockReturnValue(1000);
+    const heard = (maxTouchPoints: number, userAgent: string) => {
+      vi.stubGlobal("navigator", { maxTouchPoints, userAgent });
+      return new HeardClock(() => ctxWith(5, 0.03)).heard();
+    };
+    expect(heard(5, IPHONE_CHROME)).toBeCloseTo(5 - (0.03 + IOS_EXTRA), 9);
+    // Android's Chrome says "Mobile Safari" too, and a touchscreen laptop has touch points
+    expect(heard(5, ANDROID_CHROME)).toBeCloseTo(5 - 0.03, 9);
+    expect(heard(10, WINDOWS_CHROME)).toBeCloseTo(5 - 0.03, 9);
   });
 });
 

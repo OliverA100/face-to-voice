@@ -8,23 +8,22 @@
  *    stands still (iOS while the context resumes) still stands still after CARRY.
  *  - Bluetooth: browsers report ~160–170 ms for AirPods, which really take ~245 ms. A reported delay of
  *    BLUETOOTH.reported or more gets BLUETOOTH.extra on top.
- *  - iPhone Safari's sound is heard ~50 ms sooner than its reported delay says (its screen trails its sound): IOS_EXTRA
+ *  - An iPhone's sound is heard ~50 ms sooner than its reported delay says (its screen trails its sound): IOS_EXTRA
  *    (negative), applied in full even past zero (iPhones report ~12 ms).
  * Safari before outputLatency: the delay comes from getOutputTimestamp, carried forward to now and eased.
  */
 import { routeDelay } from "./output";
+import { isAppleTouch } from "./staleTab";
 
 export const BLUETOOTH = { reported: 0.1, extra: 0.08 };
 export const IOS_EXTRA = -0.05;
 const CARRY = 0.012; // s: a little more than one 10.7 ms step
 
-const isIOS = () => typeof navigator !== "undefined" && navigator.maxTouchPoints > 1 && /Safari/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
-
 export class HeardClock {
   private latencyEst: number | null = null; // Safari without outputLatency: eased estimate from getOutputTimestamp
   private lastRaw = NaN; // ctx.currentTime as last read
   private rawSince = 0; // performance.now() when it last changed
-  private ios: boolean | null = null;
+  private appleTouch: boolean | null = null;
 
   constructor(private readonly ctxOf: () => AudioContext | null) {}
 
@@ -52,7 +51,7 @@ export class HeardClock {
     // not clamped: an iPhone reports ~12 ms, and its screen trails its sound by ~50 ms more than that says, so the mouth
     // is drawn for a moment ~38 ms ahead of currentTime (clamped at 0, only 12 of the 50 ms applied: the mouth ran
     // ~38 ms late on an iPhone, qa/lipsync phone.py film)
-    if ((this.ios ??= isIOS())) l += IOS_EXTRA;
+    if ((this.appleTouch ??= isAppleTouch())) l += IOS_EXTRA; // measured in Safari; every iPhone browser shares its audio
     return l;
   }
 

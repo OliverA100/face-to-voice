@@ -9,10 +9,14 @@
  */
 const LONG_HIDE_S = 2 * 60;
 
-/** iPhone or iPad (WebKit with touch: iPadOS says it is a Mac; every browser there is WebKit). */
+/**
+ * iPhone or iPad, in any browser (every browser there is WebKit). iPadOS says it is a Mac, so a "Macintosh" with touch
+ * counts too; Chrome and Edge everywhere also say "AppleWebKit", so that alone doesn't.
+ */
 export function isAppleTouch(): boolean {
   if (typeof navigator === "undefined") return false;
-  return navigator.maxTouchPoints > 1 && /AppleWebKit/.test(navigator.userAgent) && !/Android/.test(navigator.userAgent);
+  const ua = navigator.userAgent;
+  return /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
 }
 
 let longHide = false; // a long time hidden since the player last took it (takeLongHide)
