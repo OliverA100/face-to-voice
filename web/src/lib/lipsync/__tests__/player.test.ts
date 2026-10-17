@@ -146,6 +146,30 @@ describe("SpeechPlayer", () => {
     expect(sources.every((s) => s.stopped)).toBe(true);
   });
 
+  it("Stop stops the download: the fetch's signal aborts and the stream is cancelled", async () => {
+    const { speechPlayer } = await import("../player");
+    let cancelled = false;
+    let sent: AbortSignal | undefined;
+    const body = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(new TextEncoder().encode(`${chunk(1)}\n`)); // and then nothing: the rest of the line is still coming
+      },
+      cancel() {
+        cancelled = true;
+      },
+    });
+    const done = speechPlayer.speak(async (signal) => {
+      sent = signal;
+      return new Response(body);
+    });
+    await vi.advanceTimersByTimeAsync(10);
+    expect(sent?.aborted).toBe(false);
+    speechPlayer.stop();
+    await done;
+    expect(sent?.aborted).toBe(true);
+    expect(cancelled).toBe(true);
+  });
+
   it("a 200 without any audio (an empty body, a proxy's page) is an error, not a silent line", async () => {
     const { speechPlayer } = await import("../player");
     await expect(speechPlayer.speak(async () => new Response("<html>challenge</html>"))).rejects.toThrow("couldn't be spoken");

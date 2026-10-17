@@ -71,8 +71,8 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
     }
     // unlock() runs synchronously inside the tap (iOS autoplay rule) before the fetch.
     speechPlayer
-      .speak(async () => {
-        const res = await fetch("/api/voice/speak", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ descKey, ...(take != null ? { take } : {}), text: line, ...currentEmotion() }) });
+      .speak(async (signal) => {
+        const res = await fetch("/api/voice/speak", { signal, method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ descKey, ...(take != null ? { take } : {}), text: line, ...currentEmotion() }) });
         if (res.status === 410 && onRetired) {
           const { message } = (await res.clone().json().catch(() => ({}))) as { message?: string };
           setTimeout(() => onRetired(message ?? "This voice was removed to make room for newer ones. Choose it again to bring it back."), 0); // after the player has settled

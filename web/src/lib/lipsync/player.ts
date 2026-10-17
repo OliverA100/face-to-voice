@@ -199,7 +199,9 @@ class SpeechPlayer {
     return this.envelope.trebleLoudness(t);
   }
 
-  async speak(fetchResponse: () => Promise<Response>): Promise<void> {
+  /** Plays the line `fetchResponse` asks for. Its signal aborts on stop() or the next line: pass it to fetch, so a
+   *  stopped line stops downloading (the server still finishes and caches it). */
+  async speak(fetchResponse: (signal: AbortSignal) => Promise<Response>): Promise<void> {
     this.stop();
     this.unlock();
     const ctx = this.ctx!;
@@ -208,12 +210,13 @@ class SpeechPlayer {
     const signal = this.abort.signal;
     this.setState("loading");
     try {
-      const res = await fetchResponse();
+      const res = await fetchResponse(signal);
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
         throw Object.assign(new Error(data.message ?? SPEECH_FAILED), { code: data.error ?? "upstream" }); // the code: a limit links to the limits dialog
       }
       const reader = res.body.getReader();
+      signal.addEventListener("abort", () => void reader.cancel().catch(() => {}), { once: true });
       const decoder = new TextDecoder();
       let buffer = "";
       for (;;) {
