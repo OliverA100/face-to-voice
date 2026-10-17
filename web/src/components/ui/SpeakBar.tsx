@@ -5,7 +5,6 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { RadioGroup } from "@/components/ui/RadioGroup";
-import { BusyPill } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { paintRange, speakRange } from "@/components/ui/panel/rangeFill";
 import { currentEmotion } from "@/lib/emotion";
@@ -32,8 +31,6 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
   const [error, setError] = useState<{ message: string; limits?: boolean } | null>(null);
   const [showSync, setShowSync] = useState(false);
   const lineIds = useId();
-  const speakButton = useRef<HTMLButtonElement>(null);
-  const stopFocused = useRef(false);
   const box = useRef<HTMLTextAreaElement>(null);
 
   // The box grows with its line instead of scrolling: two rows at least, and refitted when its width changes (the
@@ -63,14 +60,8 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
       speechPlayer.listeners.delete(fn);
     };
   }, []);
-  // Stop goes away when the line ends: if the keyboard was on it, hand the focus to Speak instead of the page.
-  useEffect(() => {
-    if (state === "playing" || !stopFocused.current) return;
-    stopFocused.current = false;
-    speakButton.current?.focus();
-  }, [state]);
 
-  const busy = state === "loading";
+  const active = state === "loading" || state === "playing"; // the pill is Stop meanwhile
   const speak = () => {
     setError(null);
     const line = text.trim().slice(0, MAX_CHARS);
@@ -143,21 +134,17 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
           >
             Sync
           </button>
-          {(state === "playing" || busy) && (
-            <button
-              type="button"
-              onClick={() => speechPlayer.stop()}
-              onFocus={() => (stopFocused.current = true)}
-              onBlur={() => (stopFocused.current = false)}
-              aria-keyshortcuts="Escape"
-              className="enter pill-secondary h-10"
-            >
-              Stop
-            </button>
-          )}
-          <BusyPill ref={speakButton} busy={busy} onClick={speak} data-step-focus className="pill-secondary h-10 px-5">
-            Speak
-          </BusyPill>
+          {/* One pill: Speak, and Stop while a line is generated or plays (the counter says which). Same element and
+              width, so the keyboard focus stays on it and nothing beside it moves. */}
+          <button
+            type="button"
+            onClick={active ? () => speechPlayer.stop() : speak}
+            aria-keyshortcuts={active ? "Escape" : undefined}
+            data-step-focus
+            className="pill-secondary h-10 min-w-21 px-5"
+          >
+            {active ? "Stop" : "Speak"}
+          </button>
         </div>
       </div>
       {showSync && <SyncControl />}
