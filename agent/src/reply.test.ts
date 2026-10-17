@@ -1,3 +1,4 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { llm } from "@livekit/agents";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -26,7 +27,7 @@ function fakeStream(events: object[], end: Error | "hang" | null = null) {
     async *[Symbol.asyncIterator]() {
       for (const e of events) yield e;
       if (end === "hang") await new Promise<void>((r) => (wake = r));
-      if (aborted) throw Object.assign(new Error("aborted"), { name: "APIUserAbortError" });
+      if (aborted) throw new Anthropic.APIUserAbortError(); // as the SDK does (its name is plain "Error")
       if (end) throw end;
     },
   };
@@ -83,6 +84,16 @@ describe("a reply Claude can't give", () => {
     await vi.advanceTimersByTimeAsync(200);
     expect(await reply).toBe(AGAIN_LINE);
     expect(stalled.aborted).toBe(true);
+  });
+});
+
+describe("a reply that is cut short", () => {
+  it("is not a failure: no apology, and cancelled replies in a row never end the chat", async () => {
+    const giveUp = vi.fn();
+    const cancelled = () => fakeStream([], new Anthropic.APIUserAbortError()); // the visitor talked over it, or a preemptive reply was dropped
+    const agent = characterWith([cancelled(), cancelled(), cancelled()], giveUp);
+    for (let i = 0; i < 3; i++) await expect(replyOf(agent)).rejects.toBeInstanceOf(Anthropic.APIUserAbortError);
+    expect(giveUp).not.toHaveBeenCalled();
   });
 });
 

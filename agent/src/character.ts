@@ -299,8 +299,9 @@ export class CharacterAgent extends voice.Agent {
         const { usage } = await stream.finalMessage();
         log("usage", { input: usage.input_tokens, cacheRead: usage.cache_read_input_tokens, cacheWrite: usage.cache_creation_input_tokens, output: usage.output_tokens });
       } catch (e) {
+        // cut short or thrown away (cancel): not a failure. By class: the SDK's errors are all named "Error"
+        if (e instanceof Anthropic.APIUserAbortError) throw e;
         const err = e as { status?: number; name?: string };
-        if (err?.name === "APIUserAbortError") throw e; // cut short or thrown away (cancel): not a failure
         // A status and a name, no words. The framework would only log a thrown error (at error level, kept out of the
         // logs: Dockerfile) and leave the visitor waiting, so the character says so in its own voice instead.
         log("llm error", { status: err?.status, name: err?.name });
