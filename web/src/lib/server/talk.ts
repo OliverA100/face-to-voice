@@ -39,6 +39,7 @@ const holdSeconds = () => env.talk.maxSeconds + TOKEN_TTL_SECONDS + SLOT_GRACE_S
 export const TALK_MESSAGES = {
   invite: "Talking to characters is invite-only for now.",
   busy: "All the characters are busy talking right now. Try again in a few minutes.",
+  alreadyTalking: "You already have a conversation open. End it first, or try again in a minute.",
   noProfile: "Meet the character first.",
   retired: "This voice was removed to make room for newer ones. Choose it again to bring it back.",
 };
@@ -89,20 +90,24 @@ async function liveRooms(names: string[]): Promise<Set<string>> {
  * Take a conversation slot for `room`, or throw `busy`. A Redis failure counts as busy (fail closed). Under a lock, so two
  * requests at once can't both see a free slot. `replaces`: the room of this browser's previous conversation ("Have another
  * chat"), ended here if it is this visitor's; not every room of theirs (a browser without cookies is its whole network).
+ * `ownBrowser`: the visitor is one browser (a cookie), so it may hold one slot at a time; a network id never is limited
+ * this way, or one chat would block everyone behind the same address.
  */
-export async function takeSlot(room: string, visitor: string, replaces?: string): Promise<void> {
+export async function takeSlot(room: string, visitor: string, replaces?: string, ownBrowser = false): Promise<void> {
   const lock = await acquireLock("ftv:lock:talk-slots", SLOTS_LOCK_SECONDS).catch(() => null);
   if (!lock) throw new ApiError("busy", TALK_MESSAGES.busy, 409);
   try {
-    await takeSlotLocked(room, visitor, replaces);
+    await takeSlotLocked(room, visitor, replaces, ownBrowser);
   } finally {
     await releaseLock("ftv:lock:talk-slots", lock).catch(() => {});
   }
 }
 
-async function takeSlotLocked(room: string, visitor: string, replaces?: string): Promise<void> {
+async function takeSlotLocked(room: string, visitor: string, replaces: string | undefined, ownBrowser: boolean): Promise<void> {
   const now = Date.now();
   const ttl = holdSeconds() * 1000;
+  // A slot whose room LiveKit doesn't have may only be freed once it is old enough to have been joined.
+  const startedBefore = (until: number) => until - ttl < now - UNJOINED_SECONDS * 1000;
   const r = getRedis();
   const read = async (): Promise<[string, number][]> => {
     if (!r) {
@@ -129,9 +134,15 @@ async function takeSlotLocked(room: string, visitor: string, replaces?: string):
       await drop(mine);
       slots = await read();
     }
+    const held = slots.filter(([m]) => m.startsWith(`${visitor}|`));
+    if (ownBrowser && held.length) {
+      const alive = await liveRooms(held.map(([m]) => roomOf(m)));
+      await drop(held.filter(([m, until]) => !alive.has(roomOf(m)) && startedBefore(until)).map(([m]) => m));
+      slots = await read();
+      if (slots.some(([m]) => m.startsWith(`${visitor}|`))) throw new ApiError("busy", TALK_MESSAGES.alreadyTalking, 409);
+    }
     if (slots.length >= env.talk.maxConcurrent) {
       const alive = await liveRooms(slots.map(([m]) => roomOf(m)));
-      const startedBefore = (until: number) => until - ttl < now - UNJOINED_SECONDS * 1000;
       await drop(slots.filter(([m, until]) => !alive.has(roomOf(m)) && startedBefore(until)).map(([m]) => m));
       slots = await read();
     }
@@ -167,6 +178,7 @@ export async function startTalk(input: {
   descKey: string;
   take?: number;
   replaces?: string; // the room of this browser's previous conversation
+  ownBrowser: boolean; // the visitor id is a browser cookie, not a network
   chargeVisitor: () => Promise<void>; // the visitor's daily talks: spent only once a slot is theirs
 }): Promise<TalkTicket> {
   if (!talkConfigured()) throw new ApiError("unavailable", MESSAGES.unavailable, 503);
@@ -186,7 +198,7 @@ export async function startTalk(input: {
   if (!now || !Object.values(now.takes).some((t) => t?.voiceId === saved)) throw new ApiError("expired", TALK_MESSAGES.retired, 410);
 
   const room = `talk-${crypto.randomUUID()}`;
-  await takeSlot(room, input.visitor, input.replaces);
+  await takeSlot(room, input.visitor, input.replaces, input.ownBrowser);
   try {
     const maxSeconds = env.talk.maxSeconds;
     await voiceSpoken(record, input.take, voiceId); // to the back of the pool's eviction queue

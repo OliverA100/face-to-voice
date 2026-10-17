@@ -1,4 +1,5 @@
-.env*.local
+.env*
+!.env.example
 
 # --- node / Next.js (web/) ---
 node_modules/
@@ -23,7 +24,6 @@ __pycache__/
 
 # --- misc ---
 .DS_Store
-.env
 .vercel
 
 # HairCS styles under review (pipeline haircs_review.py, /dev/hair-review): local only

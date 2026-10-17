@@ -150,6 +150,32 @@ describe("POST /api/talk/token", () => {
     await releaseSlot(again.data.room);
   });
 
+  it("gives a browser one conversation at a time, but never limits a whole network that way", async () => {
+    env.talk.maxConcurrent = 3;
+    const browser = newVisitorCookie()!;
+    const first = await ask({}, "5.5.5.5", browser);
+    const { room } = await first.json();
+    rooms.alive = [room];
+    const second = await ticket({}, "5.5.5.5", browser);
+    expect(second.status).toBe(409);
+    expect(second.data.message).toMatch(/already have a conversation/);
+    expect((await ticket({}, "5.5.5.5", newVisitorCookie()!)).status).toBe(200); // another browser on that network
+    const shared = await ask({}, "5.5.5.5"); // no cookie: the network's id, which can hold more than one
+    expect(shared.status).toBe(200);
+    expect((await ticket({}, "5.5.5.5")).status).toBe(200);
+    // the browser's room is gone (closed, or a reload) and old enough: its slot is freed for its next chat
+    rooms.alive = [];
+    vi.useFakeTimers({ now: Date.now() + 60_000, toFake: ["Date"] });
+    try {
+      expect((await ticket({}, "5.5.5.5", browser)).status).toBe(200);
+    } finally {
+      vi.useRealTimers();
+      env.talk.maxConcurrent = 1;
+      await releaseSlot(room);
+      await releaseSlot((await shared.json()).room);
+    }
+  });
+
   it("counts every try with an invite code before comparing it: once they are spent, no code is checked at all", async () => {
     const guesser = newVisitorCookie()!;
     const tries = await Promise.all(Array.from({ length: 300 }, () => ticket({ invite: "guess" }, "9.9.9.9", guesser))); // 30 a day, ×10 without Redis; at once

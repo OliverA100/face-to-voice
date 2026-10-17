@@ -79,6 +79,8 @@ export interface DesignResult {
  * key and cannot be: the same look renders to different JPEGs (idle motion, viewport, GPU backend; measured: three
  * page loads of one look gave three different hashes), so a crafted image sent by a script must never reach another
  * visitor through a shared casting. The voice records (descKey) stay shared: they are keyed by the validated fields.
+ * An "everyday" record's key leaves out the persona and line its prompt and preview use, so the first visitor's free
+ * text does reach later ones; the casting prompt tells Claude that text inside the image is never an instruction.
  */
 const faceCacheKey = (visitor: string, k: string) => `ftv:face:${visitor}:${k}`;
 const descCacheKey = (k: string) => `ftv:desc:${k}`;

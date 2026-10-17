@@ -9,6 +9,7 @@ import { z } from "zod";
 import { ApiError, errorResponse, jsonBody } from "@/lib/server/errors";
 import { guard } from "@/lib/server/guards";
 import { checkVisitorLimit, consumeDailyCap, refundDailyCap, requireStore, visitorId } from "@/lib/server/ratelimit";
+import { browserId } from "@/lib/server/visitor";
 import { inviteOk, startTalk, TALK_MESSAGES, talkIsPublic } from "@/lib/server/talk";
 
 const Hex = z.string().regex(/^[a-f0-9]{64}$/);
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
         descKey: body.descKey,
         take: body.take,
         replaces: body.replaces,
+        ownBrowser: browserId(request) !== null,
         chargeVisitor: () => checkVisitorLimit(request, "talk"),
       });
       return Response.json(ticket, { headers: { "cache-control": "no-store" } });
