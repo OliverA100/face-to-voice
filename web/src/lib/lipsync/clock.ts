@@ -67,8 +67,4 @@ export class HeardClock {
     }
     return raw + Math.min(CARRY, Math.max(0, (now - this.rawSince) / 1000)) - this.latency();
   }
-
-  reset(): void {
-    this.lastRaw = NaN;
-  }
 }

@@ -63,7 +63,7 @@ export function inviteOk(code: string | undefined): boolean {
 /** Talking is open to everyone (TALK_PUBLIC=1): no invite code is asked for. */
 export const talkIsPublic = () => env.talk.public;
 
-export function talkConfigured(): boolean {
+function talkConfigured(): boolean {
   return !!(env.livekit.url && env.livekit.apiKey() && env.livekit.apiSecret());
 }
 
@@ -104,7 +104,7 @@ async function liveRooms(names: string[]): Promise<Set<string>> {
  * its whole network). `ownBrowser`: the visitor is one browser (a cookie), so it may hold one slot at a time; a
  * network id never is limited this way, or one chat would block everyone behind the same address.
  */
-export async function takeSlot(room: string, visitor: string, replaces?: string, ownBrowser = false): Promise<void> {
+async function takeSlot(room: string, visitor: string, replaces?: string, ownBrowser = false): Promise<void> {
   const busy = () => new ApiError("busy", TALK_MESSAGES.busy, 409);
   const take = () =>
     acquireLock("ftv:lock:talk-slots", SLOTS_LOCK_SECONDS).catch(() => {
