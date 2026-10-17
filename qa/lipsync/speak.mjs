@@ -65,7 +65,7 @@ if (opt("random", false)) {
     if (!hairy) break;
   }
 }
-// --skin <tone id>: a light skin tone before the voice is made, so the pixel measure can see the open mouth
+// --skin <tone id>: the character's skin tone, set before the voice is made
 if (opt("skin", null)) {
   await page.evaluate((t) => window.__faceToVoice.setSkinTone(t), opt("skin"));
   await sleep(1000);

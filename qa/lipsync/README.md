@@ -40,8 +40,9 @@ are grouped by the head's outline in the whole-head grab, and each group judged 
 `events.py` leaves their events out ("unmeasured").
 `summary.py` falls back to `events.py --app` for runs where over half the events are unmeasured.
 
-**Characters:** dark skin hides the open mouth from the pixel measure. Make new characters with `--skin fair` or
-`--skin light`, or score them with `events.py --app`.
+**Characters:** the pixel measure finds the open mouth by its dark interior between the lips, so it can miss openings
+on darker skin tones. Score those runs with the app's own mouth values (`events.py --app`), which work on every face.
+`--skin <tone>` sets a new character's skin tone before its voice is made.
 
 ## Analysing
 
@@ -135,7 +136,8 @@ uv run sheet.py out/shapes/current                        # → out/shapes/curre
 ```
 
 Each viseme preset is held still (the debug handle's "viseme" layer, capped for the face) and rendered from the front,
-¾ and profile. Faces after the first are random characters given a light skin tone.
+¾ and profile. Faces after the first are random characters, rendered with a light skin tone (`shapes.mjs`) so the open mouth's
+interior stands out in the small renders.
 
 ## Re-tuning a shape
 
