@@ -36,7 +36,7 @@ export const POSE_TARGETS: Record<string, PoseKey> = {
   pose_gaze_pitch: "gazePitch",
 };
 
-export const LIMITS: Record<PoseKey, [number, number]> = {
+export const POSE_LIMITS: Record<PoseKey, [number, number]> = {
   headYaw: [-35, 35],
   headPitch: [-20, 20],
   headRoll: [-15, 15],
@@ -66,10 +66,10 @@ export const damp = (current: number, target: number, rate: number, dt: number) 
 export function splitLook(yaw: number, pitch: number, headShare = POSE.follow.headShare) {
   let headYaw = yaw * headShare;
   let headPitch = pitch * headShare;
-  const gazeYaw = clamp(yaw - headYaw, LIMITS.gazeYaw);
-  const gazePitch = clamp(pitch - headPitch, LIMITS.gazePitch);
-  headYaw = clamp(yaw - gazeYaw, LIMITS.headYaw);
-  headPitch = clamp(pitch - gazePitch, LIMITS.headPitch);
+  const gazeYaw = clamp(yaw - headYaw, POSE_LIMITS.gazeYaw);
+  const gazePitch = clamp(pitch - headPitch, POSE_LIMITS.gazePitch);
+  headYaw = clamp(yaw - gazeYaw, POSE_LIMITS.headYaw);
+  headPitch = clamp(pitch - gazePitch, POSE_LIMITS.headPitch);
   return { headYaw, headPitch, gazeYaw, gazePitch };
 }
 
@@ -84,12 +84,12 @@ export function currentPose(withCursor = true): Record<PoseKey, number> {
   const b = poseRig.base;
   const c = withCursor ? poseRig.cursor : NO_LOOK;
   return {
-    headYaw: clamp(b.headYaw + c.headYaw, LIMITS.headYaw),
-    headPitch: clamp(b.headPitch + c.headPitch, LIMITS.headPitch),
-    headRoll: clamp(b.headRoll, LIMITS.headRoll),
+    headYaw: clamp(b.headYaw + c.headYaw, POSE_LIMITS.headYaw),
+    headPitch: clamp(b.headPitch + c.headPitch, POSE_LIMITS.headPitch),
+    headRoll: clamp(b.headRoll, POSE_LIMITS.headRoll),
     // the gaze sliders and "look at cursor" are exclusive: while following, only the cursor moves the eyes
-    gazeYaw: clamp((poseRig.follow.on ? 0 : b.gazeYaw) + c.gazeYaw, LIMITS.gazeYaw),
-    gazePitch: clamp((poseRig.follow.on ? 0 : b.gazePitch) + c.gazePitch, LIMITS.gazePitch),
+    gazeYaw: clamp((poseRig.follow.on ? 0 : b.gazeYaw) + c.gazeYaw, POSE_LIMITS.gazeYaw),
+    gazePitch: clamp((poseRig.follow.on ? 0 : b.gazePitch) + c.gazePitch, POSE_LIMITS.gazePitch),
   };
 }
 
@@ -111,9 +111,9 @@ function savePose(): void {
 if (typeof window !== "undefined") {
   try {
     const saved = JSON.parse(window.sessionStorage.getItem(POSE_KEY) ?? "{}") as Partial<Record<PoseKey, number>>;
-    for (const key of Object.keys(LIMITS) as PoseKey[]) {
+    for (const key of Object.keys(POSE_LIMITS) as PoseKey[]) {
       const v = saved[key];
-      if (typeof v === "number" && Number.isFinite(v)) poseRig.base[key] = posed[key] = clamp(v, LIMITS[key]);
+      if (typeof v === "number" && Number.isFinite(v)) poseRig.base[key] = posed[key] = clamp(v, POSE_LIMITS[key]);
     }
   } catch {
     /* private mode or malformed: start centred */
@@ -131,7 +131,7 @@ export function setPose(key: PoseKey, degrees: number): void {
     s = gsap.quickTo(poseRig.base, key, { duration: POSE.ease, ease: MOTION.ease.follow });
     setters.set(key, s);
   }
-  posed[key] = clamp(degrees, LIMITS[key]);
+  posed[key] = clamp(degrees, POSE_LIMITS[key]);
   s(posed[key]);
   savePose();
 }

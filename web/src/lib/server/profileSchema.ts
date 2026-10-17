@@ -49,7 +49,7 @@ export const PROFILE_JSON_SCHEMA: Record<string, unknown> = Object.fromEntries(
 );
 
 /** Lengths (characters) and how many items each list keeps. */
-export const LIMITS = {
+export const PROFILE_LIMITS = {
   name: 40,
   title: 48,
   backstory: 400,
@@ -106,26 +106,26 @@ function clipSentences(s: string, max: number): string {
   return end > 0 ? t.slice(0, end) : clip(t, max);
 }
 
-/** Claude's answer held to LIMITS: texts cleaned and clipped, lists cut to size (a list Claude left empty gets a filler). */
+/** Claude's answer held to PROFILE_LIMITS: texts cleaned and clipped, lists cut to size (a list Claude left empty gets a filler). */
 export function clampProfile(p: GeneratedProfile): CharacterProfile {
   const items = (xs: string[], max: number, most: number, filler: string) => {
     const kept = xs.map((x) => clip(x, max)).filter(Boolean).slice(0, most);
     return kept.length ? kept : [filler];
   };
   return {
-    name: clip(p.name, LIMITS.name) || "Unnamed",
-    title: clip(p.title, LIMITS.title),
-    backstory: clip(p.backstory, LIMITS.backstory),
-    traits: items([...new Set(p.traits)], LIMITS.trait, LIMITS.traits, "curious"),
-    habits: items(p.habits, LIMITS.habit, LIMITS.habits, "hums while thinking"),
-    quirks: items(p.quirks, LIMITS.quirk, LIMITS.quirks, "repeats the last word of a question"),
-    interests: items(p.interests, LIMITS.interest, LIMITS.interests, "a good story"),
-    dislikes: items(p.dislikes, LIMITS.dislike, LIMITS.dislikes, "being rushed"),
+    name: clip(p.name, PROFILE_LIMITS.name) || "Unnamed",
+    title: clip(p.title, PROFILE_LIMITS.title),
+    backstory: clip(p.backstory, PROFILE_LIMITS.backstory),
+    traits: items([...new Set(p.traits)], PROFILE_LIMITS.trait, PROFILE_LIMITS.traits, "curious"),
+    habits: items(p.habits, PROFILE_LIMITS.habit, PROFILE_LIMITS.habits, "hums while thinking"),
+    quirks: items(p.quirks, PROFILE_LIMITS.quirk, PROFILE_LIMITS.quirks, "repeats the last word of a question"),
+    interests: items(p.interests, PROFILE_LIMITS.interest, PROFILE_LIMITS.interests, "a good story"),
+    dislikes: items(p.dislikes, PROFILE_LIMITS.dislike, PROFILE_LIMITS.dislikes, "being rushed"),
     pace: p.pace,
     vocabulary: p.vocabulary,
-    catchphrases: items(p.catchphrases, LIMITS.catchphrase, LIMITS.catchphrases, "Well, there it is."),
+    catchphrases: items(p.catchphrases, PROFILE_LIMITS.catchphrase, PROFILE_LIMITS.catchphrases, "Well, there it is."),
     mood: p.mood,
-    greeting: clipSentences(withoutActions(p.greeting), LIMITS.greeting) || "Oh, hello there.",
-    want: clip(p.want, LIMITS.want),
+    greeting: clipSentences(withoutActions(p.greeting), PROFILE_LIMITS.greeting) || "Oh, hello there.",
+    want: clip(p.want, PROFILE_LIMITS.want),
   };
 }

@@ -9,5 +9,5 @@ export interface LimitRow {
 export interface Limits {
   resetAt: string; // ISO time
   per: "browser" | "network"; // whose count `used` is: the browser's, or its network's when it keeps no cookies
-  yours: LimitRow[]; // per visitor (lib/server/ratelimit.ts LIMITS)
+  yours: LimitRow[]; // per visitor (lib/server/ratelimit.ts VISITOR_LIMITS)
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clamp, damp, LIMITS, splitLook } from "../pose";
+import { clamp, damp, POSE_LIMITS, splitLook } from "../pose";
 
 describe("pose", () => {
   it("splits a look between head and eyes and lands on the target", () => {
@@ -12,8 +12,8 @@ describe("pose", () => {
 
   it("gives the head the overflow when the eyes reach their limit, and stops at the head's", () => {
     const s = splitLook(80, 0, 0.35);
-    expect(s.gazeYaw).toBe(LIMITS.gazeYaw[1]);
-    expect(s.headYaw).toBe(LIMITS.headYaw[1]);
+    expect(s.gazeYaw).toBe(POSE_LIMITS.gazeYaw[1]);
+    expect(s.headYaw).toBe(POSE_LIMITS.headYaw[1]);
   });
 
   it("damps towards a target, frame-rate independent", () => {
@@ -26,8 +26,8 @@ describe("pose", () => {
   });
 
   it("clamps to the limits", () => {
-    expect(clamp(50, LIMITS.headYaw)).toBe(35);
-    expect(clamp(-30, LIMITS.gazePitch)).toBe(-20);
+    expect(clamp(50, POSE_LIMITS.headYaw)).toBe(35);
+    expect(clamp(-30, POSE_LIMITS.gazePitch)).toBe(-20);
   });
 });
 

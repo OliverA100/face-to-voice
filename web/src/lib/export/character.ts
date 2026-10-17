@@ -8,7 +8,7 @@ import { emotionRig } from "@/lib/emotion";
 import { eyeState } from "@/lib/eyes";
 import { hairState } from "@/lib/hair";
 import { morphs } from "@/lib/morphs/store";
-import { LIMITS, poseRig, type PoseKey } from "@/lib/pose";
+import { POSE_LIMITS, poseRig, type PoseKey } from "@/lib/pose";
 import { skinState } from "@/lib/skin";
 
 import { CHARACTER_FORMAT, CHARACTER_VERSION, encodeCharacter, type CharacterFile } from "./characterCode";
@@ -31,7 +31,7 @@ export function currentCharacter(): CharacterFile {
     emotion: emotionRig.current,
     intensity: round(emotionRig.intensity, 4),
     // the named keys only: GSAP keeps a hidden `_gsap` cache on the object it tweens
-    pose: Object.fromEntries((Object.keys(LIMITS) as PoseKey[]).map((k) => [k, round(poseRig.base[k], 2)])),
+    pose: Object.fromEntries((Object.keys(POSE_LIMITS) as PoseKey[]).map((k) => [k, round(poseRig.base[k], 2)])),
     hair: { style: hairState.style, colour: hairState.colour },
     addons: { ...addonState },
     skin: skinState.tone,

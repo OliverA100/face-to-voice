@@ -34,7 +34,7 @@ cd qa/lipsync && pnpm install
 | `node cal.mjs b raw` | The in-page recorder's self-check on `calibrate.html` | free |
 | `node perf.mjs [--cpu 4] clip.ndjson` | Frame rate and script time per frame, phone screen, slowed CPU | free |
 
-**Picking a voice counts against the browser's daily limit** (10 a day, 30 per network: `LIMITS` in
+**Picking a voice counts against the browser's daily limit** (10 a day, 30 per network: `VISITOR_LIMITS` in
 `web/src/lib/server/ratelimit.ts`). Reuse saved characters with `--restore <char>` (sessions are saved in
 `out/chars/`) instead of making new ones.
 

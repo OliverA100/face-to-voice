@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { mockProfile } from "../mockProfile";
-import { clampProfile, cleanText, LIMITS, PROFILE_JSON_SCHEMA, ProfileSchema, TRAITS, VOCABULARIES, type GeneratedProfile } from "../profileSchema";
+import { clampProfile, cleanText, PROFILE_LIMITS, PROFILE_JSON_SCHEMA, ProfileSchema, TRAITS, VOCABULARIES, type GeneratedProfile } from "../profileSchema";
 import { MOODS, PACINGS, type DescriptionFields } from "../prompt";
 
 type Prop = { type?: string; enum?: string[]; items?: { type?: string; enum?: string[] } };
@@ -53,10 +53,10 @@ describe("clamping Claude's answer", () => {
 
   it("clips long texts at a word and cuts lists to size", () => {
     const p = clampProfile({ ...ANSWER, traits: ["kind", "kind", "witty", "brave", "shy"], backstory: "word ".repeat(200), habits: ["a", "b", "c", "d", "e"], catchphrases: [] });
-    expect(p.backstory.length).toBeLessThanOrEqual(LIMITS.backstory);
+    expect(p.backstory.length).toBeLessThanOrEqual(PROFILE_LIMITS.backstory);
     expect(p.backstory.endsWith("word")).toBe(true);
     expect(p.traits).toEqual(["kind", "witty", "brave"]);
-    expect(p.habits).toHaveLength(LIMITS.habits);
+    expect(p.habits).toHaveLength(PROFILE_LIMITS.habits);
     expect(p.catchphrases).toHaveLength(1); // an empty list gets a filler
   });
 

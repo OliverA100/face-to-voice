@@ -9,7 +9,7 @@ const env = vi.hoisted(() => ({ hasRedis: false, isDeployed: false, rateLimitSal
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/server/env", () => ({ env }));
 
-import { LIMITS } from "../ratelimit";
+import { VISITOR_LIMITS } from "../ratelimit";
 import { VISITOR_COOKIE, browserId, networkId, networkOf, newVisitorCookie, readVisitorCookie, visitorId } from "../visitor";
 import { config, proxy } from "@/proxy";
 
@@ -115,7 +115,7 @@ describe("src/proxy.ts", () => {
   });
 
   it("runs on every route that asks who the visitor is, and not on pages or Speak", () => {
-    const limited = Object.keys(LIMITS).join("|");
+    const limited = Object.keys(VISITOR_LIMITS).join("|");
     const asks = new RegExp(`visitorId\\(|visitorUsage\\(|checkVisitorLimit\\(request, "(${limited})"\\)`);
     const routes: string[] = [];
     const walk = (dir: string) => {

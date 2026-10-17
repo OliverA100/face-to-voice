@@ -28,7 +28,7 @@ export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk
  *  Each is counted twice: `tokens` per browser, `network` per network (visitor.ts). The network count is the ceiling
  *  that stops someone clearing cookies for a fresh allowance, set well above one browser's so a few people on the
  *  same Wi-Fi rarely meet it; without a cookie it is the only count. Tune `network` here. */
-export const LIMITS: Partial<Record<Route, { tokens: number; network: number; label: string; message: (tokens: number) => string; networkMessage: string }>> = {
+export const VISITOR_LIMITS: Partial<Record<Route, { tokens: number; network: number; label: string; message: (tokens: number) => string; networkMessage: string }>> = {
   select: {
     tokens: 10,
     network: 30,
@@ -51,8 +51,8 @@ export const nextResetMs = (now = Date.now()) => (Math.floor(now / DAY_MS) + 1) 
 
 /** The two counts of a limit: per browser (the visitor's own allowance) and per network (the ceiling). */
 type Scope = "browser" | "network";
-const allowance = (route: Route, scope: Scope) => (scope === "browser" ? LIMITS[route]!.tokens : LIMITS[route]!.network);
-const limitMessage = (route: Route, scope: Scope) => (scope === "browser" ? LIMITS[route]!.message(LIMITS[route]!.tokens) : LIMITS[route]!.networkMessage);
+const allowance = (route: Route, scope: Scope) => (scope === "browser" ? VISITOR_LIMITS[route]!.tokens : VISITOR_LIMITS[route]!.network);
+const limitMessage = (route: Route, scope: Scope) => (scope === "browser" ? VISITOR_LIMITS[route]!.message(VISITOR_LIMITS[route]!.tokens) : VISITOR_LIMITS[route]!.networkMessage);
 
 let redis: Redis | null | undefined;
 /** The shared Upstash client, or null without Redis (local dev). Also the store behind cache.ts. */
@@ -118,7 +118,7 @@ async function hit(route: Route, scope: Scope, id: string): Promise<void> {
  * already counted; that is fine, as both come back at the same midnight. Without a cookie only the network counts.
  */
 export async function checkVisitorLimit(request: Request, route: Route): Promise<void> {
-  if (!LIMITS[route]) return; // no limit per visitor on this step
+  if (!VISITOR_LIMITS[route]) return; // no limit per visitor on this step
   const network = networkId(request); // first: throws (503) without a salt
   const browser = browserId(request);
   if (browser) await hit(route, "browser", browser);
@@ -141,7 +141,7 @@ export async function visitorUsage(request: Request): Promise<{ per: Scope; usag
     const { remaining, limit } = await limiterFor(route, scope, r).getRemaining(id);
     return { used: Math.max(0, limit - remaining), limit };
   };
-  const routes = Object.keys(LIMITS) as Route[];
+  const routes = Object.keys(VISITOR_LIMITS) as Route[];
   const rows = await Promise.all(
     routes.map(async (route) => {
       const net = await count(route, "network", network);

@@ -20,7 +20,7 @@ import { characterSettled } from "@/lib/character";
 import { visemes } from "@/lib/data";
 import { updateEyeUniforms } from "@/lib/eyeShader";
 import { morphs, PASSING_LAYERS } from "@/lib/morphs/store";
-import { clamp, LIMITS, poseRig, POSE } from "@/lib/pose";
+import { clamp, POSE_LIMITS, poseRig, POSE } from "@/lib/pose";
 
 /** Tweak freely: the portrait camera (world metres, degrees). The app's own view is fov 24 from 0.9 m. */
 export const PORTRAIT = {
@@ -72,12 +72,12 @@ export function holdStill(): () => void {
       sway.rotation.copy(rotation);
       sway.position.y = y;
     });
-    sway.rotation.set(-clamp(b.headPitch, LIMITS.headPitch) * DEG, clamp(b.headYaw, LIMITS.headYaw) * DEG, -clamp(b.headRoll, LIMITS.headRoll) * DEG, "YXZ");
+    sway.rotation.set(-clamp(b.headPitch, POSE_LIMITS.headPitch) * DEG, clamp(b.headYaw, POSE_LIMITS.headYaw) * DEG, -clamp(b.headRoll, POSE_LIMITS.headRoll) * DEG, "YXZ");
     sway.position.y = NECK.y;
   }
   // While "look at cursor" is on, the gaze sliders are off: the eyes look straight ahead.
-  const gazeYaw = poseRig.follow.on ? 0 : clamp(b.gazeYaw, LIMITS.gazeYaw);
-  const gazePitch = poseRig.follow.on ? 0 : clamp(b.gazePitch, LIMITS.gazePitch);
+  const gazeYaw = poseRig.follow.on ? 0 : clamp(b.gazeYaw, POSE_LIMITS.gazeYaw);
+  const gazePitch = poseRig.follow.on ? 0 : clamp(b.gazePitch, POSE_LIMITS.gazePitch);
   for (const eye of [leftEye, rightEye]) {
     if (!eye) continue;
     const rotation = eye.rotation.clone();

@@ -6,7 +6,7 @@
  */
 import { errorResponse } from "@/lib/server/errors";
 import { assertSameOrigin } from "@/lib/server/guards";
-import { LIMITS, nextResetMs, requireStore, visitorUsage, type Route } from "@/lib/server/ratelimit";
+import { VISITOR_LIMITS, nextResetMs, requireStore, visitorUsage, type Route } from "@/lib/server/ratelimit";
 import type { Limits } from "@/lib/limits/types";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
       resetAt: new Date(nextResetMs()).toISOString(),
       per,
       // invite code tries are never shown (they stop guessing; visitors needn't know): only the voices picked
-      yours: (Object.keys(usage) as Route[]).filter((id) => id !== "invite").map((id) => ({ id, label: LIMITS[id]!.label, ...usage[id] })),
+      yours: (Object.keys(usage) as Route[]).filter((id) => id !== "invite").map((id) => ({ id, label: VISITOR_LIMITS[id]!.label, ...usage[id] })),
     };
     return Response.json(body, { headers: { "cache-control": "no-store" } });
   } catch (e) {
