@@ -30,7 +30,7 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 | **Voice Design from the face** | `eleven_ttv_v3`, with a description built from Claude's casting by a fixed template. The preview text is the character's own line, so all three previews already sound in character. |
 | **Text to speech** | `eleven_v4_turbo` streamed with timestamps as `pcm_24000` straight to the browser, the expression riding along as an audio tag. First audio about 0.4 s after the request. |
 | **Live conversations** | A LiveKit agent answers as the character with Claude Haiku 5.5 and speaks in their designed voice over the text-to-dialogue websocket. |
-| **Cost and limits** | A design is never paid for twice (voices cached per description, spoken lines in Vercel Blob). Saved voices live in a small pool sized to the plan, with a studio voice as the fallback, and every paid route is rate-limited and capped. |
+| **Cost and limits** | A design is never paid for twice (voices cached per description, spoken lines in Vercel Blob). Saved voices live in a small pool sized to the plan, with a studio voice as the fallback. Every paid call has a daily cap, and picking voices is limited per browser. |
 
 More: [voice and lip sync](docs/architecture.md#voice-and-lip-sync), [live conversations](docs/architecture.md#live-conversations).
 
@@ -161,7 +161,8 @@ cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 The characters are synthetic heads, and the casting leans into stereotypes on purpose, the way game casting does. The
 guard rails: Claude must never name or guess a real person; no voice is cloned (Voice Design creates new voices from a
 text description); no free text from the browser reaches a prompt, except a visitor's own speech in a live
-conversation, which only ever reaches their own conversation; every paid call is rate-limited and capped.
+conversation, which only ever reaches their own conversation; every paid call has a daily cap, and picking voices is
+limited per browser.
 Details: [docs/responsible-ai.md](docs/responsible-ai.md).
 
 ## Credits and licences

@@ -10,8 +10,8 @@ wordmark, font or asset is used, and the project is not affiliated with or endor
 | Piece | File | Notes |
 |---|---|---|
 | **Tokens** | `web/src/app/tokens.css` | the single source for colours, type scale, radii, shadows and motion; the spacing rhythm is in its header comment |
-| Colours | `tokens.css` `:root` | `--page`, `--surface`, `--surface-2`, `--card`, `--ink` … `--ink-4`, `--ink-hover`, `--line-dotted`, `--track`, `--fill`, `--danger` |
-| Type scale | `tokens.css` `@theme` | `text-meta` 12/16, `text-label` 13/18, `text-body` 14/20, `text-input` 16/24, `text-title` 24 (28 from md) / 1.2 / −0.02em |
+| Colours | `tokens.css` `:root` | `--page`, `--surface`, `--surface-2`, `--card`, `--ink` … `--ink-4`, `--ink-hover`, `--on-ink`, `--line-dotted`, `--track`, `--fill`, `--danger`, `--backdrop` |
+| Type scale | `tokens.css` `@theme` | `text-meta` 12/16, `text-label` 13/18, `text-body` 14/20, `text-input` 16/24, `text-subtitle` 20, `text-title` 24, `text-title-lg` 28 (the three titles 1.2 / −0.02em) |
 | Radii | `tokens.css` `@theme` | `rounded-card` 24, `rounded-tray` 16, `rounded-row` 12; pills and chips `rounded-full` |
 | Shadows | `tokens.css` `@theme` | `shadow-hairline` (cards), `shadow-control` (white pills, tab indicator, thumbnails), `shadow-thumb` (slider thumb), `shadow-float` (voice card) |
 | Motion | `tokens.css` + `web/src/lib/motion.ts` | see [Motion](#motion) |
@@ -37,8 +37,9 @@ Rules that keep it coherent:
 - Separate with spacing and soft surface fills, not lines. The only line in the panel is the hairline under the sticky
   tabs, shown once content scrolls under it.
 - White controls are lifted by `shadow-control`; outlines are only for focus.
-- Five type sizes, no bold: 400 for titles and text, 500 for section labels and the logo. Muted text is `--ink-3`
-  (4.5:1 on `--surface`); `--ink-4` is for placeholders, counts and slider end labels.
+- Seven type sizes, no bold: 400 for titles and text, 500 for section labels and the logo. Muted text (labels, counts,
+  slider end labels, placeholders) is `--ink-3` (4.5:1 on `--surface`); `--ink-4` is too light for text, so it is
+  only for decoration (chevrons, the None slash).
 - Press is `scale(0.98)` on pills and 1.08 on a slider thumb; nothing scales on hover.
 
 ## Motion
@@ -92,11 +93,10 @@ those labs drive.
 
 ## One look, four places
 
-The header logo (`LogoOrb.tsx`), the favicon set, the busy spinner and the voice previews' orbs (`VoiceBlob.tsx`) are
-all the loader's sphere mid-swing, rendered with the real shader and baked to small images by one recipe (in the
-style lab). Each preview's orb is another moment of the swing: a ~5 KB still, and a ~66 KB strip
-that plays while the voice plays, slid by a compositor animation. Still and strip are rendered as a pair, so Play
-starts from the still without a jump and Pause eases back to it.
+The header logo (`LogoOrb.tsx`), the favicon set and the busy spinner are the loader's sphere mid-swing, rendered with
+the real shader and baked to small images by one recipe (in a local lab, not in the repo). The voice previews' orbs
+(`VoiceSphere.tsx`) and the chat's sphere are the loader's sphere itself, live: each preview opens on a still of its own
+first frame and swells with its voice as it plays; with reduced motion or without WebGL the still is all there is.
 
 ## Credits
 

@@ -93,7 +93,7 @@ Caps, look-ahead spans and the reach questions of Random face and Random charact
 limiter chunk loads after the head's first frame. Morph targets carry no normals, so `normals.ts` recomputes them as
 the shape moves; on a slow device the live recomputes run in `normalsWorker.ts` (same arithmetic), the final one here.
 
-**Coverage grows from failures.** `validate --vlimits` and `validate/grow.py` find broken faces (slider pairs, random
+**Coverage grows from failures.** `validate --vlimits` and `validate --grow` find broken faces (slider pairs, random
 multi-slider rays, failing animation poses) and add their crossing triangles to `limits.json`.
 
 **Stress test.** `uv run validate --stress` writes identities, runs `web/scripts/stress-states.mjs` against the app in
@@ -175,34 +175,37 @@ PCM + aligned times ◄─────────── NDJSON with the aligned
 - **One paid job at a time.** A Redis lock per description (design) and per take (save): a second request waits for
   the first one's result instead of paying again. The voice pool is one hash field per take, so concurrent requests
   never drop each other's entries, and speaking with a voice moves it to the back of the eviction queue.
-- **Lip sync** (`web/src/lib/lipsync/`): `player.ts` schedules PCM chunks gaplessly on the AudioContext clock and
-  keeps a loudness envelope plus one above 2 kHz (`envelope.ts`); `clock.ts` turns that clock into what is heard now
-  (the reported output delay, plus the measured extra for Bluetooth and iPhone Safari, smoothed between Chrome's
-  10.7 ms clock steps); `cues.ts` maps words to visemes from
-  their phonemes (the CMU Pronouncing Dictionary stays on the server: each spoken line arrives with its own words'
-  phonemes as a first NDJSON line, `lib/server/pronounce.ts`; a live reply's words are looked up in one batched
-  request to `/api/phonemes`), else from TalkingHead's letter rules (numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
-  unstressed "a/the/of/-ably" are weak); `evaluator.ts`, for a line on the voice's own stamps (a live reply, or a line the
-  alignment failed for), places it on the voice onset and each phrase after a pause where its stamps are far off,
-  snaps closures (p/b/m, f/v,
-  th) to the quiet-then-burst in the audio (an "m", which hums on, in the treble; two p/b/m with no vowel between, "Bob
-  bought", share one closure) and vowels to loudness peaks, keeping
-  the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly), then blends with anticipation, closure
-  dominance and smoothing; `mouth.ts` (run by `LipSync.tsx`) writes the result into the viseme morph layer, capped per face by the limiter
-  and held to a top speed for the lips and the jaw (`visemes.json` "speed"). How far the jaw opens follows
-  the loudness syllable by syllable (the lips keep the sound's shape under a softer gate), measured against the loudest moment nearby (so a line that trails off still
-  forms its last words), and the whole mouth runs 30 ms ahead of the sound: as drawn, the lips part on each p/b/m
-  burst (measured in Chrome, Firefox and Safari, `qa/lipsync`, [the lip-sync report](lipsync-report.md)). The lips keep a
-  vowel's rounding or spread while the loudness takes the opening away; the corners and the rounding have top speeds
-  of their own, and every movement eases in. Because eleven_v4_turbo times letters from the text, the audio corrects
-  it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds its syllable (a breath
-  doesn't count), and a phrase's last vowel holds while the voice draws it out. The tongue tip rises for d/t/n/l on
-  a track of its own. In Safari (Mac, iPhone, iPad) the sound (lines and chats) plays through a hidden `<audio>` element as a
-  live MediaStream, not the context's own output (`lib/lipsync/output.ts`): that output, shared by every context in
-  the tab, could fall behind and stay behind (0.8 s late or silent, reported on time, kept across a reload, until a new
-  tab), and a stream has no queue to fall behind in. The heard clock adds the route's 75 ms. Chrome and Firefox, given
-  the same trigger, stayed on time. The player's context also rests (suspended) between lines, and a line's first
-  audio waits until it runs again.
+- **Lip sync: the clock** (`web/src/lib/lipsync/`). `player.ts` schedules PCM chunks gaplessly on the AudioContext
+  clock and keeps a loudness envelope plus one above 2 kHz (`envelope.ts`). `clock.ts` turns that clock into what is
+  heard now: the reported output delay, plus the measured extra for Bluetooth and iPhone Safari, smoothed between
+  Chrome's 10.7 ms clock steps. The player's context rests (suspended) between lines, and a line's first audio waits
+  until it runs again.
+- **Lip sync: the sounds.** `cues.ts` maps words to visemes from their phonemes. The CMU Pronouncing Dictionary stays on
+  the server: a spoken line arrives with its words' phonemes as its first NDJSON line (`lib/server/pronounce.ts`), and
+  a live reply's words are looked up in one batched request to `/api/phonemes`. Words it doesn't know fall back to
+  TalkingHead's letter rules (numbers spelled out, tag characters dropped, a silent "h" takes the next vowel's shape,
+  unstressed "a/the/of/-ably" weak).
+- **Lip sync: placing them on the audio.** A line on the voice's own stamps (a live reply, or a line the alignment
+  failed for) goes through `placement.ts`: it is placed on the voice onset, and so is each phrase after a pause where
+  its stamps are far off. Closures (p/b/m, f/v, th) snap to the quiet-then-burst in the audio (an "m", which hums on,
+  in the treble; two p/b/m with no vowel between, "Bob bought", share one closure) and vowels to loudness peaks,
+  keeping the sounds in spelled order (eleven_v4_turbo spaces a word's letters evenly). Because v4 times letters from
+  the text, the audio corrects it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds
+  its syllable (a breath doesn't count), and a phrase's last vowel holds while the voice draws it out.
+- **Lip sync: the mouth.** `evaluator.ts` blends the cues with anticipation, closure dominance and smoothing
+  (`shapes.ts`), and `mouth.ts` (run by `LipSync.tsx`) writes them into the viseme morph layer, capped per face by the
+  limiter and held to a top speed for the lips and the jaw (`visemes.json` "speed"). How far the jaw opens follows the
+  loudness syllable by syllable, measured against the loudest moment nearby, so a line that trails off still forms its
+  last words; the lips keep the sound's shape under a softer gate, and keep a vowel's rounding or spread while the
+  loudness takes the opening away. The tongue tip rises for d/t/n/l on a track of its own, and every movement eases in.
+- **Lip sync: on time.** The whole mouth runs 30 ms ahead of the sound: as drawn, the lips part on each p/b/m burst
+  (measured in Chrome, Firefox and Safari with `qa/lipsync`; [the lip-sync report](lipsync-report.md)). Tuning values
+  and the reason for each are in `tuning.ts`.
+- **Safari's audio route.** In Safari (Mac, iPhone, iPad) the sound of lines and chats plays through a hidden `<audio>`
+  element as a live MediaStream, not the context's own output (`lib/lipsync/output.ts`). That output, shared by every
+  context in the tab, could fall behind and stay behind (0.8 s late or silent, reported on time, kept across a
+  reload); a stream has no queue to fall behind in. The heard clock adds the route's 75 ms. Chrome and Firefox, given
+  the same trigger, stayed on time.
 
 ## Live conversations
 
