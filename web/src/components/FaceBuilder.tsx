@@ -54,9 +54,15 @@ restoreFace(); // the face shown before a reload (sessionStorage)
  * drive the app through it. Installed in development; a production build installs it only when the page URL has a
  * `debug` query parameter (`/?debug=1`), so the shipped page exposes nothing by default.
  */
+declare global {
+  interface Window {
+    __faceToVoice?: unknown; // the debug handle below
+  }
+}
+
 const debugHandle = typeof window !== "undefined" && (process.env.NODE_ENV !== "production" || new URLSearchParams(window.location.search).has("debug"));
 if (debugHandle) {
-  (window as unknown as { __faceToVoice: unknown }).__faceToVoice = {
+  window.__faceToVoice = {
     // face state
     morphs,
     currentLook,

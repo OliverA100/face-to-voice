@@ -5,7 +5,7 @@
 export function Status({ message, count = 0 }: { message: string; count?: number }) {
   return (
     <p role="status" className="sr-only">
-      {message && message + (count % 2 ? "​" : "")}
+      {message && message + (count % 2 ? "\u200B" : "")}
     </p>
   );
 }

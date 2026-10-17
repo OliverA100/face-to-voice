@@ -185,10 +185,12 @@ export function LimitsDialog() {
                 </ul>
                 <p className="text-meta text-ink-3">
                   {limits.per === "browser" ? (
-                    <>
-                      {picks?.limit ?? 10} a day on this browser, counted with a cookie that holds only a random id. Each network can pick{" "}
-                      {picks?.network.limit ?? 30} a day in all, so a very busy Wi-Fi can run out sooner.
-                    </>
+                    picks && (
+                      <>
+                        {picks.limit} a day on this browser, counted with a cookie that holds only a random id. Each network can pick{" "}
+                        {picks.network.limit} a day in all, so a very busy Wi-Fi can run out sooner.
+                      </>
+                    )
                   ) : (
                     "This browser isn't keeping cookies, so these are counted per network connection: people on the same Wi-Fi share them."
                   )}
