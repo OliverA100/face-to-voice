@@ -43,6 +43,7 @@ export function CharacterCard({
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<{ message: string; limits: boolean } | null>(null);
   const [said, setSaid] = useState("");
+  const [recast, setRecast] = useState(false); // a recast profile fades in over the skeleton (the first comes in with its step)
   const root = useRef<HTMLDivElement>(null);
 
   const write = async (kind: Exclude<Busy, null>) => {
@@ -52,6 +53,7 @@ export function CharacterCard({
     try {
       onResult(await withCasting(design, () => requestProfile(design, kind === "rewrite")), design);
       setSaid(kind === "rewrite" ? "They have been recast." : "The character's profile is ready.");
+      if (kind === "rewrite") setRecast(true);
       // Recast is pressed below the profile: back up to the new one (after it renders)
       if (kind === "rewrite") requestAnimationFrame(() => scrollVoiceCardTop(root.current?.closest('section[aria-label="Voice"]') ?? null));
     } catch (e) {
@@ -80,7 +82,7 @@ export function CharacterCard({
           <ProfileSkeleton />
         ) : (
           <div className="flex items-center justify-between gap-3">
-            <p className="min-w-0 text-label text-ink">Their profile didn’t arrive.</p>
+            <p className="min-w-0 text-label text-ink">Their profile didn&apos;t arrive.</p>
             <button type="button" onClick={() => write("write")} data-step-focus className="pill-secondary h-8 px-3 text-label">
               Try again
             </button>
@@ -94,14 +96,14 @@ export function CharacterCard({
 
   const { profile } = result;
   return (
-    <div ref={root} className="enter flex flex-col gap-3">
+    <div ref={root} className="flex flex-col gap-3">
       {busy === "rewrite" ? (
         // the new character is being written: a tray shaped like the profile it becomes, in the old one's place
         <ProfileSkeleton label="Recasting the character…" />
       ) : (
-        <section aria-label={`Character: ${profile.name}`} className="flex flex-col gap-3 rounded-tray bg-surface p-4">
+        <section aria-label={`Character: ${profile.name}`} className={`${recast ? "enter " : ""}flex flex-col gap-3 rounded-tray bg-surface p-4`}>
           <div>
-            <h2 className="display text-[20px] text-ink">{profile.name}</h2>
+            <h2 className="display text-subtitle text-ink">{profile.name}</h2>
             {profile.title && <p className="text-meta text-ink-3 first-letter:uppercase">{profile.title}</p>}
           </div>
           <p className="text-body text-ink-2">{profile.backstory}</p>

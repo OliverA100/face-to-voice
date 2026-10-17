@@ -44,7 +44,7 @@ export function Spinner({ shown = true, late = false }: { shown?: boolean; late?
   return (
     <span
       aria-hidden
-      className={`block size-4.5 shrink-0 overflow-hidden transition-[scale] duration-(--dur-2) ease-soft starting:scale-0 ${shown ? (late ? "delay-120" : "") : "scale-0"}`}
+      className={`block size-4.5 shrink-0 overflow-hidden transition-[scale] duration-(--dur-2) ease-soft starting:scale-0 ${shown ? (late ? "delay-[calc(var(--dur-2)*0.4)]" : "") : "scale-0"}`}
     >
       <span
         className="block h-full"
@@ -85,9 +85,9 @@ export function BusySwap({ busy, children }: { busy: boolean; children: ReactNod
   const present = useSpinnerPresent(busy);
   return (
     <>
-      {/* one after the other, not over each other: the bubble grows once the label is mostly gone (`late`: 120 ms,
+      {/* one after the other, not over each other: the bubble grows once the label is mostly gone (`late`: 0.4 × --dur-2, 120 ms,
           ~90 % of the fade on --ease-out-soft), and on the way back the label returns once the bubble has mostly shrunk */}
-      <span className={`col-start-1 row-start-1 transition-opacity duration-(--dur-2) ease-soft ${busy ? "opacity-0" : "delay-120"}`}>{children}</span>
+      <span className={`col-start-1 row-start-1 transition-opacity duration-(--dur-2) ease-soft ${busy ? "opacity-0" : "delay-[calc(var(--dur-2)*0.4)]"}`}>{children}</span>
       {present && (
         <span aria-hidden className="col-start-1 row-start-1 grid place-items-center">
           <Spinner shown={busy} late />

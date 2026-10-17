@@ -32,6 +32,9 @@
   --track: #ebe8e4;
   --fill: #8f8981; /* warm grey, between --ink-3 and --ink-4: the fill reads without competing with the text */
 
+  --on-ink: #ffffff; /* text on black pills and chosen (inked) pills */
+  --backdrop: rgb(0 0 0 / 0.25); /* behind the Limits dialog */
+
   /* Status */
   --danger: #b91c1c; /* dark enough for 13px text on the surface tray (5.9:1) */
 
@@ -78,6 +81,7 @@
   --color-ink-3: var(--ink-3);
   --color-ink-4: var(--ink-4);
   --color-ink-hover: var(--ink-hover);
+  --color-on-ink: var(--on-ink);
   --color-line-dotted: var(--line-dotted);
   --color-track: var(--track);
   --color-danger: var(--danger);
@@ -85,7 +89,7 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
 
-  /* Type scale: five sizes, each with its line height. Weights: 400 titles and text, 500 section labels. */
+  /* Type scale: seven sizes, each with its line height. Weights: 400 titles and text, 500 section labels. */
   --text-meta: 12px; /* values, slider end labels, footnotes */
   --text-meta--line-height: 16px;
   --text-label: 13px; /* secondary text, section labels, tabs, chips, hints */
@@ -94,9 +98,15 @@
   --text-body--line-height: 20px;
   --text-input: 16px; /* text fields (16px also stops iOS zooming on focus) */
   --text-input--line-height: 24px;
-  --text-title: 24px; /* panel and voice card titles (28px from md, set at the call site) */
+  --text-subtitle: 20px; /* the character's name, the Limits dialog's title */
+  --text-subtitle--line-height: 1.2;
+  --text-subtitle--letter-spacing: -0.02em;
+  --text-title: 24px; /* panel titles; the voice card's and the full-page messages' step up to title-lg from md */
   --text-title--line-height: 1.2;
   --text-title--letter-spacing: -0.02em;
+  --text-title-lg: 28px;
+  --text-title-lg--line-height: 1.2;
+  --text-title-lg--letter-spacing: -0.02em;
 
   /* Radii: pills/chips are rounded-full. */
   --radius-card: 24px; /* cards */

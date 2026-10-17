@@ -14,7 +14,7 @@ export function MessagePage({ eyebrow, title, text, children }: { eyebrow: strin
           <LoaderSphere size="min(168px, 36vw)" />
           <div className="flex flex-col items-center gap-3 text-center">
             <p className="font-mono text-meta text-ink-3">{eyebrow}</p>
-            <h1 className="display text-title md:text-[28px]">{title}</h1>
+            <h1 className="display text-title md:text-title-lg">{title}</h1>
             <p className="max-w-[36ch] text-body text-ink-3">{text}</p>
             {children}
           </div>

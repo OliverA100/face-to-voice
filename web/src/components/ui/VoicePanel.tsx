@@ -394,7 +394,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
 
         {phase === "idle" && (
           <div className="step-enter flex flex-col gap-1.5 py-1">
-            <h2 className="display text-title text-ink md:text-[28px]">Give this face a voice</h2>
+            <h2 className="display text-title text-ink md:text-title-lg">Give this face a voice</h2>
             <p className="text-body text-ink-3">ElevenLabs designs three voices from the face as it looks now. Pick the one that fits.</p>
           </div>
         )}
@@ -603,7 +603,7 @@ export function PreviewList({
           Says: “{line}”
         </span>
       )}
-      <ul className="enter -mx-2 flex flex-col">
+      <ul className="-mx-2 flex flex-col">
         {previews.map((p, i) => (
           <li key={p.generatedVoiceId} className="group/row flex h-14 items-center gap-3 rounded-row px-2 transition-colors hover:bg-surface">
             <button
@@ -614,7 +614,7 @@ export function PreviewList({
               aria-pressed={playing === i}
               aria-describedby={line ? lineId : undefined}
               data-step-focus={i === 0 ? "" : undefined}
-              className="group/play relative h-9 w-9 shrink-0 rounded-full active:scale-[0.98]"
+              className="group/play relative h-9 w-9 shrink-0 rounded-full transition-transform active:scale-[0.98]"
             >
               {/* the orb keeps its full colour (the row's grey shows the hover; the focus ring, the focus); `dim`: the old
                   image orbs darkened themselves on hover and focus, under a white icon */}

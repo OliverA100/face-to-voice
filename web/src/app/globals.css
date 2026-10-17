@@ -52,7 +52,7 @@ body {
   @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 text-body font-normal transition-[background-color,color,box-shadow,transform,opacity] select-none active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none;
 }
 @utility pill-primary {
-  @apply pill bg-ink text-white hover:bg-ink-hover;
+  @apply pill bg-ink text-on-ink hover:bg-ink-hover;
 }
 /* White pill lifted by a soft shadow (no outline); the shadow deepens a little on hover. */
 @utility pill-secondary {
@@ -253,7 +253,7 @@ body {
     transform var(--dur-2) var(--ease-out-soft);
 }
 .pill-choice[aria-checked="true"] {
-  color: white;
+  color: var(--on-ink);
 }
 .pill-choice[aria-checked="true"]::before {
   opacity: 1;

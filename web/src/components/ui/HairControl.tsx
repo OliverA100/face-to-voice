@@ -55,7 +55,7 @@ export function HairControl() {
         </p>
       )}
       {/* Length filters: they wrap like every option row (no sideways scrolling). */}
-      <RadioGroup label="Hair length" className="mt-2 flex flex-wrap gap-1.5">
+      <RadioGroup label="Hair length" className="mt-2 flex flex-wrap gap-2">
         {FILTERS.map((f) => (
           <button
             key={f.id}
@@ -63,7 +63,7 @@ export function HairControl() {
             role="radio"
             aria-checked={filter === f.id}
             onClick={() => setPicked(f.id)}
-            className="pill-secondary pill-choice h-7 px-3 text-label"
+            className="pill-secondary pill-choice h-8 px-3 text-label"
           >
             {f.label}
           </button>
@@ -72,7 +72,8 @@ export function HairControl() {
       {/* The filter's styles at once: the thumbnails wrap onto as many rows as they need (no sideways scrolling).
           The padding leaves room for the selection ring. Each row is one Tab stop, the arrows move and choose (RadioGroup);
           names are aria-labels (shown as the app's tooltip: data-tip; a title as well would make screen readers say each name twice). */}
-      <RadioGroup label="Hair style" className="mt-2 flex flex-wrap gap-2 py-0.5">
+      {/* a new filter fades its styles in (keyed: the grid is remade); not on first show, the tab fades it in */}
+      <RadioGroup key={filter} label="Hair style" className={`${picked ? "enter " : ""}mt-2 flex flex-wrap gap-2 py-0.5`}>
         <button
           type="button"
           role="radio"

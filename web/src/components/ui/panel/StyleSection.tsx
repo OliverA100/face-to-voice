@@ -20,7 +20,7 @@ export function StyleSection() {
         <SkinControl />
         <EyeControl />
       </Block>
-      <Block title="Hair, brows & beard">
+      <Block title="Hair, brows and beard">
         <HairControl />
         <AddonControls categories={["eyebrows", "eyelashes", "facialHair"]} />
       </Block>

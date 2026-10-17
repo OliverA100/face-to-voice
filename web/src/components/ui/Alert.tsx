@@ -18,7 +18,7 @@ export function Alert({ children, limits = false }: { children: ReactNode; limit
         {limits && (
           <>
             {" "}
-            <button type="button" onClick={openLimits} className="text-ink underline underline-offset-2 hover:text-ink-hover">
+            <button type="button" onClick={openLimits} className="text-ink underline underline-offset-2 transition-colors hover:text-ink-hover">
               See your limits
             </button>
           </>

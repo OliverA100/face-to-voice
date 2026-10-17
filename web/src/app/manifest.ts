@@ -8,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Shape a 3D head with sliders, get a matching ElevenLabs voice, hear it speak with lip sync, then talk to the character live.",
     start_url: "/",
     display: "standalone",
-    background_color: "#fdfcfc",
+    background_color: "#fdfcfc", // --page (app/tokens.css): a manifest can't read CSS
     theme_color: "#fdfcfc",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },

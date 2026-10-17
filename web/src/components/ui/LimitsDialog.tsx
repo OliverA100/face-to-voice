@@ -14,6 +14,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
+import { useHeightTransition } from "@/components/ui/useHeightTransition";
 import { useScrollEdges } from "@/components/ui/useScrollEdges";
 
 import { onOpenLimits, openLimits } from "@/lib/limits/open";
@@ -57,7 +58,9 @@ export function LimitsDialog() {
   const title = useRef<HTMLHeadingElement>(null);
   const opener = useRef<HTMLElement | null>(null); // focus goes back here on close
   const body = useRef<HTMLDivElement>(null); // scrolls on short screens: its edges fade while there's more (.edge-fades)
+  const bodyContent = useRef<HTMLDivElement>(null);
   useScrollEdges(body);
+  useHeightTransition(body, bodyContent); // eases to its height when the numbers arrive, not a jump mid-entrance
   const [limits, setLimits] = useState<Limits | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
@@ -127,71 +130,73 @@ export function LimitsDialog() {
       // a click on the backdrop lands on the dialog itself, outside its padding box's content
       onClick={(e) => e.target === e.currentTarget && close()}
       // dialog-in (globals.css): it fades in and rises into place as it opens, its backdrop fading in with it
-      className="dialog-in m-auto w-[calc(100%-32px)] max-w-[420px] rounded-card bg-card p-0 text-ink shadow-float backdrop:bg-black/25"
+      className="dialog-in m-auto w-[calc(100%-32px)] max-w-[420px] rounded-card bg-card p-0 text-ink shadow-float backdrop:bg-(--backdrop)"
     >
-      <div ref={body} className="edge-fades flex max-h-[calc(100dvh-64px)] flex-col gap-4 overflow-y-auto p-5 [--fade-inset:--spacing(5)]">
-        <div className="flex items-start justify-between gap-3">
-          {/* focused on open (tabIndex -1: not a Tab stop), with no ring: it isn't a control */}
-          <h2 ref={title} id="limits-title" tabIndex={-1} className="display text-[20px] outline-none">
-            Today’s limits
-          </h2>
-          <button type="button" onClick={close} className="pill-secondary -mr-1 -mt-1 h-8 px-3 text-label">
-            Close
-          </button>
-        </div>
-
-        <p className="text-label text-ink-2">
-          Speaking, chatting and finding voices have no limits. Picking a voice makes a new voice at ElevenLabs, which
-          has room for only so many, so each browser can pick a few a day.
-        </p>
-
-        <p className="rounded-tray bg-surface px-3 py-2 text-label text-ink" aria-live="off">
-          {limits ? (
-            <>
-              Everything resets in <span className="font-medium tabular-nums">{left(resetAt - now)}</span>
-              <span className="text-ink-3">
-                {" "}
-                · midnight UTC ({localTime} your time)
-              </span>
-            </>
-          ) : (
-            "Everything resets at midnight UTC."
-          )}
-        </p>
-
-        {failed ? (
-          <p role="alert" className="text-label text-danger">
-            Couldn’t load your limits.{" "}
-            <button type="button" onClick={load} className="text-ink underline underline-offset-2 hover:text-ink-hover">
-              Try again
+      <div ref={body} className="edge-fades max-h-[calc(100dvh-64px)] overflow-y-auto p-5 [--fade-inset:--spacing(5)]">
+        <div ref={bodyContent} className="flex flex-col gap-4">
+          <div className="flex items-start justify-between gap-3">
+            {/* focused on open (tabIndex -1: not a Tab stop), with no ring: it isn't a control */}
+            <h2 ref={title} id="limits-title" tabIndex={-1} className="display text-subtitle outline-none">
+              Today&apos;s limits
+            </h2>
+            <button type="button" onClick={close} className="pill-secondary -mr-1 -mt-1 h-8 px-3 text-label">
+              Close
             </button>
+          </div>
+
+          <p className="text-label text-ink-2">
+            Speaking, chatting and finding voices have no limits. Picking a voice makes a new voice at ElevenLabs, which
+            has room for only so many, so each browser can pick a few a day.
           </p>
-        ) : !limits ? (
-          <p className="text-label text-ink-3">Loading…</p>
-        ) : (
-          <>
-            <section aria-labelledby="limits-yours" className="flex flex-col gap-2">
-              <h3 id="limits-yours" className="text-label font-medium text-ink">
-                Yours
-              </h3>
-              <ul className="flex flex-col gap-3">
-                {limits.yours.map((row) => (
-                  <Row key={row.id} row={row} />
-                ))}
-              </ul>
-              <p className="text-meta text-ink-3">
-                {limits.per === "browser" ? (
-                  <>
-                    {picks?.limit ?? 10} a day on this browser, counted with a cookie that holds only a random id. Each network can pick{" "}
-                    {picks?.network.limit ?? 30} a day in all, so a very busy Wi-Fi can run out sooner.
-                  </>
-                ) : (
-                  "This browser isn’t keeping cookies, so these are counted per network connection: people on the same Wi-Fi share them."
-                )}
-              </p>
-            </section>
-          </>
-        )}
+
+          <p className="rounded-tray bg-surface px-3 py-2 text-label text-ink" aria-live="off">
+            {limits ? (
+              <>
+                Everything resets in <span className="font-medium tabular-nums">{left(resetAt - now)}</span>
+                <span className="text-ink-3">
+                  {" "}
+                  · midnight UTC ({localTime} your time)
+                </span>
+              </>
+            ) : (
+              "Everything resets at midnight UTC."
+            )}
+          </p>
+
+          {failed ? (
+            <p role="alert" className="text-label text-danger">
+              Couldn&apos;t load your limits.{" "}
+              <button type="button" onClick={load} className="text-ink underline underline-offset-2 transition-colors hover:text-ink-hover">
+                Try again
+              </button>
+            </p>
+          ) : !limits ? (
+            <p className="text-label text-ink-3">Loading…</p>
+          ) : (
+            <>
+              <section aria-labelledby="limits-yours" className="flex flex-col gap-2">
+                <h3 id="limits-yours" className="text-label font-medium text-ink">
+                  Yours
+                </h3>
+                <ul className="flex flex-col gap-3">
+                  {limits.yours.map((row) => (
+                    <Row key={row.id} row={row} />
+                  ))}
+                </ul>
+                <p className="text-meta text-ink-3">
+                  {limits.per === "browser" ? (
+                    <>
+                      {picks?.limit ?? 10} a day on this browser, counted with a cookie that holds only a random id. Each network can pick{" "}
+                      {picks?.network.limit ?? 30} a day in all, so a very busy Wi-Fi can run out sooner.
+                    </>
+                  ) : (
+                    "This browser isn't keeping cookies, so these are counted per network connection: people on the same Wi-Fi share them."
+                  )}
+                </p>
+              </section>
+            </>
+          )}
+        </div>
       </div>
     </dialog>
   );
