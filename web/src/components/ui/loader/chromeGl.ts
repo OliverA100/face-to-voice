@@ -329,12 +329,11 @@ gl_FragColor=vec4(min(c.rgb,1.)*c.a,c.a); // premultiplied (a = 1 unless the fin
  * curves. N and V in a space whose axes match the loader's (view space).
  */
 export function bubbleGlsl(finish: ChromeFinish): string {
-  // polishUniforms in GLSL: bumps and roughness ease (cosine), metalness, halo and film rise linearly.
+  // polishUniforms in GLSL: bumps and roughness ease (cosine), metalness, halo and film rise linearly. One ray per
+  // pixel, not the loader's 5-tap blur: here it shades a whole head, and at the bubble's gloss the taps barely show.
   return `${shadeLib(finish, 1)}
 float chRough(float p){float e=.5+.5*cos(p*3.14159265);return max(e*.2+(1.-e)*${f(finish.rough)},.0525);}
 vec3 chBubble(vec3 N,vec3 V,vec2 fab,float hue,float p){return min(chShade(N,V,vec3(0.),fab,hue,chRough(p),p*${f(finish.metal)},p*${f(finish.halo)},p*${f(finish.irid)},p).rgb,1.);}`;
-  // (one ray per pixel, not the loader's 5-tap blur: here it shades a whole head, and at the bubble's gloss the taps
-  // barely show)
 }
 
 /** The sphere: three's SphereGeometry(1, n, n) vertex and triangle order (counter-clockwise from outside). */
@@ -594,9 +593,9 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
     const tri = ph < 0.5 ? 2 * ph : 2 - 2 * ph, cs = 0.5 - 0.5 * Math.cos(2 * Math.PI * ph);
     return tri + (cs - tri) * c.dwell;
   };
-  /** Where in the swing the polish is p, heading up (v ≥ 0) or back down: the swing carries on from a held polish. */
   const [amp, rest] = c.bumps ?? [0.4, 0.03];
   const even = (s: number, b: number) => evenBumped(s, b, amp, rest);
+  /** Where in the swing the polish is p, heading up (v ≥ 0) or back down: the swing carries on from a held polish. */
   const phaseOf = (p: number, v: number, k: number) => {
     let lo = 0, hi = 0.5;
     for (let i = 0; i < 20; i++) {
@@ -617,8 +616,6 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
       if (vs) {
         const target = voice ? clamp01(voice.level) ** vs.curve : 0;
         env += (target - env) * (1 - Math.exp(-step / Math.max(1e-3, target > env ? vs.attack : vs.release)));
-      }
-      if (vs) {
         // the rainbow eases to the voice's (or back to the finish's own): ~0.3 s, as the polish's own changes
         const r = frame.rainbow ?? 1;
         frame.rainbow = r + ((voice?.rainbow ?? 1) - r) * (1 - Math.exp(-step / 0.3));
@@ -631,16 +628,16 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
         frame.polish = clamp01(frame.polish + velocity * step);
       } else if (d.hold === null && d.settling) {
         if (!from) {
-          const vs = (c.settleSpeed * 2) / c.period; // the swing covers blob → finish in half a period
-          const turn = velocity < 0 ? (-velocity / vs) * 0.6 : 0; // heading back to the blob: time to turn around
-          from = { p: frame.polish, v: velocity, u: 0, T: Math.max(0.25, (1 - frame.polish) / vs + turn) };
+          const rate = (c.settleSpeed * 2) / c.period; // the swing covers blob → finish in half a period
+          const turn = velocity < 0 ? (-velocity / rate) * 0.6 : 0; // heading back to the blob: time to turn around
+          from = { p: frame.polish, v: velocity, u: 0, T: Math.max(0.25, (1 - frame.polish) / rate + turn) };
         }
         if (from.u === 1 && d.through) frame.polish = swingBack(Math.min(1, (past += step) / d.through), c.dwell);
         else {
           const u = (from.u = Math.min(1, from.u + step / from.T)), T = from.T;
           const arrive = d.through ? (1 - c.dwell) / d.through : 0; // the run back's starting speed (swingBack's slope at 0)
           const h00 = 2 * u ** 3 - 3 * u ** 2 + 1, h10 = u ** 3 - 2 * u ** 2 + u, h01 = 3 * u ** 2 - 2 * u ** 3, h11 = u ** 3 - u ** 2;
-          frame.polish = Math.min(1, Math.max(0, h00 * from.p + h10 * T * from.v + h01 + h11 * T * arrive));
+          frame.polish = clamp01(h00 * from.p + h10 * T * from.v + h01 + h11 * T * arrive);
         }
       } else if (d.hold === null) {
         const k = voice?.evenBumps ?? c.evenBumps ?? 0;
