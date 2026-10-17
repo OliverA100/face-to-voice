@@ -20,7 +20,7 @@ visitor's mic ─► Silero VAD + turn detector (local) ─► speech to text (L
 | `src/metadata.ts` | The dispatch metadata, checked, with limits the metadata can't raise |
 | `src/canned.ts` | A development stand-in with no AI behind it (`FTV_MOCK_AGENT=1`) |
 
-How it fits with the web app: [docs/architecture.md](../docs/architecture.md#live-conversations). What it stores and
+How it fits with the web app: [docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md#live-conversations). What it stores and
 logs: [docs/responsible-ai.md](../docs/responsible-ai.md#live-conversations).
 
 ## Run it locally

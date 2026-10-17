@@ -20,7 +20,7 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 
 **Contents:** [How ElevenLabs is used](#how-elevenlabs-is-used) · [Highlights](#engineering-highlights) ·
 [How it works](#how-it-works) · [Known limitations](#known-limitations) · [Run it](#run-it) ·
-[Responsible AI](#responsible-ai) · [Credits and licences](#credits-and-licences) · [Architecture](docs/architecture.md)
+[Responsible AI](#responsible-ai) · [Credits and licences](#credits-and-licences) · [Architecture](docs/ARCHITECTURE.md)
 
 ## How ElevenLabs is used
 
@@ -32,7 +32,7 @@ hair, add-ons, expressions, the voice pipeline and lip sync) is this repository.
 | **Live conversations** | A LiveKit agent answers as the character with Claude Haiku 5.5 and speaks in their designed voice over the text-to-dialogue websocket. |
 | **Cost and limits** | A design is never paid for twice (voices cached per description, spoken lines in Vercel Blob). Saved voices live in a small pool sized to the plan, with a studio voice as the fallback. Every paid call has a daily cap, and picking voices is limited per browser. |
 
-More: [voice and lip sync](docs/architecture.md#voice-and-lip-sync), [live conversations](docs/architecture.md#live-conversations).
+More: [voice and lip sync](docs/ARCHITECTURE.md#voice-and-lip-sync), [live conversations](docs/ARCHITECTURE.md#live-conversations).
 
 ## Engineering highlights
 
@@ -42,7 +42,7 @@ More: [voice and lip sync](docs/architecture.md#voice-and-lip-sync), [live conve
   thousands of app states exactly.
 - **Tested:** over 500 tests (web, agent and pipeline) run in CI on every push.
 
-All the numbers and how they were measured: [docs/architecture.md](docs/architecture.md#numbers).
+All the numbers and how they were measured: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#numbers).
 
 ## How it works
 
@@ -72,24 +72,24 @@ All the numbers and how they were measured: [docs/architecture.md](docs/architec
 
 **The head.** GNM is linear, so each component bakes into an exact glTF morph target. The 33 **Shape** sliders (jaw
 width, eye spacing, lip fullness …) are directions solved on the model, each moving its own measurement while holding
-the others, with ranges checked against adult anthropometry. [More](docs/architecture.md#pipeline--morph-targets)
+the others, with ranges checked against adult anthropometry. [More](docs/ARCHITECTURE.md#pipeline--morph-targets)
 
 **Only impossible faces are blocked.** Exact checks in the pipeline find what breaks, and a fast mirror in the app
-turns each slider's track into "as far as this face allows". [More](docs/architecture.md#the-limiter-and-the-stress-test)
+turns each slider's track into "as far as this face allows". [More](docs/ARCHITECTURE.md#the-limiter-and-the-stress-test)
 
 **Hair and add-ons.** 228 strand hair styles drawn on the GPU, every root tied to the skin so hair follows sliders,
 blinks and expressions. Eyebrows, lashes, beards and glasses come from the pipeline.
-[More](docs/architecture.md#hair-and-add-ons)
+[More](docs/ARCHITECTURE.md#hair-and-add-ons)
 
 **Expression and voice.** Twelve emotions from GNM's ExpressionSampler. Claude casts the character from a screenshot
 into a fixed schema, a template turns that into the Voice Design prompt, and the chosen take speaks with lip sync
-placed on the audio. [More](docs/architecture.md#voice-and-lip-sync)
+placed on the audio. [More](docs/ARCHITECTURE.md#voice-and-lip-sync)
 
 **Meet and talk.** Claude writes the character once per voice: a name, a backstory and a greeting that drops you into
-a scene. "Chat" starts a live voice conversation with them. [More](docs/architecture.md#live-conversations)
+a scene. "Chat" starts a live voice conversation with them. [More](docs/ARCHITECTURE.md#live-conversations)
 
 **Export.** "Download character" builds a zip in the browser: a transparent portrait, the casting and voice prompt,
-the chosen take, the profile, a rebuild link and a licence file. [More](docs/architecture.md#export)
+the chosen take, the profile, a rebuild link and a licence file. [More](docs/ARCHITECTURE.md#export)
 
 ## Known limitations
 
@@ -104,7 +104,7 @@ the chosen take, the profile, a rebuild link and a licence file. [More](docs/arc
 - **The limiter only knows what it has been shown.** Single sliders and slider pairs never break in the stress test,
   but 3 of 3,000 random multi-slider faces still cross somewhere, and some extreme faces in motion cross by up to
   1.2 mm. Each failure found is added to the limiter's data.
-  [Numbers](docs/architecture.md#the-limiter-and-the-stress-test)
+  [Numbers](docs/ARCHITECTURE.md#the-limiter-and-the-stress-test)
 - **A head, no body.** The model is a head; there are no shoulders, and slider ranges are checked against adult
   anthropometry only.
 - **Hair doesn't move on its own.** The 228 styles follow the skin (sliders, blinks, expressions) but have no physics:
@@ -153,7 +153,7 @@ cd pipeline && uv sync && uv run pytest && uv run ruff check && uv run verify
 | `web/` | Next.js 16 app: `src/components/scene` (React Three Fiber), `src/components/ui` (panel, voice card, character card, chat), `src/lib/morphs` (morph store, limiter, random faces), `src/lib/lipsync` (recorded and live), `src/lib/talk` (the conversation in the browser), `src/lib/server` (Claude, ElevenLabs, LiveKit tokens, caches, limits), `src/lib/export` |
 | `agent/` | The LiveKit agent that plays the character in a live conversation (Node, TypeScript). See [agent/README.md](agent/README.md) |
 | `pipeline/` | Python tools: GNM export and verification, semantic sliders, ranges and validation, emotions, hair and add-ons. See [pipeline/README.md](pipeline/README.md) |
-| `docs/` | [architecture](docs/architecture.md), [responsible AI](docs/responsible-ai.md), [design tokens](docs/design.md) |
+| `docs/` | [architecture](docs/ARCHITECTURE.md), [responsible AI](docs/responsible-ai.md), [design tokens](docs/design.md) |
 | `third_party/` | Licences of bundled third-party work (see `NOTICE`) |
 
 ## Responsible AI

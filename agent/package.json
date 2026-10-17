@@ -2,7 +2,7 @@
   "name": "face-to-voice-agent",
   "version": "0.1.0",
   "private": true,
-  "description": "The LiveKit agent that speaks as a Face to Voice character (see ../docs/architecture.md, Live conversations).",
+  "description": "The LiveKit agent that speaks as a Face to Voice character (see ../docs/ARCHITECTURE.md, Live conversations).",
   "type": "module",
   "scripts": {
     "dev": "node src/main.ts dev",
