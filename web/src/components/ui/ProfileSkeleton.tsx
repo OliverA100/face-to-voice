@@ -1,10 +1,8 @@
 /**
- * The Meet step before its profile is there (CharacterCard's code loading, or the profile being written): a tray shaped
- * and sized like the profile it becomes, so the voice card grows once to about its final height instead of shrinking
- * to its header and then shooting up (filmed: 464 → 132 → 664 px over 0.7 s). In the main bundle: it is shown while
- * the lazy CharacterCard loads.
+ * A recast character while it is written (CharacterCard): a tray shaped and sized like the profile it becomes, in the old
+ * one's place, so the voice card keeps about its height instead of shrinking to its header and shooting back up.
  */
-export function ProfileSkeleton({ label = "Writing their profile…" }: { label?: string }) {
+export function ProfileSkeleton({ label }: { label: string }) {
   const bar = "animate-pulse rounded-full bg-surface-2";
   return (
     <div className="flex flex-col gap-3 rounded-tray bg-surface p-4" aria-hidden>

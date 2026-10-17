@@ -7,6 +7,7 @@
 import "server-only";
 
 import { summariseSliders } from "@/lib/voice/sliderSummary";
+import type { DesignResult, Preview, SelectResult, VoiceRecipe } from "@/lib/voice/types";
 
 import { describeFace } from "./claude";
 import { acquireLock, cacheDel, cacheGet, cacheSet, pinnedVoices, poolEvictions, poolList, poolRefresh, poolRemove, poolTouch, releaseLock, storeAudio } from "./cache";
@@ -19,16 +20,10 @@ import { quantiseIntensity } from "./emotion";
 import { AGE_RANGES, buildVoiceDescription, descriptionIdentity, expressionLine, fantasyWorld, previewText, type DescriptionFields, type Presentation } from "./prompt";
 import { consumeDailyCap, refundDailyCap } from "./ratelimit";
 
-export interface PreviewRecord {
-  generatedVoiceId: string;
-  url: string;
-  durationSecs: number;
-}
-
 export interface VoiceRecord {
   descKey: string;
   description: string; // the ElevenLabs prompt
-  previews: PreviewRecord[];
+  previews: Preview[];
   seed: number;
   cast: Pick<DescriptionFields, "presentation" | "ageRange">; // picks the closest studio voice
   design: DesignSettings & { text: string }; // what Voice Design was asked
@@ -51,28 +46,6 @@ export function takeVoice(record: VoiceRecord, take?: number): string | null {
 
 /** Pool entries are per take: "<descKey>#<take>". */
 const poolKey = (descKey: string, take: number) => `${descKey}#${take}`;
-
-/** Everything sent to Voice Design for this voice, for the export. Re-running it gives a similar voice, not the same one. */
-export interface VoiceRecipe extends DesignSettings {
-  voiceDescription: string;
-  text: string;
-  seed: number;
-}
-
-export interface DesignResult {
-  faceKey: string;
-  descKey: string;
-  fields: DescriptionFields;
-  presentation: Presentation;
-  description: string;
-  previews: PreviewRecord[];
-  voiceId: string | null;
-  chosenIndex: number | null; // which preview voiceId was saved from, when voiceId is set
-  savedTakes: number[]; // the previews that already have a saved voice (choosing them again is free)
-  studioFallback: boolean; // voiceId is a studio stand-in, not one of these previews
-  recipe: VoiceRecipe;
-  cached: { description: boolean; previews: boolean };
-}
 
 /*
  * Everything derived from Claude's reading of the screenshot is kept per visitor. The screenshot is not in the face
@@ -242,7 +215,7 @@ async function designRecord(dKey: string, fields: DescriptionFields, left: () =>
     await refundDailyCap("designs", 1); // nothing was designed
     throw e;
   }
-  const stored: PreviewRecord[] = [];
+  const stored: Preview[] = [];
   for (const [i, p] of designed.previews.entries()) {
     const ext = p.mediaType.includes("wav") ? "wav" : "mp3";
     // Named after the take itself: stored files are never overwritten (cache.ts storeAudio), so a path shared with an
@@ -259,13 +232,6 @@ async function designRecord(dKey: string, fields: DescriptionFields, left: () =>
 /** The Voice Design request behind a record. */
 function voiceRecipe(record: VoiceRecord): VoiceRecipe {
   return { ...record.design, voiceDescription: record.description, seed: record.seed };
-}
-
-export interface SelectResult {
-  voiceId: string;
-  saved: boolean; // false when a studio fallback voice was used
-  chosenIndex?: number; // the preview the voice came from (another visitor's pick if they saved this voice first)
-  message?: string;
 }
 
 export interface SelectOptions {

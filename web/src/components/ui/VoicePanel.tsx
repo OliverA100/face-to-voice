@@ -66,10 +66,9 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
   // An invite code in the URL (/?talk=…) is kept for this tab and taken out of the address bar, after the first render
   useEffect(() => void talkInvite(), []);
   // On the Speak step, the Meet step's code is fetched ahead, so its card is there when Meet is pressed.
-  // (and on the Meet step itself, should its code somehow not be here yet: rendered once it is)
   const [, setCardLoaded] = useState(false);
   useEffect(() => {
-    if (phase === "ready" || (phase === "meet" && !CharacterCard)) void loadCharacterCard().then(() => setCardLoaded(true));
+    if (phase === "ready") void loadCharacterCard().then(() => setCardLoaded(true));
   }, [phase]);
   const [design, setDesign] = useState<DesignResult | null>(null);
   // The design now, for answers that come back later (a profile asked for before "Find my voice" found new voices)
@@ -472,7 +471,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
         {/* The end of the flow: who the character is, then everything to take away (the zip carries the profile too). */}
         {phase === "meet" && selection && design && (
           <div className="step-enter flex flex-col gap-3">
-            {Card && (
+            {Card && profile && (
               <Card
                 design={design}
                 take={inUse}

@@ -7,33 +7,17 @@ import { morphs } from "@/lib/morphs/store";
 import { sliderFor, toUi } from "@/lib/morphs/travel";
 import type { TalkTicket } from "@/lib/talk/ticket";
 
-export type Presentation = "neutral" | "feminine" | "masculine";
+import type { DesignResult as DesignReply, SelectResult } from "./types";
 
-export interface DescriptionFields {
-  presentation: Presentation; ageRange: string; character: string; build: string; energy: string; pacing: string; pitch: string;
-  mood1: string; mood2: string; accent: string; accentStrength: string; ethnicity: string; persona: string; timbre: string;
-  quirk: string; line: string; emotion: string; emotionIntensity: number;
-}
-export interface Preview { generatedVoiceId: string; url: string; durationSecs: number }
-/** The Voice Design request behind a voice (server: VoiceRecipe in lib/server/voice.ts). Re-running it gives a similar voice. */
-export interface VoiceRecipe {
-  voiceDescription: string; text: string; seed: number;
-  modelId: string; guidanceScale: number; loudness: number; outputFormat: string;
-}
-export interface DesignResult {
-  faceKey: string; descKey: string; fields: DescriptionFields; presentation: Presentation;
-  description: string; previews: Preview[]; voiceId: string | null;
-  chosenIndex: number | null; // the preview voiceId was saved from (when voiceId is set)
-  studioFallback: boolean; // voiceId is a studio stand-in, not one of the previews
-  recipe: VoiceRecipe;
-  cached: { description: boolean; previews: boolean };
-  /** The face as it was sent (browser only, kept with the design in the tab): a lost casting is redone from it even
-   *  after the face on screen changed (withCasting). Missing on designs restored from before it was kept. */
+export type { DescriptionFields, Presentation, Preview, SelectResult, VoiceRecipe } from "./types";
+
+/** The design reply, plus the face as it was sent (browser only, kept with the design in the tab): a lost casting is
+ *  redone from it even after the face on screen changed (withCasting). */
+export interface DesignResult extends DesignReply {
   sent?: SentFace;
 }
 /** The sliders and look a design was asked for, and the face signature they had (currentFaceSignature). */
 export interface SentFace { weights: Record<string, number>; look: Record<string, string>; signature: string }
-export interface SelectResult { voiceId: string; saved: boolean; chosenIndex?: number; message?: string }
 
 export class VoiceApiError extends Error {
   constructor(public readonly code: string, message: string, public readonly status: number) {

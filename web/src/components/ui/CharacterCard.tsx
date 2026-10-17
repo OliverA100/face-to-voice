@@ -6,11 +6,11 @@
  * not shown (the face already shows the expression, and it changes as they talk), nor are the first words: they stay a
  * surprise until the conversation.
  *
- * Opening the step writes the profile the first time (one Claude call, then shared by everyone who meets this voice);
- * after that it is free. "Recast" writes a different one for the same voice, kept for this visitor only: the profile is
- * a skeleton while it is written, and the card scrolls back up to the new one.
+ * The profile is written before the step opens (VoicePanel's Meet: one Claude call, then shared by everyone who meets
+ * this voice). "Recast" writes a different one for the same voice, kept for this visitor only: the profile is a
+ * skeleton while it is written, and the card scrolls back up to the new one.
  */
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { BusySwap } from "@/components/ui/Spinner";
@@ -23,7 +23,6 @@ import { ProfileSkeleton } from "@/components/ui/ProfileSkeleton";
 import { scrollVoiceCardTop } from "@/components/ui/voiceCardScroll";
 import { requestProfile, VoiceApiError, withCasting, type DesignResult } from "@/lib/voice/client";
 
-type Busy = null | "write" | "rewrite";
 
 export function CharacterCard({
   design,
@@ -35,69 +34,40 @@ export function CharacterCard({
 }: {
   design: Pick<DesignResult, "faceKey" | "descKey" | "sent">;
   take: number | null; // the voice in use: the one the character talks with
-  result: ProfileResult | null;
+  result: ProfileResult;
   onResult: (r: ProfileResult, forDesign: Pick<DesignResult, "faceKey" | "descKey">) => void; // the voice it was asked for
   onRetired: (message: string) => void; // the voice was retired (a chat found out): back to the takes to choose it again
   onStale: () => void; // the character can't be recast (code "stale"): "New voices" may design for this face again
 }) {
-  const [busy, setBusy] = useState<Busy>(null);
+  const [busy, setBusy] = useState(false); // recasting
   const [error, setError] = useState<{ message: string; limits: boolean } | null>(null);
   const [said, setSaid] = useState("");
   const [recast, setRecast] = useState(false); // a recast profile fades in over the skeleton (the first comes in with its step)
   const root = useRef<HTMLDivElement>(null);
 
-  const write = async (kind: Exclude<Busy, null>) => {
+  const recastNow = async () => {
     if (busy) return;
-    setBusy(kind);
+    setBusy(true);
     setError(null);
     try {
-      onResult(await withCasting(design, () => requestProfile(design, kind === "rewrite")), design);
-      setSaid(kind === "rewrite" ? "They have been recast." : "The character's profile is ready.");
-      if (kind === "rewrite") setRecast(true);
+      onResult(await withCasting(design, () => requestProfile(design, true)), design);
+      setSaid("They have been recast.");
+      setRecast(true);
       // Recast is pressed below the profile: back up to the new one (after it renders)
-      if (kind === "rewrite") requestAnimationFrame(() => scrollVoiceCardTop(root.current?.closest('section[aria-label="Voice"]') ?? null));
+      requestAnimationFrame(() => scrollVoiceCardTop(root.current?.closest('section[aria-label="Voice"]') ?? null));
     } catch (e) {
       if (!(e instanceof VoiceApiError)) console.error("[profile]", e);
       if (e instanceof VoiceApiError && e.code === "stale") onStale();
       setError({ message: e instanceof VoiceApiError ? e.message : "Something went wrong. Please try again.", limits: isLimitError(e) });
     } finally {
-      setBusy(null);
+      setBusy(false);
     }
   };
-
-  // Opening the step is the request: write (or fetch) the profile once, on the first visit.
-  const asked = useRef(false);
-  useEffect(() => {
-    if (result || asked.current) return;
-    asked.current = true;
-    void write("write");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per mount
-  }, []);
-
-  if (!result) {
-    return (
-      <div className="flex flex-col gap-3">
-        {busy === "write" || !error ? (
-          // A tray shaped and sized like the profile it is about to become (ProfileSkeleton)
-          <ProfileSkeleton />
-        ) : (
-          <div className="flex items-center justify-between gap-3">
-            <p className="min-w-0 text-label text-ink">Their profile didn&apos;t arrive.</p>
-            <button type="button" onClick={() => write("write")} data-step-focus className="pill-secondary h-8 px-3 text-label">
-              Try again
-            </button>
-          </div>
-        )}
-        {error && <Alert limits={error.limits}>{error.message}</Alert>}
-        <Status message={busy === "write" ? "Writing their profile…" : said} />
-      </div>
-    );
-  }
 
   const { profile } = result;
   return (
     <div ref={root} className="flex flex-col gap-3">
-      {busy === "rewrite" ? (
+      {busy ? (
         // the new character is being written: a tray shaped like the profile it becomes, in the old one's place
         <ProfileSkeleton label="Recasting the character…" />
       ) : (
@@ -135,18 +105,18 @@ export function CharacterCard({
         </div>
         <button
           type="button"
-          onClick={() => write("rewrite")}
-          aria-disabled={!!busy}
-          aria-busy={busy === "rewrite"}
-          aria-label={busy === "rewrite" ? "Recasting the character…" : undefined}
+          onClick={recastNow}
+          aria-disabled={busy}
+          aria-busy={busy}
+          aria-label={busy ? "Recasting the character…" : undefined}
           data-step-focus={talkAvailable() ? undefined : ""} // else Chat is the step's first control
           className="pill-secondary grid h-8 px-3 text-label"
         >
-          <BusySwap busy={busy === "rewrite"}>Recast</BusySwap>
+          <BusySwap busy={busy}>Recast</BusySwap>
         </button>
       </div>
       {error && <Alert limits={error.limits}>{error.message}</Alert>}
-      <Status message={busy === "rewrite" ? "Recasting the character…" : said} />
+      <Status message={busy ? "Recasting the character…" : said} />
     </div>
   );
 }
