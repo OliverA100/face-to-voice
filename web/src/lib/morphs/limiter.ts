@@ -7,7 +7,8 @@
 import type { Weights } from "@/lib/data";
 
 import type { LimitGeometry } from "./limitGeometry";
-import type { Limiter, LimitStore } from "./limits";
+import type { LimitStore } from "./limitBasics";
+import type { Limiter } from "./limits";
 
 export { BLINK_STAGES, plainStore, REST_LAYERS, type LimitStore } from "./limitBasics";
 

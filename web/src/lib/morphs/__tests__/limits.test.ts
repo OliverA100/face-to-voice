@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { LimitGeometry } from "@/lib/morphs/limitGeometry";
-import { Limiter, LIMITS, type LimitsDoc, type LimitStore } from "@/lib/morphs/limits";
+import type { LimitStore } from "@/lib/morphs/limitBasics";
+import { Limiter, LIMITS, type LimitsDoc } from "@/lib/morphs/limits";
 
 /**
  * A toy head: the front of an eyeball (a flat square at z = 10 mm facing +z, pivot at the origin) and one skin vertex in

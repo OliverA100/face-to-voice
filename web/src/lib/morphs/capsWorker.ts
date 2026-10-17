@@ -8,7 +8,8 @@
  */
 import type { CapsLayout, LimitGeometry } from "./limitGeometry";
 import { eyePivots, placePart } from "./limitPositions";
-import { limiter, type LimitStore } from "./limits";
+import type { LimitStore } from "./limitBasics";
+import { limiter } from "./limits";
 
 export type ToCapsWorker =
   | { type: "init"; layout: CapsLayout }
@@ -21,7 +22,8 @@ export type ToCapsWorker =
   /** Answered first of all (someone is dragging and waiting). */
   | { type: "ask"; id: number; values: Record<string, number>; q: LimitQuestion };
 
-/** A question for the limiter on a face (Distinctiveness, lib/morphs/random.ts varyFaceAsync): broken, or a span. */
+/** A question for the limiter on a face (Distinctiveness and Random face: lib/morphs/random.ts precomputeVariations,
+ *  randomFaceAsync): broken, or a span. */
 export type LimitQuestion = { kind: "broken" } | { kind: "span"; slider: string; own: number; combo: SpanCombo; ends: [number, number] };
 
 export type SpanCombo = { pos: Record<string, number>; neg: Record<string, number> | null } | undefined;

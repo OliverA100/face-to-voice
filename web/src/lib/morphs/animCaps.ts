@@ -16,7 +16,7 @@ import { BLINK_STAGES, type LimitStore, limiter } from "@/lib/morphs/limiter";
 import { morphs } from "@/lib/morphs/store";
 
 /** Tweak freely. */
-export const ANIM_CAPS = {
+const ANIM_CAPS = {
   gazeLid: 0.35, // IdleLife's look-down lid follow, as a share of a full blink (POSE.lidFollow)
 };
 

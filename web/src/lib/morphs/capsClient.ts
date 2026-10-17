@@ -198,7 +198,7 @@ export function readySpan(store: LimitStore, slider: string, ends: [number, numb
   return hit.key === spanAsk({ store, slider, ends }, targets().weighed).key ? hit.span : null;
 }
 
-// --- questions for the limiter (Distinctiveness, lib/morphs/random.ts varyFaceAsync) ------------------------------------
+// --- questions for the limiter (lib/morphs/random.ts precomputeVariations, randomFaceAsync) --------------------------
 
 const questions = new Map<number, (answer: boolean | [number, number] | null) => void>();
 let questionId = 0;
