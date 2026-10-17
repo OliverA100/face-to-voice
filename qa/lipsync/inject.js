@@ -125,12 +125,6 @@
   const origFetch = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const url = typeof input === "string" ? input : input.url;
-    // the measurement token (temporary BotID bypass on the live site, see web/src/lib/server/guards.ts qaBypass)
-    if (window.__lsqaToken && /\/api\//.test(url)) {
-      const headers = new Headers((init && init.headers) || (typeof input !== "string" && input.headers) || {});
-      headers.set("x-ftv-qa", window.__lsqaToken);
-      init = { ...(init || {}), headers };
-    }
     const res = await origFetch(input, init);
     if (/\/api\/voice\/speak/.test(url)) {
       const rec = { url, body: init && typeof init.body === "string" ? init.body : null, status: res.status, t0: performance.now(), ctx0: nowCtx(), chunks: [], text: "" };
@@ -339,7 +333,6 @@
   };
   Q.mark = (name) => Q.marks.push({ name, perf: performance.now(), ctx: ctxs.map((c) => c.currentTime) });
   Q.contexts = () => ctxs.map((c, i) => ({ i, sr: c.sampleRate, state: c.state, t: c.currentTime, out: c.outputLatency, base: c.baseLatency, tapped: !!taps.get(c)?.ready }));
-  Q.rawFetch = origFetch; // without the measurement token (checks)
   Q.tap = (ctx) => tapFor(ctx); // driver can pre-tap a known context (e.g. __faceToVoice.speech.ctx) when injected late
   /** Hands over everything gathered so far (and forgets it): the driver writes it to disk. */
   Q.drain = (maxImages = 400) => {

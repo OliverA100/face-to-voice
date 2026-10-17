@@ -1,6 +1,6 @@
 #!/bin/bash
 # Re-records a set of replay runs on another deployment, same clips, browsers and paces, then analyses them, so
-# `summary.py --compare` can put them side by side (Step 5: the production baseline "rp" against the new deploy).
+# `summary.py --compare` can put them side by side (before and after a deploy: the production baseline "rp" against the new one).
 #   ./rerun.sh <url> <new tag> [baseline tag, default rp] [browser …]
 #   ./rerun.sh "https://facetovoice.com/?debug=1" after
 # Free: replays use the saved clips (no TTS, no voice design). Safari needs Develop › Allow Remote Automation.

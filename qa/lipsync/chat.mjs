@@ -79,8 +79,8 @@ await headReady(page);
 
 // to the Meet step (a chosen voice is restored straight onto Speak), then Chat
 if (!(await page.$('textarea[aria-label="Text to speak"]'))) {
-  // a restored character should come back on its voice: pressing Find my voice would spend a voice design (20 per
-  // visitor in 24 h, shared with the live site), so stop instead (Safari's restore can miss)
+  // a restored character should come back on its voice: pressing Find my voice would spend a voice design and a
+  // pick (10 a day per browser, shared with the live site), so stop instead (Safari's restore can miss)
   if (restore) {
     console.log(`--restore ${restore} did not bring its voice back (no Speak box): stopping before Find my voice`);
     await br.close();

@@ -1,5 +1,5 @@
 /*
- * After Stop: silence, or the route's element looping its last few ms (Safari, 2026-10-15)? A steady tone through the
+ * After Stop: silence, or the route's element looping its last few ms (Safari)? A steady tone through the
  * app's player, stopped at 2 s, the Mac's mic recording on. Prints the room's loudness before, during and after.
  *   node stopcheck.mjs [--url http://localhost:3041/?debug=1] [--tag stop]
  */

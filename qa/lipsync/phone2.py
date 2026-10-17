@@ -7,7 +7,7 @@ is ~250 px wide in the film), per p/b/m and vowel like events.py.
 
 Each line is found in the film's sound by its clip's loudness (out/clips/<clip>.ndjson); the clip's audio truth
 (<clip>.truth.json) then says when each closure, burst and vowel peak was heard in the film. A frame shows at its
-timestamp minus the camera's own delay (QuickTime + the Mac camera: 85–93 ms by a clap in Step 1's phone-cal film).
+timestamp minus the camera's own delay (QuickTime + the Mac camera: 85–93 ms by a clap filmed with it).
 The opening: the tallest column of dark pixels (the mouth interior) in the mouth box.
 
   uv run phone2.py <film.mov> <mouth box> <camera delay ms> <clip> ... [--dark=35] [--seal=6] [--minh]

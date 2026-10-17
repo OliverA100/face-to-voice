@@ -1,7 +1,7 @@
 # Lip-sync measurement tools
 
 These tools measure how well the mouth matches the voice on a real deployment, in real browsers and devices. Results
-for the current state are in `../../LIPSYNC_REPORT.md`. Recordings go to `out/` (gitignored, several GB).
+for the current state are in [the lip-sync report](../../docs/lipsync-report.md). Recordings go to `out/` (gitignored, several GB).
 
 ## Setup (once)
 
@@ -15,7 +15,6 @@ cd qa/lipsync && pnpm install
   - Chrome and Firefox are driven by puppeteer-core with the system apps.
   - Safari is driven by safaridriver. In Safari: Settings → Advanced → "Show features for web developers", then Developer → "Allow remote automation".
 - Optional files in `out/`:
-  - `qa-token.txt`: the `QA_BYPASS_TOKEN` of a deployment that has the temporary BotID skip.
   - `vercel-bypass.txt`: Vercel's "Protection Bypass for Automation" secret, for preview deployments.
   - `preview-url.txt`: the preview's URL.
 - `node serve.mjs` serves `calibrate.html` on :3199 (also on the LAN, for a phone).
@@ -26,7 +25,7 @@ cd qa/lipsync && pnpm install
 |---|---|---|
 | `node replay.mjs [--browser b] [--pace instant\|stream\|slow] clip.ndjson …` | Saved lines through the live site's own player (`?debug`) | free |
 | `node speak.mjs --url <deployment> --char A [--restore A] [--random --skin fair] [--emotion -,Happy] [--lines plosive,fv] [--cached\|--cachedOnly] [--browser b]` | Real Speak presses; saves every line to `out/clips/` for replays | TTS credits; `--random` = 1 design + 1 save |
-| `node chat.mjs --url <deployment> --char A [--restore A] [--turns 3] [--browser b] [--tag t]` | A live chat. The visitor is `out/visitor/*.wav` (macOS `say`); each reply is one run (`<tag>-A-chat<k>-<browser>`), with the page's reply data (words, the agent's loudness, anchors, cues) in `meta.json` "live" | Chat minutes (10 chats per visitor per day) |
+| `node chat.mjs --url <deployment> --char A [--restore A] [--turns 3] [--browser b] [--tag t]` | A live chat. The visitor is `out/visitor/*.wav` (macOS `say`); each reply is one run (`<tag>-A-chat<k>-<browser>`), with the page's reply data (words, the agent's loudness, anchors, cues) in `meta.json` "live" | Chat minutes (the site's daily talk cap) |
 | `node room.mjs --browser b cal` / `replay clip…` | The screen + Mac mic (`screencapture`); needs Screen Recording permission | free |
 | `STALE_IDLE=1 STALE_TAB=1 node stale.mjs --hide 600` then `uv run calmark.py` | Safari's stuck output after an idle tab: calibrate.html left idle behind another tab, then measured in the same tab (same context, new ones, other sample rates, the `<audio>` route); `STALE_SUSPEND=1` suspends it while idle | free |
 | `uv run beeps.py`, `node appstale.mjs --cal --clip out/beeps.ndjson [--url2 …]`, then `uv run appcal.py` | The same in the app: a beep track through the app's player, a patch flashing on its clock, before and after the idle (`APP_IDLER=1`: a context left running, forcing the stuck output; `APP_RELOAD=1`: then reloaded; `APP_CUT=1`: a line cut, then the next) | free |
@@ -35,8 +34,9 @@ cd qa/lipsync && pnpm install
 | `node cal.mjs b raw` | The in-page recorder's self-check on `calibrate.html` | free |
 | `node perf.mjs [--cpu 4] clip.ndjson` | Frame rate and script time per frame, phone screen, slowed CPU | free |
 
-**Find my voice counts against your IP's daily limit** (20), even for cached voices. Reuse saved characters with
-`--restore <char>` (sessions are saved in `out/chars/`) instead of making new ones.
+**Picking a voice counts against the browser's daily limit** (10 a day, 30 per network: `LIMITS` in
+`web/src/lib/server/ratelimit.ts`). Reuse saved characters with `--restore <char>` (sessions are saved in
+`out/chars/`) instead of making new ones.
 
 **The head moves:** it pitches for seconds at a time (cursor follow, nods in a chat). The recorder looks for the lips
 every 0.5 s and moves the crop when they have moved. `mouth.py` marks frames whose lips are out of the crop ("clipped": frames
@@ -52,13 +52,13 @@ are grouped by the head's outline in the whole-head grab, and each group judged 
 ```bash
 ./analyse.sh 'A-*'          # truth.py (audio events) + mouth.py (pixels) + events.py (offsets), skips done steps
 uv run events.py --app <run> # the app's own mouth values instead of pixels (needs ?debug runs)
-uv run summary.py --md       # pooled table per path × browser (LIPSYNC_REPORT.md)
+uv run summary.py --md       # pooled table per path × browser (docs/lipsync-report.md)
 uv run strips.py <run> closure|vowel|fv|word:<w> [--all]   # frame strips around events, for checking by eye
 uv run room.py <room run>    # flash vs beep (cal runs) or mouth vs mic (line runs) on the capture's clock
 uv run phone.py film.mov <mouth x> <mouth y> <camera delay ms> <line starts…>
 ```
 
-**Before and after a deploy** (Step 5; free, same audio):
+**Before and after a deploy** (free, same audio):
 
 ```bash
 ./rerun.sh "https://facetovoice.com/?debug=1" after [rp] [chrome firefox safari]   # re-records every rp-* replay
@@ -94,7 +94,7 @@ uv run bench.py base try
 
 `live-bench.sh` replays a recorded reply as a chat delivers it: the words and the agent's loudness up front, the
 meter's 10 ms blocks from the heard audio `LIVE.delay` ahead, and the AudioContext clock stepping per frame, through
-the real `LiveSpeech` and mouth. It needs a run's `truth.json` and `meta.json` "live" (chat.mjs from Step 4 on).
+the real `LiveSpeech` and mouth. It needs a run's `truth.json` and `meta.json` "live" (every chat.mjs run saves them).
 
 **Sets, and real lips as the target:**
 
@@ -128,7 +128,8 @@ uv run shapes_vs_real.py <bench tag>                     # the same from a bench
 Both sides go through MediaPipe's face mesh (inner-lip gap, mouth width over the outer-eye-corner distance, put in mm
 with the app's 88 mm); on the app's renders it reads the lips within ~1 mm of their real opening (r 0.98). The opening
 counts from each sentence's most closed moment, and only inside words. `out/shape_coefs.json` comes from the pipeline
-rig's `shape_coefs.py` (mm per unit of each morph target).
+rig's `shape_coefs.py` (mm per unit of each morph target). That script lives in the git-ignored
+`pipeline/out/lipsync/rig/`, so the bench-run comparison is local-only.
 
 ## Shapes contact sheet
 
@@ -162,4 +163,4 @@ cd ../qa/lipsync && node caps.mjs --url http://localhost:3041/ && node caps.mjs 
   - QuickTime → New Movie Recording (MacBook camera + mic).
   - Clap once in view of the camera (that gives the camera's delay), then play lines on the phone.
   - For the device delay, open `http://<mac LAN ip>:3199/calibrate.html` on the phone and film about 15 flashes.
-  - Analyse with `phone.py`, or with the snippets in LIPSYNC_REPORT.md.
+  - Analyse with `phone.py`, or with the snippets in [the lip-sync report](../../docs/lipsync-report.md).

@@ -29,7 +29,7 @@ SEAL_PX = 3.4  # opening height at or under which the lips count as sealed (px o
 
 
 def heard_times(run: Run, ctx: int) -> dict[int, float]:
-    """Each frame's heard time, by the rule the room recordings back (LIPSYNC_REPORT.md): ctx.currentTime minus the
+    """Each frame's heard time, by the rule the room recordings back (docs/lipsync-report.md): ctx.currentTime minus the
     reported outputLatency. Not getOutputTimestamp: Firefox's and Safari's leave the output delay out. Chrome's
     currentTime moves in 10.7 ms steps; between steps the time is carried on performance.now (at most 12 ms), as the
     app's clock does."""

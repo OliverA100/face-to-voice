@@ -95,8 +95,8 @@ if (opt("lookOnly", false)) {
 
 // voice: Find my voice → the take's "Use voice"
 console.log("finding the voice");
-// a restored character comes back on its voice (the Speak box): pressing Find my voice would count against the
-// visitor's designs for nothing
+// a restored character comes back on its voice (the Speak box): pressing Find my voice would design and pick a
+// voice again for nothing
 await sleep(1500);
 if (!(await page.$('textarea[aria-label="Text to speak"]'))) await clickText(page, /Find my voice|New voices/);
 // a face whose voice was already chosen goes straight to Speak; otherwise the three takes appear

@@ -1,5 +1,5 @@
 /*
- * Safari's stuck output after the background (2026-10-15: a tab's sound ~0.8 s late, reported on time, kept across a
+ * Safari's stuck output after the background (a tab's sound ~0.8 s late, reported on time, kept across a
  * reload: the last line's sound even carries on after one). Reproduces it in a WebDriver Safari window and measures,
  * with the screen and the Mac mic (room.mjs, room.py), which ways out give the tab its sound on time again.
  *
@@ -10,7 +10,7 @@
  * idle context at that rate, then new ones at it, 48 and 24 kHz). While away: silent (STALE_IDLE) or a murmur playing;
  * the page behind another tab (STALE_TAB), the window minimised (STALE_MIN), the display asleep (STALE_SLEEP) or
  * Safari hidden; STALE_SUSPEND: the context suspended while idle.
- * Found 2026-10-15: idle and running 10 min → that rate's output stuck (silent or late) for the tab, new contexts at the
+ * Found: idle and running 10 min → that rate's output stuck (silent or late) for the tab, new contexts at the
  * rate too; other rates on time; suspended while idle → on time.
  */
 import { execFileSync, spawn } from "node:child_process";
@@ -78,8 +78,8 @@ async function measure(step, opts) {
 const rate = Number(process.env.STALE_RATE) || 0;
 await measure("before", rate ? { fresh: true, sampleRate: rate } : {});
 if (process.env.STALE_MIC) {
-  // a chat: the mic on while the voice plays (the murmur), then off; then another app in front a moment (user,
-  // 2026-10-15: chat, click another app's window, back, another chat → the delay)
+  // a chat: the mic on while the voice plays (the murmur), then off; then another app in front a moment (the reported
+  // case: chat, click another app's window, back, another chat → the delay)
   await page.evaluate(() => window.calFill(true));
   console.log("mic:", await page.evaluate(() => window.calMic(true)));
   await sleep(20_000);

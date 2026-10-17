@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy"]
 # ///
-"""Pools every analysed run into one table per path × browser (the numbers in LIPSYNC_REPORT.md).
+"""Pools every analysed run into one table per path × browser (the numbers in docs/lipsync-report.md).
 
 Events from all runs in a group are pooled (not averaged per run). Offsets in ms, negative = the mouth is EARLY.
 Runs on a dark-skinned face use the app's own values (events-app.json), every other run the pixels (events.json),

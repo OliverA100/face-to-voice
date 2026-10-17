@@ -40,7 +40,6 @@ export async function launch({ browser = "chrome", headless = false, width = 144
   return puppeteer.launch(opts);
 }
 
-const TOKEN_FILE = path.join(OUT, "qa-token.txt");
 const VERCEL_BYPASS_FILE = path.join(OUT, "vercel-bypass.txt");
 
 /** Preview deployments sit behind Vercel's login: the "Protection Bypass for Automation" secret, sent once as query
@@ -55,7 +54,6 @@ export function withVercelBypass(url) {
 
 export async function open(br, url) {
   const page = (await br.pages())[0] || (await br.newPage());
-  if (fs.existsSync(TOKEN_FILE)) await page.evaluateOnNewDocument(`window.__lsqaToken = ${JSON.stringify(fs.readFileSync(TOKEN_FILE, "utf8").trim())};`);
   await page.evaluateOnNewDocument(INJECT);
   page.on("console", (m) => {
     if (m.type() === "error" || m.type() === "warn") console.log(`  [page ${m.type()}] ${m.text().slice(0, 200)}`);
