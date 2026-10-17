@@ -15,7 +15,7 @@ import { requireStore, visitorId } from "@/lib/server/ratelimit";
 import { JpegDataUrl, Key, Weights } from "@/lib/server/schemas";
 import { recastFor } from "@/lib/server/voice";
 
-export const maxDuration = 60;
+export const maxDuration = 120; // a casting can take ~60 s (claude.ts: 30 s, one retry); a cut-off one is never refunded
 
 const Body = z.object({
   image: JpegDataUrl.optional(),
