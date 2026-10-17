@@ -1,7 +1,7 @@
 /**
  * The lip sync's tuning: every timing, level and speed that the cue placement (placement.ts), the per-frame shapes
  * (shapes.ts, evaluator.ts) and the mouth (mouth.ts) read. Each value says what set it; how they were arrived at is in
- * LIPSYNC_REPORT.md and the git history.
+ * docs/lipsync-report.md and the git history.
  */
 import type { VisemeId } from "./cues";
 

@@ -192,7 +192,7 @@ PCM + aligned times ◄─────────── NDJSON with the aligned
   and held to a top speed for the lips and the jaw (`visemes.json` "speed"). How far the jaw opens follows
   the loudness syllable by syllable (the lips keep the sound's shape under a softer gate), measured against the loudest moment nearby (so a line that trails off still
   forms its last words), and the whole mouth runs 30 ms ahead of the sound: as drawn, the lips part on each p/b/m
-  burst (measured in Chrome, Firefox and Safari, `qa/lipsync`, `LIPSYNC_REPORT.md`). The lips keep a
+  burst (measured in Chrome, Firefox and Safari, `qa/lipsync`, [the lip-sync report](lipsync-report.md)). The lips keep a
   vowel's rounding or spread while the loudness takes the opening away; the corners and the rounding have top speeds
   of their own, and every movement eases in. Because eleven_v4_turbo times letters from the text, the audio corrects
   it: the sounds after a p/b/m or f/v follow its release, a vowel stamped in silence finds its syllable (a breath

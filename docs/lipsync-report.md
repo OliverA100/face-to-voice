@@ -1,5 +1,8 @@
 # Lip-sync report
 
+The lip-sync work in the order it happened, each step with what was measured before and after. The values in use
+today, each with its reason, are in `web/src/lib/lipsync/tuning.ts`; how to measure again is in `qa/lipsync/README.md`.
+
 Step 1 of the lip-sync pass: measurements of the live app, before any fix. Every number below was measured on
 production code: facetovoice.com itself, or a Vercel preview of the same commit (ca55fb5) that adds only a
 secret-gated BotID skip so scripted browsers can press Speak and Chat. No app code was changed for this step.
@@ -625,7 +628,7 @@ whole-line lag −5 to −12 ms, lips part −5 to +18 ms, in Chrome, Firefox an
 `replay.mjs` now unlocks it inside a real click; the Safari adapter reloads the page only when a session is restored.
 
 
-# Tuned to real talkers (2026-10-14, branch `lipsync`, not deployed)
+# Tuned to real talkers (2026-10-14)
 
 Steps 1–5 tuned the mouth on about 25 lines and against targets set by reasoning ("the lips part on the burst").
 This pass changes both: many more lines, kept apart for tuning and checking, and targets measured on real people.
