@@ -30,7 +30,7 @@ export function ShapeSection({ refs }: { refs: RowRefs }) {
   const groups = sliders.groups.filter((g) => sectionOf(g) === "identity" && g.id !== AGE_GROUP);
   return (
     <>
-      <Hint>The face itself. Double-click any slider to reset it.</Hint>
+      <Hint>The face itself. Double-click any slider (or press Delete) to reset it.</Hint>
       <Block title="Overall">
         <RandomRow />
         <SliderList defs={defs.filter((s) => s.group === AGE_GROUP)} refs={refs} className="px-5" />
@@ -176,7 +176,7 @@ function RandomRow() {
           onDoubleClick={(e) => reset(e.currentTarget)}
           className="range block"
         />
-        <span data-tip-under className="flex justify-between text-meta text-ink-4">
+        <span data-tip-under className="flex justify-between text-meta text-ink-3">
           <span>average</span>
           <span>distinctive</span>
         </span>

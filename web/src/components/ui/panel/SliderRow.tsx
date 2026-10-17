@@ -23,6 +23,8 @@ export const fmt = (v: number) => (v > 0 ? "+" : "") + v.toFixed(2);
 
 /** Delete or Backspace on a focused slider puts it back to its default: the keyboard's double-click (aria-keyshortcuts). */
 export const isResetKey = (e: { key: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => (e.key === "Delete" || e.key === "Backspace") && !e.altKey && !e.ctrlKey && !e.metaKey;
+/** Keys that move a range input: only these need the slider's span. */
+const VALUE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"]);
 
 export type RowRefs = { inputs: Map<string, HTMLInputElement>; outputs: Map<string, HTMLOutputElement> };
 
@@ -136,7 +138,7 @@ export function SliderRow({ def, refs }: { def: SliderDef; refs: RowRefs }) {
             reset(e.currentTarget);
             return;
           }
-          grab(e.currentTarget, def);
+          if (VALUE_KEYS.has(e.key)) grab(e.currentTarget, def); // not Tab: passing a slider computes nothing
         }}
         onInput={(e) => {
           const input = e.currentTarget;
@@ -152,7 +154,7 @@ export function SliderRow({ def, refs }: { def: SliderDef; refs: RowRefs }) {
         className="range range-mid block"
       />
       {/* The end labels wrap rather than cut off when the panel is very narrow (320px, 400% zoom). */}
-      <span className="flex justify-between gap-3 text-meta text-ink-4">
+      <span className="flex justify-between gap-3 text-meta text-ink-3">
         <span className="min-w-0 break-words">{def.lowLabel}</span>
         <span className="min-w-0 break-words text-right">{def.highLabel}</span>
       </span>

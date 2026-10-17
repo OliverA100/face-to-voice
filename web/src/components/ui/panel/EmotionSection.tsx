@@ -85,7 +85,7 @@ export function EmotionSection({ refs }: { refs: RowRefs }) {
               onDoubleClick={(e) => resetIntensity(e.currentTarget)}
               className="range block"
             />
-            <span className="flex justify-between text-meta text-ink-4">
+            <span className="flex justify-between text-meta text-ink-3">
               <span>a hint</span>
               <span>full</span>
             </span>

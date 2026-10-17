@@ -22,7 +22,7 @@
   --ink: #000000;
   --ink-2: #59544f; /* secondary text */
   --ink-3: #746e66; /* muted text, labels, values: 4.5:1 on --surface (the inactive tabs); elevenlabs.io's #777169 is 4.36:1 */
-  --ink-4: #a59f97; /* placeholders, slider end labels, counts */
+  --ink-4: #a59f97; /* decoration only (chevrons, the None slash): 2.6:1, too light for text */
   --ink-hover: #3b3733; /* black pill on hover: a warm dark grey, clearly lighter than ink (white text 11.8:1) */
 
   /* Lines: used sparingly (spacing separates most things) */

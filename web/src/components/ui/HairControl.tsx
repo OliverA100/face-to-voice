@@ -41,7 +41,7 @@ export function HairControl() {
   const thumb = (style: HairStyle, selected: boolean) => thumbClass(selected, selected && loading && style !== "none");
 
   return (
-    <section className="px-5 py-2.5" aria-label="Hair">
+    <div className="px-5 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-ink">Hair</span>
         <span className="text-label text-ink-3" aria-live="polite">
@@ -116,6 +116,6 @@ export function HairControl() {
           />
         ))}
       </RadioGroup>
-    </section>
+    </div>
   );
 }

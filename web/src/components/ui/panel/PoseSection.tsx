@@ -89,7 +89,7 @@ export function PoseSection() {
             <div key={g.id}>
               <h3 className={`pt-5 ${blockTitle}`}>
                 {g.label}
-                {off && <span className="font-normal text-ink-4"> · following the cursor</span>}
+                {off && <span className="font-normal text-ink-3"> · following the cursor</span>}
               </h3>
               {defs.filter((d) => d.group === g.id).map((d) => (
                 <PoseRow key={d.id} def={d} inputs={inputs} outputs={outputs} disabled={off} />
@@ -169,7 +169,7 @@ function PoseRow({ def, inputs, outputs, disabled = false }: { def: SliderDef; i
         onDoubleClick={(e) => reset(e.currentTarget)}
         className="range range-mid block"
       />
-      <span data-tip-under className="flex justify-between gap-3 text-meta text-ink-4">
+      <span data-tip-under className="flex justify-between gap-3 text-meta text-ink-3">
         <span>{def.lowLabel}</span>
         <span>{def.highLabel}</span>
       </span>

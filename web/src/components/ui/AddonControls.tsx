@@ -48,7 +48,7 @@ function AddonRow({ category, state }: { category: AddonCategory; state: AddonSn
   const current = chosen === "none" ? "None" : (addonStyleById(category, chosen)?.label ?? "");
 
   return (
-    <section className="px-5 py-2.5" aria-label={label}>
+    <div className="px-5 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-ink">{label}</span>
         <span className="text-label text-ink-3" aria-live="polite">
@@ -86,7 +86,7 @@ function AddonRow({ category, state }: { category: AddonCategory; state: AddonSn
         ))}
       </RadioGroup>
       {category === "facialHair" && <FacialHairColours state={state} disabled={chosen === "none"} />}
-    </section>
+    </div>
   );
 }
 

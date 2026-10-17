@@ -25,7 +25,7 @@ export function SwatchRow<Id extends string>({
 }) {
   const label = swatches.find((s) => s.id === current)?.label ?? "";
   return (
-    <section className="px-5 py-2.5" aria-label={title}>
+    <div className="px-5 py-2.5">
       <div className="flex items-center justify-between gap-3">
         <span className="text-body text-ink">{title}</span>
         <span className="text-label text-ink-3">{label}</span>
@@ -45,6 +45,6 @@ export function SwatchRow<Id extends string>({
           />
         ))}
       </RadioGroup>
-    </section>
+    </div>
   );
 }

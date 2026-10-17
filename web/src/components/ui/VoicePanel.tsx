@@ -490,7 +490,7 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
           <div className="flex items-center justify-between gap-3">
             <p className="min-w-0 text-meta text-ink-3">
               Voices by{" "}
-              <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="underline-offset-2 transition-colors hover:text-ink hover:underline">
+              <a href="https://elevenlabs.io" target="_blank" rel="noreferrer" className="underline underline-offset-2 transition-colors hover:text-ink">
                 ElevenLabs<span className="sr-only"> (opens in a new tab)</span>
               </a>
               . Not affiliated.
@@ -585,78 +585,80 @@ export function PreviewList({
   };
 
   return (
-    <ul className="enter -mx-2 flex flex-col">
+    <>
       {line && (
         <span id={lineId} hidden>
           Says: “{line}”
         </span>
       )}
-      {previews.map((p, i) => (
-        <li key={p.generatedVoiceId} className="group/row flex h-14 items-center gap-3 rounded-row px-2 transition-colors hover:bg-surface">
-          <button
-            type="button"
-            onClick={() => toggle(i)}
-            // one name, the state in aria-pressed (a name that flips between Play and Pause would say it twice)
-            aria-label={`Play voice ${i + 1}`}
-            aria-pressed={playing === i}
-            aria-describedby={line ? lineId : undefined}
-            data-step-focus={i === 0 ? "" : undefined}
-            className="group/play relative h-9 w-9 shrink-0 rounded-full active:scale-[0.98]"
-          >
-            {/* the orb keeps its full colour (the row's grey shows the hover; the focus ring, the focus); `dim`: the old
-                image orbs darkened themselves on hover and focus, under a white icon */}
-            <span className={`block ${dim ? "group-focus-visible/play:brightness-[0.4]" : ""}`}>{orb({ index: i, preview: p, playing: playing === i, audios })}</span>
-            {/* black on the pale orb (a white icon on it would be faint) */}
-            <span
-              className={`absolute inset-0 grid place-items-center text-ink transition-colors duration-(--dur-1) ${dim ? "group-hover/row:text-white group-focus-visible/play:text-white" : ""}`}
+      <ul className="enter -mx-2 flex flex-col">
+        {previews.map((p, i) => (
+          <li key={p.generatedVoiceId} className="group/row flex h-14 items-center gap-3 rounded-row px-2 transition-colors hover:bg-surface">
+            <button
+              type="button"
+              onClick={() => toggle(i)}
+              // one name, the state in aria-pressed (a name that flips between Play and Pause would say it twice)
+              aria-label={`Play voice ${i + 1}`}
+              aria-pressed={playing === i}
+              aria-describedby={line ? lineId : undefined}
+              data-step-focus={i === 0 ? "" : undefined}
+              className="group/play relative h-9 w-9 shrink-0 rounded-full active:scale-[0.98]"
             >
-              {playing === i ? (
-                <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
-                  <path d="M5 4h4v12H5zM11 4h4v12h-4z" />
-                </svg>
+              {/* the orb keeps its full colour (the row's grey shows the hover; the focus ring, the focus); `dim`: the old
+                  image orbs darkened themselves on hover and focus, under a white icon */}
+              <span className={`block ${dim ? "group-focus-visible/play:brightness-[0.4]" : ""}`}>{orb({ index: i, preview: p, playing: playing === i, audios })}</span>
+              {/* black on the pale orb (a white icon on it would be faint) */}
+              <span
+                className={`absolute inset-0 grid place-items-center text-ink transition-colors duration-(--dur-1) ${dim ? "group-hover/row:text-white group-focus-visible/play:text-white" : ""}`}
+              >
+                {playing === i ? (
+                  <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="currentColor" aria-hidden>
+                    <path d="M5 4h4v12H5zM11 4h4v12h-4z" />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 20 20" className="ml-0.5 h-3.5 w-3.5" fill="currentColor" aria-hidden>
+                    <path d="M6 3.5v13l11-6.5z" />
+                  </svg>
+                )}
+              </span>
+            </button>
+            <span className="min-w-0 flex-1 truncate text-body text-ink">Voice {i + 1}</span>
+            <audio
+              ref={(el) => {
+                audios.current[i] = el;
+              }}
+              preload="none"
+              src={p.url}
+              onPlay={() => setPlaying(i)}
+              onPause={() => setPlaying((v) => (v === i ? null : v))}
+              onEnded={() => setPlaying((v) => (v === i ? null : v))}
+            />
+            {p.durationSecs > 0 && <span className="text-meta tabular-nums text-ink-3">{clock(p.durationSecs)}</span>}
+            <button
+              type="button"
+              // the pill being set up keeps the focus (aria-disabled); the other two are disabled meanwhile
+              disabled={busy && saving !== i}
+              aria-disabled={saving === i}
+              onClick={() => !busy && onChoose(i)}
+              aria-busy={saving === i}
+              aria-label={saving === i ? `Setting up voice ${i + 1}…` : inUse === i ? `In use: voice ${i + 1}` : `Use voice ${i + 1}`}
+              // min-w: the same width in use (the check) as for use; setting up shows the spinner in the label's place (BusySwap;
+              // the aria-label says "Setting up…")
+              className={`${inUse === i ? "pill-ghost" : "pill-primary grid"} h-8 min-w-31 gap-1.5 px-3 text-label ${saving === i ? "disabled:opacity-100" : ""}`}
+            >
+              {inUse === i ? (
+                <>
+                  <CheckIcon />
+                  In use
+                </>
               ) : (
-                <svg viewBox="0 0 20 20" className="ml-0.5 h-3.5 w-3.5" fill="currentColor" aria-hidden>
-                  <path d="M6 3.5v13l11-6.5z" />
-                </svg>
+                <BusySwap busy={saving === i}>Use voice</BusySwap>
               )}
-            </span>
-          </button>
-          <span className="min-w-0 flex-1 truncate text-body text-ink">Voice {i + 1}</span>
-          <audio
-            ref={(el) => {
-              audios.current[i] = el;
-            }}
-            preload="none"
-            src={p.url}
-            onPlay={() => setPlaying(i)}
-            onPause={() => setPlaying((v) => (v === i ? null : v))}
-            onEnded={() => setPlaying((v) => (v === i ? null : v))}
-          />
-          {p.durationSecs > 0 && <span className="text-meta tabular-nums text-ink-3">{clock(p.durationSecs)}</span>}
-          <button
-            type="button"
-            // the pill being set up keeps the focus (aria-disabled); the other two are disabled meanwhile
-            disabled={busy && saving !== i}
-            aria-disabled={saving === i}
-            onClick={() => !busy && onChoose(i)}
-            aria-busy={saving === i}
-            aria-label={saving === i ? `Setting up voice ${i + 1}…` : inUse === i ? `In use: voice ${i + 1}` : `Use voice ${i + 1}`}
-            // min-w: the same width in use (the check) as for use; setting up shows the spinner in the label's place (BusySwap;
-            // the aria-label says "Setting up…")
-            className={`${inUse === i ? "pill-ghost" : "pill-primary grid"} h-8 min-w-31 gap-1.5 px-3 text-label ${saving === i ? "disabled:opacity-100" : ""}`}
-          >
-            {inUse === i ? (
-              <>
-                <CheckIcon />
-                In use
-              </>
-            ) : (
-              <BusySwap busy={saving === i}>Use voice</BusySwap>
-            )}
-          </button>
-        </li>
-      ))}
-    </ul>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 

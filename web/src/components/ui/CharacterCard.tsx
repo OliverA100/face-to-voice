@@ -101,7 +101,7 @@ export function CharacterCard({
       ) : (
         <section aria-label={`Character: ${profile.name}`} className="flex flex-col gap-3 rounded-tray bg-surface p-4">
           <div>
-            <h3 className="display text-[20px] text-ink">{profile.name}</h3>
+            <h2 className="display text-[20px] text-ink">{profile.name}</h2>
             {profile.title && <p className="text-meta text-ink-3 first-letter:uppercase">{profile.title}</p>}
           </div>
           <p className="text-body text-ink-2">{profile.backstory}</p>

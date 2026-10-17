@@ -125,7 +125,7 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
         rows={2}
         aria-label="Text to speak"
         placeholder="Type a line for the voice to say"
-        className="w-full resize-none overflow-hidden rounded-tray bg-surface px-4 py-3 text-input text-ink placeholder:text-ink-4"
+        className="w-full resize-none overflow-hidden rounded-tray bg-surface px-4 py-3 text-input text-ink placeholder:text-ink-3"
       />
       <div className="flex items-center justify-between gap-2">
         <span className="text-label tabular-nums text-ink-3">
@@ -199,7 +199,7 @@ function SyncControl() {
           }}
           className="range range-mid"
         />
-        <output className="w-14 shrink-0 text-right text-meta tabular-nums text-ink">{ms > 0 ? `+${ms}` : ms} ms</output>
+        <output aria-hidden className="w-14 shrink-0 text-right text-meta tabular-nums text-ink">{ms > 0 ? `+${ms}` : ms} ms</output>
       </div>
     </div>
   );

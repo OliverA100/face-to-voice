@@ -147,9 +147,9 @@ export function FaceBuilder() {
           <div className="shrink-0 xl:pointer-events-none xl:z-10 xl:col-start-1 xl:row-start-1 xl:m-4 xl:flex xl:max-h-[calc(100%-2rem)] xl:flex-col xl:self-end xl:justify-self-end">
             <VoicePanel />
           </div>
-          <aside className="card shrink-0 lg:min-h-0 lg:flex-1 lg:overflow-hidden xl:col-start-2 xl:row-start-1" aria-label="Face sliders">
+          <section className="card shrink-0 lg:min-h-0 lg:flex-1 lg:overflow-hidden xl:col-start-2 xl:row-start-1" aria-label="Face sliders">
             <SliderPanel />
-          </aside>
+          </section>
         </div>
       </main>
     </div>

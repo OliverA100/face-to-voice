@@ -15,13 +15,13 @@ export const blockTitle = "text-label font-medium tracking-[0.01em] text-ink-3";
 /** A titled block inside a tab (Colouring, Hair, Fine-tune …): a small label, then its rows. */
 export function Block({ title, note, children }: { title: string; note?: ReactNode; children: ReactNode }) {
   return (
-    <section aria-label={title} className="pt-5">
+    <div className="pt-5">
       <h3 className={`px-5 ${blockTitle}`}>
         {title}
-        {note && <span className="font-normal text-ink-4"> · {note}</span>}
+        {note && <span className="font-normal text-ink-3"> · {note}</span>}
       </h3>
       <div className="pt-1">{children}</div>
-    </section>
+    </div>
   );
 }
 
@@ -51,7 +51,7 @@ export function Group({ label, count, open = false, children }: { label: string;
         <span className="flex items-baseline gap-2">
           {label}
           {count !== undefined && (
-            <span className="text-meta tabular-nums text-ink-4">
+            <span className="text-meta tabular-nums text-ink-3">
               {count}
               <span className="sr-only"> sliders</span>
             </span>

@@ -497,6 +497,10 @@ input[type="checkbox"].switch:checked {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+/* Round choices draw their selection ring 2–3.5px out, where the outline would land: focus goes outside it. */
+.choice:focus-visible {
+  outline-offset: 5px;
+}
 
 /* Text fields show focus on every click, not only from the keyboard, so theirs is gentler: a thin ink ring that hugs
    the field and fades in (the outline above would snap on 2 px out). */
