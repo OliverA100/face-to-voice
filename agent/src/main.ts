@@ -1,10 +1,7 @@
 /**
  * The Face to Voice character agent: a LiveKit agent server ("worker") that registers as "ftv-character" and is
  * dispatched into a room only when the web server's token asks for it (explicit dispatch). Each job is one
- * conversation with one visitor.
- *
- *   visitor's mic ─► Silero VAD + turn detector (local) ─► STT (LiveKit Inference, AssemblyAI)
- *                 ─► Claude Haiku 5.5 (CharacterAgent.llmNode) ─► ElevenLabs v4 Turbo, the character's own voice ─► room
+ * conversation with one visitor. The pipeline (mic to voice) is drawn in agent/README.md.
  *
  * Limits are the agent's own, whatever the browser does: the conversation ends at metadata.maxSeconds (never more than
  * HARD_MAX_SECONDS), or when the visitor has been quiet for a while, or leaves. Nothing is recorded here: LiveKit
@@ -58,7 +55,7 @@ export default defineAgent({
       model: TTS_MODEL,
       syncAlignment: true, // word timings for the captions and the lip sync
     });
-    fixWordTimings(voiceOut.sampleRate); // true word times for the captions and the lip sync (elevenTimings.ts)
+    fixWordTimings(voiceOut.sampleRate); // rebased onto the reply's own clock (elevenTimings.ts)
     const session = new voice.AgentSession({
       vad: ctx.proc.userData.vad as silero.VAD,
       stt: new inference.STT({ model: "assemblyai/universal-streaming:en" }),
@@ -84,7 +81,7 @@ export default defineAgent({
       session.shutdown({ drain });
     };
 
-    // A goodbye before the limit, then a hard stop at it whatever is still playing.
+    // a goodbye before the limit, then a hard stop at it whatever is still playing
     const goodbye = setTimeout(async () => {
       if (ending) return;
       try {
@@ -160,7 +157,7 @@ export default defineAgent({
 
     // The character speaks first, in the mood the face is in: its greeting, word for word; or, when the visitor comes
     // back for another chat, a new opening (the greeting again sounded like a recording).
-    const start: Mood = { emotion: meta.startMood.emotion, strength: meta.startMood.strength };
+    const start: Mood = meta.startMood;
     setMood(start);
     if (meta.again) session.generateReply({ instructions: againNote(meta.greeting) });
     else {

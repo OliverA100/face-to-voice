@@ -5,8 +5,7 @@
  * every word earlier by the first character's time (its `firstWordOffsetMs`: the greeting's words ran 40–250 ms ahead
  * of the voice) and times words with the space and punctuation after them. Read here, they need neither.
  *
- * v3/v4 (the dialogue socket):
- * What the socket sends (probed 2026-10-11): messages with audio, characters, or both, in turns (a sentence each,
+ * v3/v4 (the dialogue socket) sends messages with audio, characters, or both, in turns (a sentence each,
  * ending with is_final_audio_for_turn). A message's character times restart at 0, and its characters often run past
  * its own audio ("Wait for": 0.88 s of characters on 0.67 s of audio). Tested against the agent's own audio on five
  * real replies: within a turn, a message's characters follow on from where the last message's last character ended,

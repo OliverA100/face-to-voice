@@ -67,20 +67,21 @@ export function withoutPlainCopies(text: string): string {
  *   - `base` is the character's own instructions: a one-off instruction for a single reply (generateReply's, e.g.
  *     "check in with them") arrives merged into the system text; it moves to a note at the very end instead, so the
  *     system prompt never changes.
- *   - The app's standing notes stay on the visitor turn they were added to, in every later request too (added to the
- *     last turn and dropped from it the next time, they rewrote the history and nothing was ever read back: 2026-10-11).
+ *   - The app's standing notes stay on the visitor turn they were added to, in every later request too (moved to the
+ *     last turn each time, they would rewrite the history and the cache would never be read back).
  *   - Two replies in a row (a check-in after a silence) keep the visitor's silence between them, rather than being
  *     joined into one turn that the next request would write differently.
  *
  * `moodOf` gives back the mood tag of an earlier reply (kept on its history item: CharacterAgent.keepMood): the history
  * keeps each reply as it was captioned, without its "[happy 2]", and a model that sees its own turns untagged soon
- * stops tagging (seen 2026-10-11: the face stopped changing after the first reply). The tags are put back, and a note on
- * each visitor turn reminds it.
+ * stops tagging (the face stops changing after the first reply). The tags are put back, and a note on each visitor turn
+ * reminds it.
  *
- * The visitor's words can't pass for the app's notes: "note from the app" in them loses its "from the app".
+ * The visitor's words can't pass for the app's notes: "note from the app" in them (in any spacing or punctuation)
+ * loses its "from the app".
  *
- * The character's want has no note of its own: the instructions bring it in within the first few replies. A note on
- * the visitor's first turn forcing it into that reply made characters skip past whatever the visitor said (2026-10-15).
+ * The character's want has no note of its own: the instructions bring it in within the first few replies, so the first
+ * reply is free to answer whatever the visitor said.
  */
 export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (reply: llm.ChatMessage) => Mood | null): { system: string; messages: Turn[] } {
   const system: string[] = [];
@@ -107,11 +108,8 @@ export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (repl
 
   const messages: Turn[] = turns.map(({ role, text }) => {
     if (role === "assistant") return { role, content: text };
-    const notes = [
-      "reply in one or two short sentences, under 20 words",
-      ...(moodOf ? ["begin it with your mood tag"] : []),
-    ];
-    return { role, content: notes.length ? `${text}\n\n(Note from the app: ${notes.join("; ")}.)` : text };
+    const notes = ["reply in one or two short sentences, under 20 words", ...(moodOf ? ["begin it with your mood tag"] : [])];
+    return { role, content: `${text}\n\n(Note from the app: ${notes.join("; ")}.)` };
   });
 
   let text = system.join("\n\n");
@@ -126,7 +124,7 @@ export function toClaude(chatCtx: llm.ChatContext, base?: string, moodOf?: (repl
 }
 
 /** The visitor's turn as Claude reads it: once (withoutPlainCopies), and never passing for the app's own notes. */
-const visitorSaid = (text: string) => withoutPlainCopies(text).replace(/note from the app/gi, "note");
+const visitorSaid = (text: string) => withoutPlainCopies(text).replace(/note\W+from\W+the\W+app/gi, "note");
 
 const WALKS_UP = "(The visitor walks up.)";
 const SILENT = "(The visitor says nothing.)";
@@ -198,8 +196,8 @@ export class CharacterAgent extends voice.Agent {
         model: LLM_MODEL,
         max_tokens: MAX_TOKENS,
         thinking: { type: "disabled" },
-        // cached twice: the character's instructions on their own (the same all conversation: read even when the
-        // history changes) and, automatically, everything up to the visitor's last turn
+        // Cached twice: the character's instructions on their own (the same all conversation: read even when the
+        // history changes) and, automatically, everything up to the visitor's last turn.
         system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
         messages,
         cache_control: { type: "ephemeral" },

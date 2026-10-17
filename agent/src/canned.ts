@@ -54,7 +54,7 @@ function loadClip(path: string): Clip {
     if (!a) continue;
     a.characters.forEach((c: string, i: number) => chars.push({ c, s: a.character_start_times_seconds[i], e: a.character_end_times_seconds[i] }));
   }
-  // Words with the time of their first and last letter, without the audio tag's characters.
+  // words with the time of their first and last letter, without the audio tag's characters
   const words: Clip["words"] = [];
   let word: { text: string; start: number; end: number } | null = null;
   let inTag = false;
@@ -166,7 +166,7 @@ export async function runCanned(ctx: JobContext, meta: TalkMetadata): Promise<vo
     if (!ended) await speak(clips[turn % clips.length], MOODS[turn % MOODS.length]);
   };
 
-  // The visitor's microphone: talking, quiet, interruptions.
+  // the visitor's microphone: talking, quiet, interruptions
   const listen = async (audio: RemoteTrack) => {
     let talkingFor = 0;
     let quietFor = 0;
@@ -210,6 +210,5 @@ export async function runCanned(ctx: JobContext, meta: TalkMetadata): Promise<vo
   });
 
   await ctx.waitForParticipant();
-  setMood(meta.startMood.emotion, moodIntensity(meta.startMood.strength));
   await speak(clips[turn % clips.length], [meta.startMood.emotion, moodIntensity(meta.startMood.strength)]); // the greeting
 }

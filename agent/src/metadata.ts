@@ -20,11 +20,10 @@ export const MetadataSchema = z.object({
   again: z.boolean().default(false), // a later chat in the same visit: open with a new line, not the greeting
   startMood: z.object({ emotion: z.string().max(24), strength: z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]) }),
   moodTags: z.record(z.string().max(24), Tags),
-  maxSeconds: z.number().int().min(10).max(3600),
+  maxSeconds: z.number().int().min(10).transform((s) => Math.min(s, HARD_MAX_SECONDS)),
 });
 export type TalkMetadata = z.infer<typeof MetadataSchema>;
 
 export function parseMetadata(raw: string): TalkMetadata {
-  const meta = MetadataSchema.parse(JSON.parse(raw));
-  return { ...meta, maxSeconds: Math.min(meta.maxSeconds, HARD_MAX_SECONDS) };
+  return MetadataSchema.parse(JSON.parse(raw));
 }
