@@ -499,6 +499,12 @@ export class LiveSpeech implements SpeechSource {
     return this.delay + speechPlayer.syncDelayMs / 1000;
   }
 
+  /** Seconds from the voice reaching the meter to it being heard: the output path (the heard clock), the held-back
+   *  voice and the Sync setting. The captions wait this long, as the mouth does. */
+  heardDelay(): number {
+    return this.clock.latency() + this.heardAfter();
+  }
+
   get playing(): boolean {
     if (Number.isNaN(this.lineAt)) return false;
     return this.replying || this.ctx.currentTime - this.endedAt < TAIL_SECONDS + this.delay;

@@ -91,7 +91,7 @@ export const CHAT_SPHERE = {
 };
 
 /** What the live view needs from a session: a TalkSession (a local lab, not in the repo, passes a stand-in). */
-export type LiveTalkSession = Pick<TalkSession, "subscribe" | "snapshot" | "setMuted" | "end" | "level"> & { room: Pick<TalkSession["room"], "startAudio"> };
+export type LiveTalkSession = Pick<TalkSession, "subscribe" | "snapshot" | "setMuted" | "end" | "level" | "resumeAudio">;
 
 export function TalkPanel({
   design,
@@ -273,7 +273,7 @@ export function LiveTalk({
       {snap.heard && !ended && <p className="text-meta text-ink-3">You: {snap.heard}</p>}
       {snap.state === "waking" && <p className="text-meta text-ink-3">The first conversation in a while can take up to a minute to start.</p>}
       {snap.needsAudioTap && !ended && (
-        <button type="button" onClick={() => void session.room.startAudio()} className="pill-secondary h-8 self-start px-3 text-label">
+        <button type="button" onClick={() => session.resumeAudio()} className="pill-secondary h-8 self-start px-3 text-label">
           Tap to hear them
         </button>
       )}

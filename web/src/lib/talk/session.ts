@@ -23,7 +23,7 @@
 import { MediaDeviceFailure, type Participant, type RemoteTrack, Room, RoomEvent, Track } from "livekit-client";
 
 import { LIVE, LiveSpeech, type LiveWord } from "@/lib/lipsync/live";
-import { restOutput } from "@/lib/lipsync/output";
+import { restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { isAppleTouch } from "@/lib/lipsync/staleTab";
 import { setLiveSpeech } from "@/lib/lipsync/source";
 import { HeardLine } from "@/lib/talk/heard";
@@ -127,7 +127,7 @@ export class TalkSession {
   private heard = new HeardLine(); // the "You:" line
   private ctx: AudioContext | null = null;
   private live: LiveSpeech | null = null;
-  private captionDelayMs = 0;
+  private captionsWait = false; // the voice plays through the lip sync, held back: the captions wait for it too
   private agentState = "";
   private wordsStream = 0; // the newest "ftv.words" stream: a late line from an older one is dropped
   private readonly unlisten = new AbortController(); // listeners on the shared AudioContext, removed when the chat ends
@@ -145,6 +145,16 @@ export class TalkSession {
   /** Call inside the tap that starts the call (iOS only lets audio start from a user gesture). */
   unlockAudio(): void {
     audioSession("play-and-record");
+    void this.room.startAudio();
+  }
+
+  /** "Tap to hear them": the browser blocked playback. The voice plays through the lip sync's context (and, in Safari,
+   *  its element route), so those wake too, not only livekit-client's elements. */
+  resumeAudio(): void {
+    if (this.ctx) {
+      void this.ctx.resume().catch(() => {});
+      wakeOutput(this.ctx);
+    }
     void this.room.startAudio();
   }
 
@@ -175,7 +185,7 @@ export class TalkSession {
         const live = this.live;
         // The voice plays from the lip sync's own audio graph, so what the mouth measures is what is heard
         // (lib/lipsync/live.ts); the captions wait for the voice, which is held back
-        this.captionDelayMs = LIVE.delay * 1000;
+        this.captionsWait = true;
         live.attach(track.mediaStreamTrack, true, LIVE.delay, this.halfDuplex ? CHAT_MAKEUP : 1).then(
           () => {
             if (this.snap.state === "ended") return; // over while the meter was loading
@@ -195,6 +205,14 @@ export class TalkSession {
           },
           (e) => console.warn("[talk] lip sync off:", e),
         );
+      }
+    });
+    // a track that goes away (a resubscribe after a network change) takes its hidden element with it
+    room.on(RoomEvent.TrackUnsubscribed, (track: RemoteTrack) => {
+      for (const el of track.detach()) {
+        el.remove();
+        const i = this.audio.indexOf(el);
+        if (i >= 0) this.audio.splice(i, 1);
       }
     });
     room.on(RoomEvent.ParticipantConnected, (p: Participant) => p.isAgent && this.agentJoined());
@@ -268,8 +286,9 @@ export class TalkSession {
         let line = "";
         for await (const piece of reader) {
           const caption = (line += piece);
-          // paced to the voice as the agent sends it: shown when it is heard (the voice is held back, LIVE.delay)
-          if (this.captionDelayMs) setTimeout(() => this.snap.state !== "ended" && this.set({ caption }), this.captionDelayMs);
+          // paced to the voice as the agent sends it: shown when it is heard (held back, and the speakers' own delay)
+          const wait = this.captionsWait && this.live ? this.live.heardDelay() * 1000 : 0;
+          if (wait > 0) setTimeout(() => this.snap.state !== "ended" && this.set({ caption }), wait);
           else this.set({ caption });
         }
       } else {
