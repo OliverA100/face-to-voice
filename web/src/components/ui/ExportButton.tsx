@@ -8,7 +8,7 @@
 import { useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
-import { BusySwap, afterEntrance } from "@/components/ui/Spinner";
+import { afterEntrance, BusyPill } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import type { CharacterProfile } from "@/lib/character/profile";
 import type { DesignResult, SelectResult } from "@/lib/voice/client";
@@ -19,7 +19,6 @@ export function ExportButton({ design, selection, chosen, profile }: { design: D
   const [said, setSaid] = useState({ message: "", count: 0 });
 
   const download = async () => {
-    if (busy) return;
     setBusy(true);
     setError(null);
     setSaid((s) => ({ message: "Packing your character…", count: s.count + 1 }));
@@ -56,22 +55,13 @@ export function ExportButton({ design, selection, chosen, profile }: { design: D
           <p className="text-label text-ink">Your character</p>
           <p className="text-meta text-ink-3">{profile ? "Portrait, 3D model, voice, profile and licence" : "Portrait, 3D model, voice and licence"}</p>
         </div>
-        <button
-          type="button"
-          onClick={download}
-          aria-disabled={busy} // not disabled: the keyboard focus stays on it while it packs
-          aria-busy={busy}
-          aria-label="Download character"
-          className="pill-secondary grid h-8 min-w-28 shrink-0 px-3 text-label"
-        >
-          {/* busy: the spinner in place of the arrow and label, like every busy pill (the status line says "Packing…") */}
-          <BusySwap busy={busy}>
-            <span className="flex items-center gap-1.5">
-              <DownloadIcon />
-              Download
-            </span>
-          </BusySwap>
-        </button>
+        <BusyPill busy={busy} onClick={download} aria-label="Download character" className="pill-secondary h-8 min-w-28 shrink-0 px-3 text-label">
+          {/* busy: the spinner in place of the arrow and label (the status line says "Packing…") */}
+          <span className="flex items-center gap-1.5">
+            <DownloadIcon />
+            Download
+          </span>
+        </BusyPill>
       </div>
       {error && <Alert>{error}</Alert>}
       <Status message={said.message} count={said.count} />

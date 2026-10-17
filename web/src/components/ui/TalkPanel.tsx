@@ -17,7 +17,7 @@ import { Alert } from "@/components/ui/Alert";
 import { BALL_IN_FRAME, CHROME, VOICE_STYLE, VOICE_STYLES } from "@/components/ui/loader/chrome";
 import type { ChromeVoice, ChromeVoiceStyle } from "@/components/ui/loader/chromeGl";
 import { LoaderSphere } from "@/components/ui/loader/LoaderSphere";
-import { BusySwap } from "@/components/ui/Spinner";
+import { BusyPill } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { isLimitError } from "@/lib/limits/open";
 import { outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
@@ -176,24 +176,21 @@ export function TalkPanel({
             <p className="text-body text-ink">Chat with {name}</p>
             <p className="text-meta text-ink-3">A live voice conversation, up to {Math.round(maxSeconds / 60)} minutes</p>
           </div>
-          <button
-            type="button"
+          <BusyPill
+            busy={busy}
+            busyLabel="Connecting…"
             onClick={start}
             onPointerEnter={() => void loadSession()}
             onFocus={() => void loadSession()}
-            aria-disabled={busy}
-            aria-busy={busy}
-            aria-label={busy ? "Connecting…" : `Chat with ${name}`}
+            aria-label={`Chat with ${name}`}
             data-step-focus
-            className="pill-primary grid h-10 shrink-0 px-5"
+            className="pill-primary h-10 shrink-0 px-5"
           >
-            <BusySwap busy={busy}>
-              <span className="flex items-center gap-2">
-                <MicIcon />
-                Chat
-              </span>
-            </BusySwap>
-          </button>
+            <span className="flex items-center gap-2">
+              <MicIcon />
+              Chat
+            </span>
+          </BusyPill>
         </div>
         {/* credited where it comes in, as ElevenLabs is beside "Find my voice" (VoicePanel) */}
         <p className="text-meta text-ink-3">
@@ -284,18 +281,16 @@ export function LiveTalk({
       {ended && reason && <p className="text-label text-ink-2">{reason}</p>}
       <div className="flex items-center justify-end gap-2">
         {ended ? (
-          <button
+          <BusyPill
             key="again" // its own element: reusing Mute's would fade it from white to black
-            type="button"
+            busy={starting}
+            busyLabel="Connecting…"
             onClick={onAgain}
-            aria-disabled={starting}
-            aria-busy={starting}
-            aria-label={starting ? "Connecting…" : undefined}
             data-step-focus
-            className="pill-primary grid h-10 px-5"
+            className="pill-primary h-10 px-5"
           >
-            <BusySwap busy={starting}>Have another chat</BusySwap>
-          </button>
+            Have another chat
+          </BusyPill>
         ) : (
           <>
             {/* the label says what it does; no aria-pressed as well ("Unmute, pressed" reads backwards) */}

@@ -22,7 +22,7 @@ import { characterSettled } from "@/lib/character";
 import { Alert } from "@/components/ui/Alert";
 import { ExportButton } from "@/components/ui/ExportButton";
 import { SpeakBar } from "@/components/ui/SpeakBar";
-import { BusySwap, Spinner } from "@/components/ui/Spinner";
+import { BusyPill, BusySwap, Spinner } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { useHeightTransition } from "@/components/ui/useHeightTransition";
 import { VoiceSphere, VoiceSpherePlaceholder } from "@/components/ui/VoiceSphere";
@@ -327,20 +327,19 @@ export function VoicePanel({ onVoiceReady }: { onVoiceReady?: (voiceId: string, 
   const waiting = sameFace && phase !== "designing";
   const findButton = (
     <span data-tip={waiting ? SAME_FACE_HINT : undefined} className="inline-flex">
-      <button
-        type="button"
-        onClick={() => !busy && !waiting && findVoice()}
-        // designing: aria-disabled, so the focus stays on the working pill; while a voice is set up it is simply disabled
-        disabled={phase === "selecting"}
-        aria-disabled={phase === "designing" || waiting}
-        aria-busy={phase === "designing"}
-        aria-label={phase === "designing" ? stageText : !firstRun ? "Find new voices" : undefined}
+      <BusyPill
+        busy={phase === "designing"}
+        held={busy || waiting}
+        busyLabel={stageText}
+        onClick={findVoice}
+        disabled={phase === "selecting"} // while a voice is set up it is simply disabled
+        aria-label={!firstRun ? "Find new voices" : undefined}
         aria-describedby={waiting ? hintId : undefined}
         data-step-focus={phase === "idle" ? "" : undefined}
-        className={`grid ${firstRun ? "pill-primary h-10" : "pill-secondary h-8 px-3 text-label"} ${phase === "designing" ? "disabled:opacity-100" : ""} ${waiting ? "opacity-40" : ""}`}
+        className={`${firstRun ? "pill-primary h-10" : "pill-secondary h-8 px-3 text-label"} ${phase === "designing" ? "disabled:opacity-100" : ""} ${waiting ? "opacity-40" : ""}`}
       >
-        <BusySwap busy={phase === "designing"}>{findLabel}</BusySwap>
-      </button>
+        {findLabel}
+      </BusyPill>
       {waiting && (
         <span id={hintId} className="sr-only">
           {SAME_FACE_HINT}
@@ -513,24 +512,14 @@ function MeetRow({ onMeet, busy }: { onMeet: () => void; busy: boolean }) {
         <p className="text-body text-ink">Meet the character</p>
         <p className="text-meta text-ink-3">Their name, story and quirks</p>
       </div>
-      <button
-        type="button"
-        onClick={onMeet}
-        aria-disabled={busy}
-        aria-busy={busy}
-        aria-label={busy ? "Writing their profile…" : undefined}
-        className="pill-primary grid h-10 shrink-0 px-5"
-      >
-        {/* the spinner in the label's place while the profile is written (BusySwap), so the pill keeps its width */}
-        <BusySwap busy={busy}>
-          <span className="flex items-center gap-2">
-            Meet
-            <svg viewBox="0 0 16 16" aria-hidden className="size-3" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 8h10M9 4l4 4-4 4" />
-            </svg>
-          </span>
-        </BusySwap>
-      </button>
+      <BusyPill busy={busy} busyLabel="Writing their profile…" onClick={onMeet} className="pill-primary h-10 shrink-0 px-5">
+        <span className="flex items-center gap-2">
+          Meet
+          <svg viewBox="0 0 16 16" aria-hidden className="size-3" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 8h10M9 4l4 4-4 4" />
+          </svg>
+        </span>
+      </BusyPill>
     </div>
   );
 }

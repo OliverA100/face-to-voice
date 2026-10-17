@@ -17,7 +17,7 @@ import { ApiError, MESSAGES } from "./errors";
 import { descriptionKey, faceKey } from "./keys";
 import { lookText, restingLook, type Look } from "./look";
 import { quantiseIntensity } from "./emotion";
-import { AGE_RANGES, buildVoiceDescription, descriptionIdentity, expressionLine, fantasyWorld, previewText, type DescriptionFields, type Presentation } from "./prompt";
+import { AGE_RANGES, buildVoiceDescription, descriptionIdentity, expressionLine, fantasyWorld, previewText, type DescriptionFields } from "./prompt";
 import { consumeDailyCap, refundDailyCap } from "./ratelimit";
 
 export interface VoiceRecord {

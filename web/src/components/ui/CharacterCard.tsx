@@ -13,7 +13,7 @@
 import { useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
-import { BusySwap } from "@/components/ui/Spinner";
+import { BusyPill } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { TalkPanel } from "@/components/ui/TalkPanel";
 import type { ProfileResult } from "@/lib/character/profile";
@@ -46,7 +46,6 @@ export function CharacterCard({
   const root = useRef<HTMLDivElement>(null);
 
   const recastNow = async () => {
-    if (busy) return;
     setBusy(true);
     setError(null);
     try {
@@ -103,17 +102,15 @@ export function CharacterCard({
           <p className="text-label text-ink">Not who you had in mind?</p>
           <p className="text-meta text-ink-3">Keep the voice, meet a different character</p>
         </div>
-        <button
-          type="button"
+        <BusyPill
+          busy={busy}
+          busyLabel="Recasting the character…"
           onClick={recastNow}
-          aria-disabled={busy}
-          aria-busy={busy}
-          aria-label={busy ? "Recasting the character…" : undefined}
           data-step-focus={talkAvailable() ? undefined : ""} // else Chat is the step's first control
-          className="pill-secondary grid h-8 px-3 text-label"
+          className="pill-secondary h-8 px-3 text-label"
         >
-          <BusySwap busy={busy}>Recast</BusySwap>
-        </button>
+          Recast
+        </BusyPill>
       </div>
       {error && <Alert limits={error.limits}>{error.message}</Alert>}
       <Status message={busy ? "Recasting the character…" : said} />

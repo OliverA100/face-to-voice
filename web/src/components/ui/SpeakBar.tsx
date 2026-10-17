@@ -5,7 +5,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { RadioGroup } from "@/components/ui/RadioGroup";
-import { BusySwap } from "@/components/ui/Spinner";
+import { BusyPill } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { paintRange, speakRange } from "@/components/ui/panel/rangeFill";
 import { currentEmotion } from "@/lib/emotion";
@@ -73,7 +73,6 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
   const busy = state === "loading";
   const speak = () => {
     setError(null);
-    if (busy) return;
     const line = text.trim().slice(0, MAX_CHARS);
     if (!line) {
       setError({ message: "Type a line for the voice to say first." });
@@ -156,11 +155,9 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
               Stop
             </button>
           )}
-          {/* Busy: solid, the spinner in the label's place (BusySwap), so the pill keeps its width and nothing beside it
-              moves. aria-disabled rather than disabled, so the keyboard focus stays on it. */}
-          <button ref={speakButton} type="button" onClick={speak} aria-disabled={busy} aria-busy={busy} data-step-focus className="pill-secondary grid h-10 px-5">
-            <BusySwap busy={busy}>Speak</BusySwap>
-          </button>
+          <BusyPill ref={speakButton} busy={busy} onClick={speak} data-step-focus className="pill-secondary h-10 px-5">
+            Speak
+          </BusyPill>
         </div>
       </div>
       {showSync && <SyncControl />}

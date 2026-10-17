@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, type Ref, useEffect, useState } from "react";
 
 import spinnerStrip from "@/lib/brand/spinner.webp";
 import { whenRevealed } from "@/lib/headLoad";
@@ -94,6 +94,37 @@ export function BusySwap({ busy, children }: { busy: boolean; children: ReactNod
         </span>
       )}
     </>
+  );
+}
+
+/**
+ * A pill that runs something: while `busy` the spinner takes its label's place (BusySwap). It stays solid and keeps the
+ * keyboard focus (aria-disabled, not disabled), and it ignores clicks while busy or `held` (another pill's work is
+ * running), since an aria-disabled button still fires on Enter and Space. `busyLabel`: its name while busy.
+ */
+export function BusyPill({
+  busy,
+  held = false,
+  busyLabel,
+  className = "",
+  onClick,
+  children,
+  ref,
+  ...rest
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type"> & { busy: boolean; held?: boolean; busyLabel?: string; ref?: Ref<HTMLButtonElement> }) {
+  return (
+    <button
+      {...rest}
+      ref={ref}
+      type="button"
+      onClick={(e) => !busy && !held && onClick?.(e)}
+      aria-disabled={busy || held || undefined}
+      aria-busy={busy}
+      aria-label={busy && busyLabel ? busyLabel : rest["aria-label"]}
+      className={`grid ${className}`}
+    >
+      <BusySwap busy={busy}>{children}</BusySwap>
+    </button>
   );
 }
 
