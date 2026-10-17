@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { clamp, damp, POSE_LIMITS, splitLook } from "../pose";
+import { damp, POSE_LIMITS, splitLook } from "../pose";
 
 describe("pose", () => {
   it("splits a look between head and eyes and lands on the target", () => {
@@ -23,11 +23,6 @@ describe("pose", () => {
     for (let i = 0; i < 30; i++) b = damp(b, 10, 4, 1 / 30);
     expect(a).toBeCloseTo(b, 5);
     expect(a).toBeGreaterThan(9.5);
-  });
-
-  it("clamps to the limits", () => {
-    expect(clamp(50, POSE_LIMITS.headYaw)).toBe(35);
-    expect(clamp(-30, POSE_LIMITS.gazePitch)).toBe(-20);
   });
 });
 

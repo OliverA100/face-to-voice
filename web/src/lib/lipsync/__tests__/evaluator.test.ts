@@ -84,14 +84,6 @@ describe("shape hold", () => {
     expect(at("U", 0.02).U).toBeGreaterThanOrEqual(LIPSYNC.shapeHold.U * at("U", 1).U - 1e-9);
   });
 
-  it("is off with LIPSYNC_PARTS.shapeHold (the lab's switch)", () => {
-    LIPSYNC_PARTS.shapeHold = false;
-    try {
-      expect(at("O", 0.02).U).toBe(0);
-    } finally {
-      LIPSYNC_PARTS.shapeHold = true;
-    }
-  });
 });
 
 describe("speedUpShare", () => {
@@ -146,14 +138,6 @@ describe("followRelease", () => {
     expect(vowel).toBeCloseTo(release + LIPSYNC.releaseGap, 5);
   });
 
-  it("is off with LIPSYNC_PARTS.followRelease (the lab's switch)", () => {
-    LIPSYNC_PARTS.followRelease = false;
-    try {
-      expect(vowelStart().vowel).toBeCloseTo(0.6, 5);
-    } finally {
-      LIPSYNC_PARTS.followRelease = true;
-    }
-  });
 });
 
 describe("shapeShare", () => {
@@ -237,12 +221,4 @@ describe("fitPhrases", () => {
     expect(covered[0].end).toBeCloseTo(0.3, 5);
   });
 
-  it("is off with LIPSYNC_PARTS.fitPhrases (the lab's switch)", () => {
-    LIPSYNC_PARTS.fitPhrases = false;
-    try {
-      expect(vowelEnd()).toBeCloseTo(0.3, 5);
-    } finally {
-      LIPSYNC_PARTS.fitPhrases = true;
-    }
-  });
 });

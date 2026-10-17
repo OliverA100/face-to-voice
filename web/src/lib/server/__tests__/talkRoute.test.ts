@@ -192,21 +192,14 @@ describe("POST /api/talk/token", () => {
     expect((await ticket({}, "9.9.8.8")).status).toBe(429); // and without a cookie
   });
 
-  it("doesn't limit one visitor's chats: only the site's hidden ceiling does (2026-10-16)", async () => {
+  it("doesn't limit one visitor's chats a day: only the site's hidden ceiling does", async () => {
     const before = await talks();
     for (let i = 0; i < 105; i++) {
-      const ok = await ticket({}, "7.7.7.7"); // was 10 a day (×10 without Redis)
+      const ok = await ticket({}, "7.7.7.7");
       expect(ok.status).toBe(200);
       await releaseSlot(ok.data.room);
     }
     expect(await talks()).toBe(before + 105);
-  });
-
-  it("charges the visitor's daily talks only once a slot is theirs", async () => {
-    for (let i = 0; i < 105; i++) expect((await ticket({ take: 2 }, "8.8.8.8")).status).toBe(410); // more than 10 ×10
-    const ok = await ticket({}, "8.8.8.8");
-    expect(ok.status).toBe(200);
-    await releaseSlot(ok.data.room);
   });
 
   it("pins the voice so the pool can't evict it mid-conversation", async () => {

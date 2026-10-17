@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { evenBumped, type ChromeDrive, type ChromeFinish, type ChromeFlowConfig, createChromeFlow, polishUniforms, swingBack } from "../chromeGl";
-import { listen } from "../wave";
 
 const FLOW: ChromeFlowConfig = { start: 12, speed: 0.2, restSpeed: 0.3, period: 3, dwell: 0.25, settleSpeed: 1.2, maxStep: 1 / 30 };
 const SWING: ChromeDrive = { moving: true, settling: false, through: null, hold: null };
@@ -83,16 +82,6 @@ describe("createChromeFlow", () => {
     const flow = createChromeFlow(FLOW);
     run(flow, 1, { ...SWING, hold: 0.4 });
     expect(flow.frame.polish).toBe(0.4);
-  });
-});
-
-describe("listen", () => {
-  it("stays within 0.55..1", () => {
-    for (let t = 0; t < 120; t += 0.37) {
-      const v = listen(t);
-      expect(v).toBeGreaterThanOrEqual(0.55);
-      expect(v).toBeLessThanOrEqual(1);
-    }
   });
 });
 

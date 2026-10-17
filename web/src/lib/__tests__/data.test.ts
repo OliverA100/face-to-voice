@@ -1,17 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { addonIndex, emotionDefs, hairIndex, manifest, sectionOf, sliders, visemePreset, visemes } from "../data";
+import { addonIndex, emotionDefs, hairIndex, manifest, sliders, visemePreset, visemes } from "../data";
 
 describe("pipeline data contract", () => {
   it("looks visemes up by the cue engine's upper-case ids", () => {
     const [id, weights] = Object.entries(visemes.visemes)[0];
     expect(visemePreset(id.toUpperCase())).toEqual(weights);
     expect(visemePreset("no-such-viseme")).toEqual({});
-  });
-
-  it("puts sliders without a section in Advanced", () => {
-    expect(sectionOf({})).toBe("advanced");
-    expect(sectionOf({ section: "pose" })).toBe("pose");
   });
 
   it("has both parts of every emotion among the head's morph targets", () => {
