@@ -2,7 +2,7 @@
  * Where a context's sound goes: its own destination, or (Safari: Mac, iPhone, iPad) a live MediaStream played by an
  * <audio> element.
  *
- * Safari on a Mac, 2026-10-15: a tab's Web Audio output (one per sample rate, shared by every AudioContext in the tab)
+ * Safari on a Mac: a tab's Web Audio output (one per sample rate, shared by every AudioContext in the tab)
  * could fall behind and stay behind: lines and chats ~0.8 s after the mouth, or silent, while Safari reported them on
  * time (outputLatency, getOutputTimestamp), so the page could not tell. A new context or a reload at that rate kept it,
  * and the backlog itself survived: the end of a line cut by a pause played at the next start, even from another
@@ -13,23 +13,22 @@
 import { isAppleTouch } from "./staleTab";
 
 /** s the element route adds to the context's reported output delay (Safari on a Mac, built-in speakers: the app's
- *  beeps −29…−48 ms against −16…+1 direct with 45 ms allowed, qa/lipsync appstale.mjs 2026-10-15). */
-export const ROUTE_EXTRA = 0.075;
+ *  beeps −29…−48 ms against −16…+1 direct with 45 ms allowed, qa/lipsync appstale.mjs). */
+const ROUTE_EXTRA = 0.075;
 
 /** Safari (WebKit) on a Mac: not Chrome, Edge, Firefox or Opera there, and not an iPhone or iPad. */
-export function isDesktopSafari(): boolean {
+function isDesktopSafari(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent;
   return /Safari\//.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR|Android/.test(ua) && !isAppleTouch();
 }
 
-
 /**
  * Whether sound takes the element route on this page: Safari, on a Mac and on iPhones and iPads (the iPhone simulator's
- * output stuck the same way, a looping tone, and the route played on; on an iPhone, 2026-10-15: loudspeaker, in sync,
- * Stop silent, no lock-screen player, fine after another app).
+ * output stuck the same way, a looping tone, and the route played on; on an iPhone it plays in sync on the
+ * loudspeaker, Stop is silent, there is no lock-screen player, and it is fine after another app).
  */
-export function elementRoute(): boolean {
+function elementRoute(): boolean {
   return isDesktopSafari() || isAppleTouch();
 }
 
@@ -61,7 +60,7 @@ export function wakeOutput(ctx: AudioContext): void {
 /**
  * Suspend the context, its element paused first. A suspended context's stream gets no new sound, and Safari's element
  * then played the last few milliseconds it had over and over: after End chat (mid-word) a fast stutter until the next
- * chat (user, 2026-10-15). wakeOutput plays it again.
+ * chat. wakeOutput plays it again.
  */
 export function restOutput(ctx: AudioContext): Promise<void> {
   routes.get(ctx)?.el.pause();

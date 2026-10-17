@@ -7,7 +7,9 @@
 import { visemePreset, visemes } from "@/lib/data";
 
 import { VISEME_IDS, type VisemeId } from "./cues";
-import { emptyActivations, frameMemory, frameTargets, lateralAt, LIPSYNC, LIPSYNC_PARTS, roundingAt, sealWeight, shapeShare, smoothTowards, speedShare, speedUpShare, tongueAt, type Activations, type FrameMemory, type SpeechSource } from "./evaluator";
+import { frameMemory, frameTargets, type FrameMemory, type SpeechSource } from "./evaluator";
+import { emptyActivations, lateralAt, roundingAt, sealWeight, shapeShare, smoothstep, smoothTowards, speedShare, speedUpShare, tongueAt, type Activations } from "./shapes";
+import { LIPSYNC, LIPSYNC_PARTS } from "./tuning";
 
 /** What the mouth reads from and writes to. */
 export interface MouthWorld {
@@ -36,14 +38,13 @@ export class Mouth {
   private readonly presets: Record<VisemeId, Record<string, number>>;
   private readonly roundedClosure: Record<string, number>; // a p/b/m with the lips rounded (LIPSYNC.roundAhead)
   private readonly lateralTongue: Record<string, number>; // the tongue of an "l" (visemes.json "ll": tongue morphs only)
-  private readonly jawTarget = Object.keys(visemes.roles.jawOpen)[0]; // gets a second smoothing stage (jawTau)
+  private readonly jawTarget = Object.keys(visemes.roles.jawOpen)[0]; // opens with the loudness (jawSplit)
   private readonly scratch = emptyActivations();
   // the lips' shapes (LIPSYNC_PARTS.jawSplit): the cues under the softer shape gate, smoothed like the activations
   private readonly shapeScratch = emptyActivations();
   readonly shapes = emptyActivations();
   // What each speech source's frames remember (snapped cues, the held vowel): the player's lines and a conversation's.
   private readonly memories = new WeakMap<SpeechSource, FrameMemory>();
-  private jawValue = 0;
   // the lips' and jaw's velocities last frame (mm/s), for LIPSYNC.speedUp
   private gapVel = 0;
   private jawVel = 0;
@@ -121,8 +122,7 @@ export class Mouth {
         this.releaseFrom = this.held;
       }
       this.release = Math.min(1, this.release + step / LIPSYNC.speechRelease);
-      const r = this.release;
-      this.held = this.releaseFrom * (1 - r * r * (3 - 2 * r));
+      this.held = this.releaseFrom * (1 - smoothstep(this.release));
     }
     if (this.held < 0.002) this.held = 0;
     const held = this.held;
@@ -131,11 +131,10 @@ export class Mouth {
     // The emotion's mouth part steps back while speaking (EMOTION.lowerWhileSpeaking), and out of the way of a formed
     // p/b/m or f/v if that emotion holds the lips apart (Surprised, Afraid, Pain …).
     world.speechActivity(held, 1 - seal);
-    const kJaw = LIPSYNC.jawTau > 0 ? 1 - Math.exp(-step / LIPSYNC.jawTau) : 1;
     this.rounding += ((t >= 0 && LIPSYNC_PARTS.rounding ? roundingAt(src.cues, t) : 0) - this.rounding) * (1 - Math.exp(-step / LIPSYNC.roundTau));
     const kTongue = 1 - Math.exp(-step / (LIPSYNC.tau.DD ?? LIPSYNC.tau.default));
     // while an open vowel still holds the mouth open the tongue rises only partway (LIPSYNC.tongueYield): it showed
-    // through the "or" of "Corn", whose hummed "n" keeps the line loud (user review 2026-10-14)
+    // through the "or" of "Corn", whose hummed "n" keeps the line loud
     const yieldTo = LIPSYNC_PARTS.tongueYield ? 1 - LIPSYNC.tongueYield * Math.min(1, act.aa + act.E + act.O) : 1;
     this.tongue += ((t >= 0 && LIPSYNC_PARTS.tongue ? tongueAt(src.cues, t) * yieldTo : 0) - this.tongue) * kTongue;
     this.lateral += ((t >= 0 && LIPSYNC_PARTS.tongue && LIPSYNC_PARTS.lateral ? lateralAt(src.cues, t) : 0) - this.lateral) * kTongue;
@@ -161,9 +160,6 @@ export class Mouth {
         const w = v === "DD" && tongueMorph && lat ? (presets.DD[target] ?? 0) * (1 - lat) + (this.lateralTongue[target] ?? 0) * lat : presets[v][target];
         if (w) value += a * w * (v === "FF" ? 1 : seal) * world.cap(v); // this face's limit (animCaps)
       }
-      // The jaw is the heavy articulator: its second stage turns cue-edge kinks and the seal's
-      // snap into syllable-rate arcs (LIPSYNC.jawTau). The lip morphs are written directly.
-      if (target === this.jawTarget) value = this.jawValue += (value - this.jawValue) * kJaw;
       next[ti] = value - world.userValue(target) * held;
     }
     // Speed limit (LIPSYNC.gapSpeed / jawSpeed): how far the lips and jaw would move this frame, in mm (the shapes are
@@ -182,18 +178,12 @@ export class Mouth {
     this.gapVel = (dGap * share) / step;
     this.jawVel = (dJaw * share) / step;
     for (const v of VISEME_IDS) drawnAct[v] += (askedAct[v] - drawnAct[v]) * share;
-    for (let ti = 0; ti < targets.length; ti++) {
-      const target = targets[ti];
-      const v = (written[ti] += (next[ti] - written[ti]) * share);
-      if (target === this.jawTarget && share < 1) this.jawValue = v + world.userValue(target) * held; // the jaw's own stage follows
-      world.write(target, v);
-    }
+    for (let ti = 0; ti < targets.length; ti++) world.write(targets[ti], (written[ti] += (next[ti] - written[ti]) * share));
     state.energy = act.aa + 0.6 * (act.O + act.E) + 0.3 * (act.I + act.U);
     if (!state.active) {
       world.speechActivity(0);
       world.clear();
       state.energy = 0;
-      this.jawValue = 0;
       this.tongue = this.lateral = 0;
       this.gapVel = this.jawVel = 0;
       for (const v of VISEME_IDS) drawnAct[v] = shapes[v] = 0;

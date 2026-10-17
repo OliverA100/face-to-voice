@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { Cue } from "../cues";
-import { closureGate, emptyActivations, fitPhrases, frameMemory, frameTargets, LIPSYNC, LIPSYNC_PARTS, loudnessGate, roundingAt, shapeShare, speedShare, speedUpShare, type SpeechSource } from "../evaluator";
+import { frameMemory, frameTargets, type SpeechSource } from "../evaluator";
+import { fitPhrases } from "../placement";
+import { closureGate, emptyActivations, loudnessGate, roundingAt, shapeShare, speedShare, speedUpShare } from "../shapes";
+import { LIPSYNC, LIPSYNC_PARTS } from "../tuning";
 
 describe("closureGate", () => {
   it("lets closures through while quiet and holds them back once the voice is loud", () => {

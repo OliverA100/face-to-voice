@@ -1,12 +1,11 @@
 /**
- * iPhone and iPad (2026-10-14): a tab left open a while can play silently, the mouth moving to no sound. After a long
- * time in the background the player starts its audio over on the next Speak (takeLongHide: a new AudioContext and the
- * audio session asked for again, in the tap). Elsewhere it never does.
+ * iPhone and iPad: a tab left open a while can play silently, the mouth moving to no sound. After a long time in the
+ * background the player starts its audio over on the next Speak (takeLongHide: a new AudioContext and the audio session
+ * asked for again, in the tap). Elsewhere it never does.
  *
- * Safari on a Mac had its own trouble after an idle tab (2026-10-15: lines late or silent until a new tab, a reload or a
- * new context didn't help): the player's context, left running with nothing to play, stuck the tab's output. Fixed in
- * the player, which rests its context between lines (player.ts setState); the "Reload the page" hint that was here is
- * gone, as a reload never cleared it.
+ * Safari on a Mac has its own idle-tab trouble (lines late or silent until a new tab; a reload or a new context doesn't
+ * clear it): the player's context, left running with nothing to play, sticks the tab's output. The player handles that
+ * by resting its context between lines (player.ts setState), so nothing here asks for a reload.
  */
 const LONG_HIDE_S = 2 * 60;
 

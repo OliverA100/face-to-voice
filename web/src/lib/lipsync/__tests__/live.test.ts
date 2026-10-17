@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { emptyActivations, frameMemory, frameTargets, LIPSYNC_PARTS } from "../evaluator";
+import { frameMemory, frameTargets } from "../evaluator";
+import { emptyActivations } from "../shapes";
+import { LIPSYNC_PARTS } from "../tuning";
 import { LiveSpeech, type LiveWord } from "../live";
 
 // A conversation's voice as the lip sync sees it, without Web Audio: meter blocks are fed in by hand (what the
@@ -117,7 +119,7 @@ describe("live speech (a reply as the evaluator's line)", () => {
     let live = reply();
     expect(firstOf(live, 0.9, 1.45)).toBeCloseTo(1.36, 5); // "I" with the voice
     expect(firstOf(live, 1.45, 1.6)).toBeCloseTo(1.48, 5); // "was" where it was stamped
-    // before (user review 10-15): the nearest stamped start, "was", was pinned to the voice's return, the phrase early
+    // without it: the nearest stamped start, "was", was pinned to the voice's return, the phrase early
     LIPSYNC_PARTS.liveAcross = false;
     live = reply();
     LIPSYNC_PARTS.liveAcross = true;

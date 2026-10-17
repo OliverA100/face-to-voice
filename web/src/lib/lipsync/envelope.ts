@@ -5,7 +5,7 @@
  */
 export const ENVELOPE_RATE = 24000; // the speech stream's PCM rate (ElevenLabs pcm_24000)
 /** The treble envelope's high-pass (Hz): an "m" hums on through the nose with the lips shut, so the line's loudness
- *  hardly dips, but nothing above ~2 kHz gets out (lipsync/evaluator.ts snapClosures). */
+ *  hardly dips, but nothing above ~2 kHz gets out (placement.ts snapClosures). */
 const TREBLE_HZ = 2000;
 const TREBLE = (() => {
   // RBJ biquad high-pass, Q = 1/√2, at ENVELOPE_RATE

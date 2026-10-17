@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { SpeechSource } from "../evaluator";
-import { LIPSYNC } from "../evaluator";
+import { LIPSYNC } from "../tuning";
 import { Mouth } from "../mouth";
 
 describe("after the voice stops", () => {

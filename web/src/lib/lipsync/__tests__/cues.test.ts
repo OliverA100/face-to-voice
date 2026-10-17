@@ -4,7 +4,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { alignmentToCues, mergeAlignments, numberToWords, VISEME_IDS, type Alignment, type Cue } from "../cues";
-import { audioClosureAt, bridgeVowels, closureSpan, LIPSYNC_PARTS, placeLine, roundingAt, snapVowels, emptyActivations, LIPSYNC, smoothTowards, snapClosures, targetsAt, sealWeight, tongueAt, windowedLoudness } from "../evaluator";
+import { audioClosureAt, bridgeVowels, closureSpan, placeLine, snapClosures, snapVowels } from "../placement";
+import { emptyActivations, roundingAt, sealWeight, smoothTowards, targetsAt, tongueAt, windowedLoudness } from "../shapes";
+import { LIPSYNC, LIPSYNC_PARTS } from "../tuning";
 import { wordToVisemes } from "../lipsync-en";
 import { visemePreset } from "@/lib/data";
 

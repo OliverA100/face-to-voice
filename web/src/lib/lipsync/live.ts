@@ -10,19 +10,19 @@
  *     held back LIVE.delay, so the meter runs that far ahead of what is heard, plus the output latency, as it does
  *     on a decoded line: played from livekit-client's element instead, the meter heard each sound only after it had
  *     been played (Chrome's MediaStreamSource buffers; Safari's element drifts while the microphone is on), and the
- *     mouth ran behind (Chrome and Safari, 2026-10-11). The delay to the speakers comes from the heard clock the
+ *     mouth ran behind (Chrome and Safari). The delay to the speakers comes from the heard clock the
  *     speech player uses too (clock.ts).
  *
  * Each reply is one "line" to the evaluator, pinned to the voice it hears: the voice's onset here is where the agent
  * measured it on the words' clock (agent/src/onset.ts, the same rule as ONSET_RMS). Not the first word's stamp: v4 Turbo
- * stamps it 40–100 ms off the voice, and pinned there every word ran that much late (2026-10-11). Until the
- * agent's onset arrives, the first word stands in.
+ * stamps it 40–100 ms off the voice, and pinned there every word ran that much late. Until the agent's onset arrives,
+ * the first word stands in.
  *
  * The agent also sends the reply's loudness as it made it (its own audio, on the words' clock). Two things come of it:
  *   - the line follows the voice: what is heard is matched against it as it plays and time 0 eases onto the match, so
  *     an onset pinned off (a click before the voice: 270 ms) or the network's slow creep (~30 ms over 15 s) is caught;
  *   - each phrase starts on its sound (anchors): v4 Turbo's live word stamps come from the text, and a phrase after a
- *     pause can start off its sound ("Someone" 330 ms late, 2026-10-11). Where the voice comes back in the agent's audio,
+ *     pause can start off its sound ("Someone" 330 ms late). Where the voice comes back in the agent's audio,
  *     the stamped word start nearest to it moves onto it, with the words after it, up to the next such place (the
  *     stamps don't always leave a gap where the voice pauses). Found in what is heard instead, a breath or a click read
  *     as the voice coming back, and each wrong anchor carried into the next: a greeting's last words ran a second early.
@@ -31,7 +31,8 @@ import { HeardClock } from "./clock";
 import { outputOf } from "./output";
 import { alignmentToCues, type Alignment, type Cue } from "./cues";
 import { queuePhonemes, spokenWords } from "./phonemes";
-import { LIPSYNC, LIPSYNC_PARTS, type SpeechSource } from "./evaluator";
+import type { SpeechSource } from "./evaluator";
+import { LIPSYNC, LIPSYNC_PARTS } from "./tuning";
 import { speechPlayer } from "./player";
 
 /** One word as the agent sends it: text, and seconds from the start of the reply's audio. */
@@ -62,8 +63,9 @@ const PAUSE_AFTER = /[.,!?;:…—–-]["')\]]*\s*$/;
 const FOLLOW = { window: 1.5, search: 0.3, corr: 0.85, step: 0.04, every: 25 };
 /**
  * The voice is held back this long (s) before it plays, so the lip sync sees each sound ahead of the listener, as it
- * does a recorded line (decoded before it plays): its gate reads ~60 ms ahead and the mouth runs LIPSYNC.lead ahead.
- * Replies start that much later.
+ * does a recorded line (decoded before it plays): the mouth runs LIPSYNC.lead (30 ms) ahead of the sound, and its gate
+ * reads up to 30 ms past that (LIPSYNC.liveGateLookahead 0, half of the centred 60 ms gateWindow): ~60 ms ahead of
+ * what is heard. Replies start that much later.
  */
 export const LIVE = { delay: 0.13 }; // how far the meter runs ahead of what is heard: the gate's ~60 ms look-ahead, the closures' ~90 ms anticipation
 
@@ -89,7 +91,7 @@ class FtvMeter extends AudioWorkletProcessor {
     this.done = false;
     // finished blocks wait here and go to the page BATCH at a time: nothing is allocated per render quantum (every
     // 2.7 ms), and few messages are posted. An array made in every process() and a message per 10 ms block made garbage
-    // on the audio thread, and an iPhone's chats popped (Speak, with no worklet, didn't: 2026-10-16)
+    // on the audio thread, and an iPhone's chats popped (Speak, with no worklet, didn't)
     this.out = new Float64Array(3 * ${METER_BATCH});
     this.k = 0;
     this.port.onmessage = () => (this.done = true); // the chat ended: let the node go
@@ -192,7 +194,7 @@ export class LiveSpeech implements SpeechSource {
 
   /** Where the voice starts on the line's clock (the words'), as the agent measured it on its audio: placeLine needs
    *  no look-ahead to put the first word there (it waited for ~0.5 s of heard audio, and "Honestly" stayed on its stamp
-   *  0.3 s after the voice had started: user review 10-15). */
+   *  0.3 s after the voice had started). */
   get voiceStart(): number | undefined {
     if (!LIPSYNC_PARTS.liveVoiceStart || !this.sent.length) return undefined;
     // placeLine's own rule (LIPSYNC.lineOnsetDb under the loudest moment), on the agent's audio (the words' clock)
@@ -236,7 +238,7 @@ export class LiveSpeech implements SpeechSource {
     // `gain` (session.ts chatBoost): the voice made louder. It already peaks at full scale, so it is compressed (quiet
     // syllables up toward the loud ones), raised by `gain`, limited, and soft-clipped so nothing can clip. On a real
     // line: +5 dB of speech loudness at gain 2, nothing clipped, 0.9% of samples rounded off (qa/lipsync
-    // chaincheck.mjs, 2026-10-16)
+    // chaincheck.mjs)
     let out: AudioNode = outputOf(this.ctx);
     if (playThrough && gain !== 1) out = loudChain(this.ctx, gain, out);
     if (playThrough && delaySeconds > 0) {
@@ -360,7 +362,7 @@ export class LiveSpeech implements SpeechSource {
     for (const at of this.sentPhrases()) {
       // a word stamped across the voice's return, after a pause in the text, took the pause into its stamp ("hey. I":
       // "I" stamped from 1.00 to 1.40 s, said from 1.36): it starts where the voice comes back, and the words after it
-      // keep their stamps (the nearest stamped start was "was", and the phrase moved 0.12 s early: user review 10-15)
+      // keep their stamps (the nearest stamped start was "was", and the phrase moved 0.12 s early)
       const across = LIPSYNC_PARTS.liveAcross ? this.words.findIndex((w, i) => i >= next && w.s < at && at < w.e + ACROSS_LATE && PAUSE_AFTER.test(this.words[i - 1].w) && this.words[i - 1].e <= at) : -1;
       if (across >= 0) {
         if (anchors.length) anchors[anchors.length - 1].to = across;
@@ -516,9 +518,10 @@ export class LiveSpeech implements SpeechSource {
     return Number.isNaN(this.lineAt) ? 0 : this.t0 + this.env.length / 100 - this.lineAt;
   }
 
-  /** The level at line time t. Just past what the meter has measured (the evaluator reads a little ahead: the gate 30 ms,
-   *  its window 60 ms, while live the meter is LIVE.delay plus the output latency ahead, less LIPSYNC.lead), the last
-   *  measured level holds: read as silence, the mouth opened a few frames after every phrase's sound. */
+  /** The level at line time t. Just past what the meter has measured (the evaluator reads a little ahead of the mouth:
+   *  the gate up to 30 ms, half its 60 ms window at LIPSYNC.liveGateLookahead 0, while live the meter is LIVE.delay
+   *  plus the output latency ahead of the sound, less LIPSYNC.lead), the last measured level holds: read as silence,
+   *  the mouth opened a few frames after every phrase's sound. */
   private at(arr: number[], peak: number, t: number): number {
     if (Number.isNaN(this.lineAt)) return 0;
     const k = Math.round((this.lineAt + t - this.t0) * 100);

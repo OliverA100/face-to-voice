@@ -7,7 +7,7 @@
  * call `unlock()` synchronously in the click handler before any await.
  */
 import { alignmentToCues, mergeAlignments, type Alignment, type Cue } from "./cues";
-import { LIPSYNC_PARTS } from "./evaluator";
+import { LIPSYNC_PARTS } from "./tuning";
 import { HeardClock } from "./clock";
 import { ENVELOPE_RATE, LoudnessEnvelope } from "./envelope";
 import { dropOutput, outputOf, restOutput, wakeOutput } from "./output";
@@ -124,8 +124,8 @@ class SpeechPlayer {
 
   /**
    * Stop, and on an iPhone or iPad let the audio go entirely (the next Speak makes it again, in its tap): a chat started
-   * while a line still played got a context that never ran there (2026-10-16: the voice heard through LiveKit's own
-   * element, the lips still). Call before the chat's context is resumed.
+   * while a line still played got a context that never ran there (the voice heard through LiveKit's own element, the
+   * lips still). Call before the chat's context is resumed.
    */
   release(): void {
     this.stop();
@@ -304,8 +304,8 @@ class SpeechPlayer {
 
   /**
    * Start once the context runs. It rests between lines (setState) and unlock() resumes it, but Safari played audio
-   * scheduled before the resume had finished ~1 s late (a cached line arrives that fast; qa/lipsync appstale.mjs,
-   * 2026-10-15). If it doesn't run within RESUME_WAIT_MS, start anyway.
+   * scheduled before the resume had finished ~1 s late (a cached line arrives that fast; qa/lipsync appstale.mjs). If it
+   * doesn't run within RESUME_WAIT_MS, start anyway.
    */
   private startWhenRunning(): void {
     const ctx = this.ctx!;
@@ -386,7 +386,7 @@ class SpeechPlayer {
     this.state = s;
     if (s !== "loading" && s !== "playing") {
       audioSession("auto"); // the line is over: other apps' audio may come back
-      // and the context rests until the next Speak (unlock() resumes it in the tap). Safari on a Mac, 2026-10-15: a
+      // and the context rests until the next Speak (unlock() resumes it in the tap). Safari on a Mac: a
       // context left running with nothing to play, ~10 min in a tab nobody looks at, stuck that tab's audio output at
       // its sample rate (lines came 0.8 s late or silent, reported on time; a new context or a reload at that rate
       // inherited it, only a new tab didn't). Suspended while idle, the same 10 minutes left it on time

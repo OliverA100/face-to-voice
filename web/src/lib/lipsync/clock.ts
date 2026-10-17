@@ -51,7 +51,7 @@ export class HeardClock {
     l = Math.max(0, l) + routeDelay(ctx); // desktop Safari's <audio> element route (output.ts)
     // not clamped: an iPhone reports ~12 ms, and its screen trails its sound by ~50 ms more than that says, so the mouth
     // is drawn for a moment ~38 ms ahead of currentTime (clamped at 0, only 12 of the 50 ms applied: the mouth ran
-    // ~38 ms late on an iPhone 2026-10-14, phone-2 film)
+    // ~38 ms late on an iPhone, qa/lipsync phone2.py film)
     if ((this.ios ??= isIOS())) l += IOS_EXTRA;
     return l;
   }

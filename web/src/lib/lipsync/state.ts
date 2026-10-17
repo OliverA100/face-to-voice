@@ -1,5 +1,6 @@
 /** Shared per-frame lip-sync numbers (plain module state, written by LipSync, read by IdleLife and the overlay). */
-import { emptyActivations, LIPSYNC } from "./evaluator";
+import { emptyActivations } from "./shapes";
+import { LIPSYNC } from "./tuning";
 
 export const lipsyncState = {
   active: false,

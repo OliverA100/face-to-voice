@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { BLUETOOTH, HeardClock, IOS_EXTRA } from "../clock";
 import type { Cue } from "../cues";
-import { alignLine, LIPSYNC, LIPSYNC_PARTS, placeLine, placePhrases, snapClosures } from "../evaluator";
+import { alignLine, placeLine, placePhrases, snapClosures } from "../placement";
+import { LIPSYNC, LIPSYNC_PARTS } from "../tuning";
 
 afterEach(() => {
   vi.restoreAllMocks();

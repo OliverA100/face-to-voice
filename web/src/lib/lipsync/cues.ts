@@ -1,10 +1,10 @@
 /**
- * ElevenLabs character alignment → timed viseme cues for the 10 mouth shapes in visemes.json.
+ * ElevenLabs character alignment → timed viseme cues for the 11 mouth shapes (VISEME_IDS) in visemes.json.
  *
  * Words are found in the character stream, each word runs through the letter-to-viseme rules,
  * and every viseme takes its start/end from the timestamps of the exact characters it came
  * from (rules that emit several visemes share their span in proportion to typical durations).
- * Then: Oculus' 15 visemes fold to our 10, repeats merge, plosive closures are pulled forward
+ * Then: Oculus' 15 visemes fold to our 11, repeats merge, plosive closures are pulled forward
  * a little (they happen before the burst you hear), and other cues shorter than MIN_DURATION
  * (80 ms) are stretched so they register at all.
  */

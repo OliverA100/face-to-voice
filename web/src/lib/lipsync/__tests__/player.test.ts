@@ -171,7 +171,7 @@ describe("SpeechPlayer", () => {
 
   it("times the line by its {aligned} line over the stamps, and by the stamps with ?lipsyncOff=forcedAlignment", async () => {
     const { speechPlayer } = await import("../player");
-    const { LIPSYNC_PARTS } = await import("../evaluator");
+    const { LIPSYNC_PARTS } = await import("../tuning");
     const al = (start: number) => ({ characters: ["m", "a"], character_start_times_seconds: [start, start + 0.1], character_end_times_seconds: [start + 0.1, start + 0.3] });
     const body = () => new Response([JSON.stringify({ aligned: al(0.7) }), JSON.stringify({ audio_base64: pcm(1), alignment: al(0.2), normalized_alignment: null })].join("\n") + "\n");
     await speechPlayer.speak(async () => body());

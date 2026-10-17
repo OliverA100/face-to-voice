@@ -26,7 +26,7 @@ interface Phone {
  * ARPAbet (stress digits removed) → mouth. Tweak here: a shape is one of the rule tokens cues.ts folds (aa E I O U PP FF
  * TH DD SS CH kk nn RR AX). "HH" has no shape of its own: it takes the next vowel's (the mouth is already shaped for it).
  */
-export const PHONES: Record<string, Phone> = {
+const PHONES: Record<string, Phone> = {
   // vowels: stressed ones are longer (STRESSED), unstressed AH/IH/ER are schwas (WEAK_VOWELS)
   AA: { shapes: ["aa"], len: 1 }, // f-a-ther, h-o-t
   AE: { shapes: ["aa"], len: 1 }, // c-a-t
@@ -86,7 +86,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
     if (!p) continue;
     const len = p.len * (stress === "1" ? STRESSED : 1);
     // an r after a vowel and not before one ("sharp", "storm", "porch") colours the vowel: no movement of its own
-    // (its rounding between the open "ah" and the "p" looked jumpy, user review 2026-10-14); its time goes to the vowel
+    // (its rounding between the open "ah" and the "p" looked jumpy); its time goes to the vowel
     if (base === "R" && k > 0 && /^[AEIOU]/.test(phones[k - 1]) && !(phones[k + 1] && /^[AEIOU]/.test(phones[k + 1]))) {
       const last = items[items.length - 1];
       if (last) last.len += len;
@@ -102,7 +102,7 @@ export function phonemesToVisemes(word: string, phones: string[]): WordViseme[] 
     if (stress === "0" && WEAK_VOWELS.has(base)) {
       // unstressed: a schwa ("a", "the") is a weak "ah"; an unstressed "er" ("water", "shimmered") barely opens and
       // rounds a little, an unstressed "i" ("roses", "wanted") a little spread (as an "ah" the loud "-ered" of
-      // "shimmered" opened twice as wide as its stressed "shim": jumpy, user review 2026-10-14)
+      // "shimmered" opened twice as wide as its stressed "shim": jumpy)
       items.push({ token: base === "ER" ? "UX" : base === "IH" ? "IX" : "AX", len: len * 0.8, phone: base });
       continue;
     }
@@ -155,7 +155,7 @@ let waiting: (() => void)[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 /** How long words gather before one request (s): the agent sends a reply's words one message at a time, and one request
  *  per word tripped the site's /api rate limit (a 429 that would hit the visitor's other requests too). */
-export const PHONEME_BATCH = { wait: 0.15, max: 60 };
+const PHONEME_BATCH = { wait: 0.15, max: 60 };
 
 /**
  * A live conversation's words, looked up as they arrive (GET /api/phonemes, batched): the agent sends words, not
