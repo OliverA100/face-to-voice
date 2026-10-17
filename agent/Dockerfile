@@ -1,6 +1,6 @@
 # The character agent for LiveKit Cloud agent hosting (`lk agent create` / `lk agent deploy` build this) or any
 # container host. Node runs the TypeScript sources directly (type stripping), so there is no build step.
-FROM node:24-slim
+FROM node:24.21.0-slim
 
 ENV NODE_ENV=production
 # The framework's info, warn and error lines can carry what the visitor and the character said ("lk.pii.*" fields,
