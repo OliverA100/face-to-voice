@@ -20,6 +20,9 @@ const ROLES = ["blinkLeft", "blinkRight", "jawOpen", "pupils"] as const;
 type Key = { kind: "viseme"; id: string } | { kind: "role"; id: (typeof ROLES)[number] };
 
 const mouthSliders = sliders.sliders.filter((s) => s.kind === "expression");
+/** Every shape in visemes.json: the cue visemes, then the ones the mouth blends in itself ("ppr" rounded p/b/m, "ll"
+ *  the tongue of an l: lib/lipsync/mouth.ts). */
+const SHAPES = [...VISEME_IDS, ...Object.keys(initial.visemes).filter((k) => !VISEME_IDS.some((v) => v.toLowerCase() === k))];
 
 const dotted = "border-dotted border-line-dotted";
 
@@ -85,7 +88,7 @@ export default function VisemeTuner() {
               </span>
             </h2>
             <div className="mt-4 flex flex-wrap gap-1.5">
-              {VISEME_IDS.map((v) => (
+              {SHAPES.map((v) => (
                 <button key={v} type="button" onClick={() => setKey({ kind: "viseme", id: v })} className={chip(key.kind === "viseme" && key.id === v)}>
                   {v}
                 </button>
