@@ -7,11 +7,9 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import * as THREE from "three";
 
 import { Lighting } from "@/components/scene/Lighting";
+import { MODEL_URL } from "@/lib/data";
 
-const MODEL_URL = "/models/head.glb";
-
-/** Dotted divider between table rows (globals.css --line-dotted). */
-const dotted = "divide-y divide-dotted divide-[#d9d5d0]";
+const dotted = "divide-y divide-dotted divide-line-dotted";
 
 type Stats = {
   firstFrameMs: number | null;
@@ -125,7 +123,7 @@ export default function GlbProbe() {
         camera={{ position: [0, 0.27, 0.75], fov: 30, near: 0.05, far: 10 }}
         gl={{ antialias: true, alpha: false, stencil: false, powerPreference: "high-performance", toneMapping: THREE.NeutralToneMapping }}
       >
-        <color attach="background" args={["#f5f3f1"]} /> {/* matches --surface in globals.css */}
+        <color attach="background" args={["#f5f3f1"]} /> {/* matches --surface in app/tokens.css */}
         <Lighting /> {/* the app's lights, so the probe shows the head as the product does */}
         <Suspense fallback={null}>
           <Head target={target} weight={weight} onLoaded={merge} />

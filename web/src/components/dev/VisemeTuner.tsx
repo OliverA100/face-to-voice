@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { FaceCanvas } from "@/components/scene/FaceCanvas";
+import { paintRange } from "@/components/ui/panel/rangeFill";
 import { sliders, visemes as initial, type Weights } from "@/lib/data";
 import { VISEME_IDS } from "@/lib/lipsync/cues";
 import { morphs } from "@/lib/morphs/store";
@@ -20,8 +21,7 @@ type Key = { kind: "viseme"; id: string } | { kind: "role"; id: (typeof ROLES)[n
 
 const mouthSliders = sliders.sliders.filter((s) => s.kind === "expression");
 
-/** Dotted divider between slider rows (globals.css --line-dotted). */
-const dotted = "border-dotted border-[#d9d5d0]";
+const dotted = "border-dotted border-line-dotted";
 
 export default function VisemeTuner() {
   const [doc, setDoc] = useState<Doc>(() => structuredClone(initial) as Doc);
@@ -109,7 +109,7 @@ export default function VisemeTuner() {
                     <span className={`truncate text-[13px] ${value ? "text-ink" : "text-ink-2"}`}>{s.name}</span>
                     <span className="shrink-0 font-mono text-[12px] tabular-nums text-ink-3">{value ? (value > 0 ? "+" : "") + value.toFixed(2) : "–"}</span>
                   </span>
-                  <input type="range" min={s.min} max={s.max} step={0.01} value={value} onChange={(e) => setWeight(s.target, e.currentTarget.valueAsNumber)} className="range" />
+                  <input type="range" min={s.min} max={s.max} step={0.01} value={value} ref={(el) => void (el && paintRange(el))} onChange={(e) => setWeight(s.target, e.currentTarget.valueAsNumber)} className="range" />
                 </label>
               );
             })}

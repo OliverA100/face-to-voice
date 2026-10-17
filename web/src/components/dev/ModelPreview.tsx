@@ -63,7 +63,7 @@ export default function ModelPreview() {
           <span className="text-label">character.glb </span>
           <input type="file" accept=".glb,model/gltf-binary" onChange={(e) => e.target.files?.[0] && void open(e.target.files[0])} />
         </label>
-        {error && <p className="mt-2 text-red-700">{error}</p>}
+        {error && <p className="mt-2 text-danger">{error}</p>}
         {stats && (
           <div className="mt-2 text-ink-3">
             <p>

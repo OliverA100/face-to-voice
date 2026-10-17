@@ -9,11 +9,12 @@
  */
 import { useEffect, useMemo, useState } from "react";
 
+import { MODELS_BASE } from "@/lib/data";
+
 type Style = { id: string; label: string; thumb: string; bytes: number; review?: { class: string; variant?: string } };
 type Item = Style & { source: string; cls: string; variant: string; inPicker: boolean };
 type Decision = "keep" | "cut";
 
-const BASE = "/models/";
 const STORE = "ftv-hair-review";
 const VIEWS = ["front", "threeQuarter", "profile"] as const;
 
@@ -44,8 +45,8 @@ export default function HairReview() {
 
   useEffect(() => {
     Promise.all([
-      fetch(BASE + "hair/index.json").then((r) => r.json()),
-      fetch(BASE + "hair/review/review.json").then((r) => (r.ok ? r.json() : { styles: [] })).catch(() => ({ styles: [] })),
+      fetch(MODELS_BASE + "hair/index.json").then((r) => r.json()),
+      fetch(MODELS_BASE + "hair/review/review.json").then((r) => (r.ok ? r.json() : { styles: [] })).catch(() => ({ styles: [] })),
     ]).then(([index, review]: [{ styles: Style[] }, { styles: Style[] }]) => {
       const shipped = index.styles.map((s) => ({ ...s, inPicker: true }));
       const fresh = review.styles.filter((s) => !index.styles.some((x) => x.id === s.id)).map((s) => ({ ...s, inPicker: false }));
@@ -135,7 +136,7 @@ export default function HairReview() {
                 {VIEWS.map((v) => (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img key={v} loading="lazy" alt="" className="aspect-square w-full rounded-row bg-page object-cover"
-                    src={`${BASE}hair/review/shots/${i.id}__${v}.webp`} onError={(e) => ((e.currentTarget as HTMLImageElement).src = BASE + i.thumb)} />
+                    src={`${MODELS_BASE}hair/review/shots/${i.id}__${v}.webp`} onError={(e) => ((e.currentTarget as HTMLImageElement).src = MODELS_BASE + i.thumb)} />
                 ))}
               </button>
               <div className="mt-2 flex items-center gap-2 px-1">
@@ -156,7 +157,7 @@ export default function HairReview() {
           <div className="grid max-w-[1400px] grid-cols-3 gap-2">
             {VIEWS.map((v) => (
               // eslint-disable-next-line @next/next/no-img-element
-              <img key={v} alt="" className="w-full rounded-card bg-page" src={`${BASE}hair/review/shots/${big}__${v}.webp`} />
+              <img key={v} alt="" className="w-full rounded-card bg-page" src={`${MODELS_BASE}hair/review/shots/${big}__${v}.webp`} />
             ))}
           </div>
         </div>
