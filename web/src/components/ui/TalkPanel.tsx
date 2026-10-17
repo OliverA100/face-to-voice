@@ -269,7 +269,8 @@ export function LiveTalk({
         <p className="min-w-0 flex-1 text-label text-ink">{label[snap.state]}</p>
         {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{secondsLeft(left)}</span>}
       </header>
-      {/* the last few turns, newest at the bottom; older ones fade out at the top (no scrolling) */}
+      {/* the last few turns as bubbles (the character's on the left, yours on the right), newest at the bottom; older
+          ones fade out at the top (no scrolling) */}
       {snap.turns.length > 0 && (
         <ol
           aria-label="Conversation"
@@ -283,13 +284,13 @@ export function LiveTalk({
             // a reply cut off mid-sentence ends with "…" rather than on a half word
             const cut = turn.who === "character" && !live && !/[.!?…"”')]$/.test(turn.text.trim());
             return turn.who === "character" ? (
-              <li key={turn.id} className={`text-body ${tone}`}>
+              <li key={turn.id} className={`max-w-[85%] self-start rounded-tray bg-card px-3 py-1.5 text-body ${tone}`}>
                 <span className="sr-only">{name}: </span>
                 {turn.text.trim()}
                 {cut ? "…" : ""}
               </li>
             ) : (
-              <li key={turn.id} className={`max-w-[85%] self-end rounded-tray bg-card px-3 py-1.5 text-body ${live ? "text-ink-2" : tone}`}>
+              <li key={turn.id} className={`max-w-[85%] self-end rounded-tray bg-surface-2 px-3 py-1.5 text-body ${live ? "text-ink-2" : tone}`}>
                 <span className="sr-only">You: </span>
                 {turn.text}
               </li>
