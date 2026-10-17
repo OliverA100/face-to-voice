@@ -29,6 +29,7 @@ import { VoiceSphere, VoiceSpherePlaceholder } from "@/components/ui/VoiceSphere
 import { scrollVoiceCardTop } from "@/components/ui/voiceCardScroll";
 import { useScrollEdges } from "@/components/ui/useScrollEdges";
 import { useStepFocus } from "@/components/ui/useStepFocus";
+import { useStuck } from "@/components/ui/useStuck";
 import type { ProfileResult } from "@/lib/character/profile";
 import { isLimitError } from "@/lib/limits/open";
 import { speechPlayer } from "@/lib/lipsync/player";
@@ -117,6 +118,10 @@ export function VoicePanel() {
     if (design) saveVoiceSession({ design, selection, chosen, designedFace, profile });
   }, [design, selection, chosen, designedFace, profile]);
   const card = useRef<HTMLElement>(null);
+  const cap = useRef<HTMLDivElement>(null);
+  const capSentinel = useRef<HTMLDivElement>(null);
+  const capEnd = useRef<HTMLDivElement>(null);
+  useStuck([capSentinel, cap, capEnd]);
   const cardContent = useRef<HTMLDivElement>(null);
   useHeightTransition(card, cardContent);
   useScrollEdges(card); // from lg the card scrolls: its edges fade while there's more (globals.css .edge-fades)
@@ -306,7 +311,12 @@ export function VoicePanel() {
       onKeyDown={onKeyDown}
       className="card edge-fades pointer-events-auto flex w-full min-w-0 flex-col p-5 [--fade-inset:--spacing(5)] lg:w-[360px] lg:min-h-0 lg:overflow-y-auto lg:shadow-float xl:w-[392px]"
     >
-      <div ref={cardContent} className="flex min-w-0 shrink-0 flex-col gap-3" style={{ "--tab-dir": stepMove.dir } as CSSProperties}>
+      {/* Below lg: the card's curved top held under the head as the card scrolls up (globals.css .tabs-cap), as the
+          slider card's. Both sit at the card's top edge, out of the padding; the content below takes the padding back
+          (not the cap: a sticky element only sticks while its margin fits in the card). */}
+      <div ref={capSentinel} aria-hidden className="-mx-5 -mt-5 mb-5 h-0 lg:hidden" />
+      <div ref={cap} aria-hidden className="tabs-cap sticky top-[calc(var(--tabs-top,1px)_-_1px)] z-9 -mx-5 -mt-5 h-0 lg:hidden" />
+      <div ref={cardContent} className="flex min-w-0 shrink-0 flex-col gap-3 max-lg:mt-5" style={{ "--tab-dir": stepMove.dir } as CSSProperties}>
         <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           {/* Step breadcrumb: the current step black, the rest muted; the steps you can go back (or forward) to are links. */}
           <nav aria-label="Steps" className="flex items-center gap-1.5 text-body">
@@ -451,6 +461,8 @@ export function VoicePanel() {
           </div>
         )}
       </div>
+      {/* the card's end (its padding below): the cap lets go before its plate would hang below the card */}
+      <div ref={capEnd} aria-hidden className="h-0 lg:hidden" />
     </section>
   );
 }

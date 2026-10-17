@@ -21,6 +21,7 @@ import { setRange } from "@/components/ui/panel/rangeFill";
 import { fmt, type RowRefs, syncRow } from "@/components/ui/panel/SliderRow";
 import { StyleSection } from "@/components/ui/panel/StyleSection";
 import { useScrollEdges } from "@/components/ui/useScrollEdges";
+import { stickyTop, useStuck } from "@/components/ui/useStuck";
 import { morphs } from "@/lib/morphs/store";
 import { sliderFor, toUi } from "@/lib/morphs/travel";
 
@@ -72,34 +73,9 @@ export function SliderPanel() {
     return () => ro.disconnect();
   }, []);
 
-  // data-stuck once content scrolls under it (no React state), each with the sentinel just before it: on the
-  // bar (it turns white and the rows fade under it) and, below lg, on the cap (the card's curved top under
-  // the head while the title slides away: globals.css .tabs-bar, .tabs-cap). Below lg the page scrolls and
-  // both stick under the head, so a sentinel counts as gone once it passes its element's sticky top.
-  useEffect(() => {
-    const pairs = [
-      [sentinel.current, bar.current],
-      [capSentinel.current, cap.current],
-    ].filter((p): p is [HTMLDivElement, HTMLDivElement] => !!p[0] && !!p[1]);
-    let ios: IntersectionObserver[] = [];
-    const watch = () => {
-      ios.forEach((io) => io.disconnect());
-      ios = pairs.map(([s, el]) => {
-        const io = new IntersectionObserver(
-          ([e]) => el.toggleAttribute("data-stuck", !e.isIntersecting && e.boundingClientRect.top < el.getBoundingClientRect().bottom),
-          { rootMargin: `${-stickyTop(el)}px 0px 0px 0px` },
-        );
-        io.observe(s);
-        return io;
-      });
-    };
-    watch();
-    window.addEventListener("resize", watch);
-    return () => {
-      window.removeEventListener("resize", watch);
-      ios.forEach((io) => io.disconnect());
-    };
-  }, []);
+  // The bar turns white and the rows fade under it once stuck; below lg the cap holds the card's curved top under the
+  // head while the title slides away (globals.css .tabs-bar, .tabs-cap).
+  useStuck([sentinel, bar], [capSentinel, cap]);
 
   useEffect(() => {
     const sync = (target: string, value: number) => {
@@ -214,9 +190,4 @@ export function SliderPanel() {
       </div>
     </div>
   );
-}
-
-/** Where a sticky element sticks, in px from the top of its scroller (0 when it has no top). */
-function stickyTop(el: HTMLElement) {
-  return parseFloat(getComputedStyle(el).top) || 0;
 }

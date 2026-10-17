@@ -168,11 +168,11 @@ body {
 }
 
 /*
- * The slider card's top in the stacked layout, before its tabs stick (components/ui/SliderPanel.tsx .tabs-cap): once the
- * card's top reaches the head's band, a zero-height sticky cap holds the card's curved top there (the same plate as the
- * stuck bar: rounded corners and hairline over the page colour, the card's straight hairline hidden beside them) and
- * the title fades out under it, until the bar sticks in the same place over it (z-index 9 under the bar's 10). Painted
- * only while stuck, as the bar (iOS Safari 26). 2 px down: the band covers the cap's first pixel.
+ * A card's top in the stacked layout (VoicePanel.tsx and SliderPanel.tsx .tabs-cap): once the card's top reaches the
+ * head's band, a zero-height sticky cap holds its curved top there (the same plate as the stuck bar: rounded corners
+ * and hairline over the page colour, the card's straight hairline hidden beside them) and the content fades out under
+ * it instead of being cut flat. On the slider card the tab bar then sticks in the same place over it (z-index 9 under
+ * the bar's 10). Painted only while stuck, as the bar (iOS Safari 26). 2 px down: the band covers the cap's first pixel.
  */
 @media (width < 64rem) {
   .tabs-cap[data-stuck]::before {
