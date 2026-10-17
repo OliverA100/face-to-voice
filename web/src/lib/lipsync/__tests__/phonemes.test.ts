@@ -104,6 +104,25 @@ describe("live words' phonemes", () => {
     vi.unstubAllGlobals();
   });
 
+  it("a reply with more words than one request holds: the cues are rebuilt after the last request too", async () => {
+    vi.useFakeTimers();
+    const letters = "abcdefghij";
+    const words = Array.from({ length: 70 }, (_, i) => `qq${letters[Math.floor(i / 10)]}${letters[i % 10]}`); // 70 new words
+    vi.stubGlobal("fetch", async (url: string) => {
+      const asked = new URL("https://face.example" + url).searchParams.get("w")!.split(",");
+      // only the second request's words are in the dictionary
+      const phonemes = Object.fromEntries(asked.filter((w) => words.indexOf(w) >= 60).map((w) => [w, "K W AH1"]));
+      return Response.json({ phonemes });
+    });
+    let rebuilt = 0;
+    queuePhonemes(words, () => rebuilt++);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(phonemesOf(words[65])).toEqual(["K", "W", "AH1"]);
+    expect(rebuilt).toBeGreaterThan(0);
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
   it("the route answers only plain lower-case words, a bounded number of them, cacheable", async () => {
     const res = await GET(new Request("https://face.example/api/phonemes?w=hello,<script>,WORLD,world"));
     expect(res.headers.get("cache-control")).toContain("immutable");

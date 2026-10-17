@@ -151,7 +151,7 @@ export function spokenWords(text: string): string[] {
 const asked = new Set<string>();
 /** Words waiting for the next request, and who to tell when their phonemes have come. */
 const queued: string[] = [];
-let waiting: (() => void)[] = [];
+const waiting: (() => void)[] = [];
 let timer: ReturnType<typeof setTimeout> | null = null;
 /** How long words gather before one request (s): the agent sends a reply's words one message at a time, and one request
  *  per word tripped the site's /api rate limit (a 429 that would hit the visitor's other requests too). */
@@ -176,8 +176,8 @@ function flush(): void {
   if (timer) clearTimeout(timer);
   timer = null;
   const words = queued.splice(0, PHONEME_BATCH.max);
-  const callbacks = waiting;
-  waiting = [];
+  // a reply's words may take more than one request: whoever waits is told after each, until the queue is empty
+  const callbacks = queued.length ? [...waiting] : waiting.splice(0);
   if (queued.length) timer = setTimeout(flush, 0);
   void requestPhonemes(words).then((added) => {
     if (added) for (const fn of callbacks) fn();
