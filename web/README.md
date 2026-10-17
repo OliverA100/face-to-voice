@@ -56,8 +56,9 @@ cues each frame (anticipation, closure dominance, smoothing: `shapes.ts`); `LipS
 viseme morph layer every frame.
 Presets live in `src/data/visemes.json` and can be tuned by eye on `/dev/visemes`.
 
-Timing knobs are in `LIPSYNC` (`tuning.ts`). `?lipsync=1` shows the cue timeline; `?lipsyncOffsetMs=` and the Sync
-slider in the voice card shift the mouth for audio paths the browser cannot measure (Bluetooth, external displays).
+Timing knobs are in `LIPSYNC` (`tuning.ts`). `?lipsync=1` shows the cue timeline; the Sync slider in the voice card
+(or `?syncMs=`) shifts the mouth for audio paths the browser cannot measure (Bluetooth, external displays).
+`?debug&lipsyncOff=jawSplit,phonemes,…` switches single parts of the lip sync off (`LIPSYNC_PARTS`) to compare them.
 
 ## Scripts
 

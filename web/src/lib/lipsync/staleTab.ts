@@ -23,12 +23,6 @@ let longHide = false; // a long time hidden since the player last took it (takeL
 let hiddenAt: number | null = null;
 let installed = false;
 
-/** `?staleAfterS=` shortens the wait for testing (this page view only). */
-function longHideMs(): number {
-  const q = Number(new URLSearchParams(window.location.search).get("staleAfterS"));
-  return (Number.isFinite(q) && q > 0 ? q : LONG_HIDE_S) * 1000;
-}
-
 function install(): void {
   if (installed || typeof document === "undefined" || !isAppleTouch()) return;
   installed = true;
@@ -36,7 +30,7 @@ function install(): void {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") hiddenAt = performance.now();
     else if (hiddenAt !== null) {
-      if (performance.now() - hiddenAt >= longHideMs()) longHide = true;
+      if (performance.now() - hiddenAt >= LONG_HIDE_S * 1000) longHide = true;
       hiddenAt = null;
     }
   });

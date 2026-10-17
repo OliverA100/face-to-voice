@@ -9,7 +9,7 @@ import { alignLine, audioClosureAt, bridgeVowels, fitPhrases, followRelease, pla
 import { CLOSED_VISEMES, closureGate, localPeak, loudnessGate, OPEN_VISEMES, peakCap, targetsAt, VOWELS, windowedLoudness, type Activations } from "./shapes";
 import { LIPSYNC, LIPSYNC_PARTS } from "./tuning";
 
-export { LIPSYNC, LIPSYNC_PARTS, mouthLead } from "./tuning";
+export { LIPSYNC, LIPSYNC_PARTS } from "./tuning";
 export type { Activations } from "./shapes";
 
 /** Whether an "m" starts between the end of vowel `v` (a little before) and t: its hum, lips shut, ended the vowel. */

@@ -6,10 +6,9 @@
  * layer, on top of whatever the sliders say). Runs only while something is playing or fading out.
  */
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo } from "react";
 
 import { setSpeechActivity } from "@/lib/emotion";
-import { LIPSYNC_PARTS, mouthLead } from "@/lib/lipsync/evaluator";
+import { LIPSYNC, LIPSYNC_PARTS } from "@/lib/lipsync/evaluator";
 import { Mouth } from "@/lib/lipsync/mouth";
 import { PHONEMES } from "@/lib/lipsync/phonemes";
 import { activeSpeech } from "@/lib/lipsync/source";
@@ -30,28 +29,23 @@ const mouth = new Mouth(
   lipsyncState,
 );
 
-// `?lipsyncOff=jawSplit,placePhrases,phonemes`: single parts off (LIPSYNC_PARTS, or the pronouncing dictionary), to
-// compare one change on the same page.
-if (typeof window !== "undefined") {
-  const q = new URLSearchParams(window.location.search);
-  for (const part of (q.get("lipsyncOff") ?? "").split(",")) {
+// `?debug&lipsyncOff=jawSplit,placePhrases,phonemes`: single parts off (LIPSYNC_PARTS, or the pronouncing dictionary),
+// to compare one change on the same page.
+const query = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+if (query?.has("debug")) {
+  for (const part of (query.get("lipsyncOff") ?? "").split(",")) {
     if (part === "phonemes") PHONEMES.enabled = false;
     else if (part in LIPSYNC_PARTS) LIPSYNC_PARTS[part as keyof typeof LIPSYNC_PARTS] = false;
   }
 }
 
 export function LipSync() {
-  const lead = useMemo(() => mouthLead(typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("lipsyncOffsetMs") : null), []);
-  useEffect(() => {
-    lipsyncState.leadMs = Math.round(lead * 1000);
-  }, [lead]);
-
   useFrame((_, dt) => {
     const src = activeSpeech();
     const heard = src.playing ? src.time() : -1; // the sound's time, read once per frame (the dev overlays' cursor)
     lipsyncState.clipTime = heard;
-    // the whole mouth runs `lead` ahead of the sound (LIPSYNC.lead): shapes and loudness alike
-    mouth.frame(src, src.playing ? heard + lead : -1, dt);
+    // the whole mouth runs LIPSYNC.lead ahead of the sound: shapes and loudness alike
+    mouth.frame(src, src.playing ? heard + LIPSYNC.lead : -1, dt);
   });
 
   return null;

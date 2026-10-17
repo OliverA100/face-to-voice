@@ -6,7 +6,8 @@
 import type { VisemeId } from "./cues";
 
 export const LIPSYNC = {
-  /** s the whole mouth (shapes and loudness) runs ahead (+) or behind (−) the sound; ?lipsyncOffsetMs= overrides. As
+  /** s the whole mouth (shapes and loudness) runs ahead (+) or behind (−) the sound (a listener's own Sync setting
+   *  shifts it further: player.ts syncDelayMs). As
    *  drawn the mouth trails its computed time by 20–30 ms (smoothing, speed limit, the frame reaching the screen), and
    *  with the closures placed on the audio (placePhrases, the pause rule in syllableBetween) 30 ms lands the p/b/m
    *  releases on their bursts in Chrome, Firefox and Safari (real devices, qa/lipsync). The moving ahead a real mouth
@@ -280,8 +281,8 @@ export const LIPSYNC = {
   sustainLevel: 0.7,
 };
 
-/** Pieces of the lip sync, each switched off with ?lipsyncOff= (and a local dev page) to compare on the same clip by
- *  eye. All on in the app. */
+/** Pieces of the lip sync, each switched off with ?debug&lipsyncOff= (components/scene/LipSync.tsx) or in the qa
+ *  bench, to compare on the same clip. All on in the app. */
 export const LIPSYNC_PARTS = {
   placeLine: true, // move the cues by how late the first word is stamped (placeLine)
   snapClosures: true, // p/b/m, f/v, th onto their quiet stretch in the audio (snapClosures, audioClosureAt)
@@ -321,9 +322,3 @@ export const LIPSYNC_PARTS = {
   liveVoiceStart: true, // a chat's first word placed on the voice's start as the agent measured it, at once (live.ts voiceStart)
   liveAcross: true, // a chat's word stamped across a pause starts where the voice comes back (live.ts findAnchors)
 };
-
-/** The mouth lead in seconds: LIPSYNC.lead, or a `?lipsyncOffsetMs=` value (ms) kept to ±500 ms. */
-export function mouthLead(param: string | null): number {
-  const ms = param !== null && Number.isFinite(Number(param)) ? Math.max(-500, Math.min(500, Number(param))) : LIPSYNC.lead * 1000;
-  return ms / 1000;
-}

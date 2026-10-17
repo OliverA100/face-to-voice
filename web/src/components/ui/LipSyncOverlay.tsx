@@ -63,7 +63,7 @@ export function LipSyncOverlay() {
         pre.current.textContent =
           `state ${speechPlayer.state}  t ${t >= 0 ? t.toFixed(2) : "-"} s  cues ${cues.length}\n` +
           `tap→first byte ${m.firstByteMs ?? "-"} ms  tap→scheduled ${m.firstScheduledMs ?? "-"} ms  tap→audible ${m.firstAudibleMs ?? "-"} ms\n` +
-          `output latency ${m.outputLatencyMs} ms  sample rate ${m.sampleRate}  underruns ${m.underruns}  mouth lead ${lipsyncState.leadMs} ms (?lipsyncOffsetMs=)  sync delay ${speechPlayer.syncDelayMs} ms (?syncMs=)`;
+          `output latency ${m.outputLatencyMs} ms  sample rate ${m.sampleRate}  underruns ${m.underruns}  mouth lead ${lipsyncState.leadMs} ms  sync delay ${speechPlayer.syncDelayMs} ms (?syncMs=)`;
       }
     };
     draw();
