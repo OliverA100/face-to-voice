@@ -23,8 +23,8 @@ import { Lighting } from "./Lighting";
 import { LipSync } from "./LipSync";
 import { PerfProbe } from "./PerfProbe";
 
-// An 85 mm portrait lens (16° vertical on full frame) from further back: less wide-angle distortion than the old 24°
-// from 0.9 m, the same bust in frame.
+// An 85 mm portrait lens (16° vertical on full frame) from further back: less wide-angle distortion than a wider lens
+// closer in, with the same bust in frame.
 const CAMERA = {
   fov: 16,
   position: [0, 0.2726, 1.411] as [number, number, number],
@@ -124,7 +124,8 @@ export default function Scene() {
       gl={{ antialias: true, alpha: false, stencil: false, powerPreference: "high-performance", toneMapping: ACESFilmicToneMapping }} // Lighting.tsx owns tone mapping + exposure
       shadows={false}
       onCreated={({ gl }) => {
-        // A context the browser doesn't give back (GPU reset, too many contexts on a phone) leaves a blank card: say so.
+        // A context the browser doesn't give back (GPU reset, too many contexts on a phone) leaves
+        // a blank card: say so.
         let lost: ReturnType<typeof setTimeout> | undefined;
         gl.domElement.addEventListener("webglcontextlost", () => (lost = setTimeout(() => setSceneFailure("webgl"), CONTEXT_RESTORE_WAIT_MS)));
         gl.domElement.addEventListener("webglcontextrestored", () => clearTimeout(lost));

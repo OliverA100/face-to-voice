@@ -5,15 +5,15 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
-  // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
     // three's Basis Universal transcoder, copied in as is (lib/textures.ts)
     "public/basis/**",
+    // the production loader worker, joined from chromeGl.ts and chromeWorker.ts at build time (next.config.ts)
+    "public/chrome/**",
   ]),
 ]);
 

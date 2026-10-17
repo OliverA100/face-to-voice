@@ -29,8 +29,10 @@ const ownKey = (visitor: string, pKey: string) => `ftv:profile:${visitor}:${pKey
 const WRITE_SECONDS = 55;
 const WAIT_MS = 45_000;
 
-/** No casting for this visitor (a new browser or cleared cookie, or it expired): the browser recasts the face for the
- *  same voice (POST /api/voice/recast) and asks again, so this is only seen when it can't. */
+/**
+ * No casting for this visitor (a new browser or cleared cookie, or it expired): the browser recasts the face for the
+ * same voice (POST /api/voice/recast) and asks again, so this is only seen when it can't.
+ */
 const MISSING = "This character needs casting again. Try again to recast them for the same voice.";
 
 /** The visitor's casting for this face, checked against the voice it was asked for. */
@@ -58,7 +60,7 @@ export async function savedProfile(visitor: string, pKey: string): Promise<Profi
 
 /**
  * The character's profile: the saved one, or a new one when there is none or the visitor asks for another
- * (`regenerate`, kept as theirs). Only a new one is charged: the visitor's "profile" limit and the daily cap.
+ * (`regenerate`, kept as theirs). Only a new one is charged, to the site-wide daily cap.
  * One request writes a shared profile at a time; another visitor meeting the same character meanwhile gets that one.
  */
 export async function profileFor(input: {

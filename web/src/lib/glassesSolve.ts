@@ -32,7 +32,10 @@ export type Solve = {
 export type FitLimits = { maxSeatMm: number; maxSplay: number };
 export type FitResult = { seat: number; splayLeft: number; splayRight: number; stillIn: number; ms: number };
 
-/** Per tested point, the skin triangles near its ray, and how far in it may be (as far as on the average face, + tolerance). */
+/**
+ * Per tested point, the skin triangles near its ray, and how far in it may be (as far as on the
+ * average face, + tolerance).
+ */
 export function prepareSolve(input: SolveInput): Solve {
   const { head, side, lever, samples, restPts, skinRest: rest, skinMatrix: e, tris } = input;
   // the skin in head space (average face), as three.js's Vector3.applyMatrix4 computes it
@@ -84,7 +87,8 @@ export function prepareSolve(input: SolveInput): Solve {
 
 /**
  * How far point s (moved by dx, dz) has to go along its ray to be out of the skin P (0 when it is out): the front's
- * ray runs forward (+z), an arm's outwards (±x). Odd number of crossings ahead = inside; the nearest one is the way out.
+ * ray runs forward (+z), an arm's outwards (±x). Odd number of crossings ahead = inside; the
+ * nearest one is the way out.
  */
 function exitOf(solve: Solve, P: Float32Array, pts: Float32Array, s: number, dx: number, dz: number): number {
   const g = solve.samples[s], sd = solve.side[g];

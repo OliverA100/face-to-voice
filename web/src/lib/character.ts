@@ -11,9 +11,9 @@
  * one, the emotion blends in, the skin, eye and hair colours blend on the live head (the new pieces were built in the
  * old hair colour and blend with the rest), and the old hair and add-ons cross-fade to the new ones (CHARACTER.styleAt
  * moves that later; lib/pieceFade.ts: the head is rendered with the old pieces and with the new ones, both live and
- * opaque, and the two frames are mixed), so there is never a second face and no see-through hair. The simpler options don't hold up: a
- * screenshot cross-fade over the morph shows a double image, a dip to the backdrop hides the morph, and fading the
- * pieces themselves dissolves or turns patchy.
+ * opaque, and the two frames are mixed), so there is never a second face and no see-through hair.
+ * The simpler options don't hold up: a screenshot cross-fade over the morph shows a double image, a
+ * dip to the backdrop hides the morph, and fading the pieces themselves dissolves or turns patchy.
  *
  * Rolled ahead (`prepareNext`): the next character's style is picked and its files download in idle time a few seconds
  * after the page loads, as soon as a change's own pieces are on (during its morph), and when the pointer reaches the
@@ -171,8 +171,8 @@ const saveData = () => typeof navigator !== "undefined" && !!(navigator as Navig
 
 /**
  * Roll the next Random character's style now and download its files at low priority, so the click finds them waiting.
- * Called once a change's pieces are on and when the pointer or keyboard focus reaches the button. Does nothing if one is
- * already waiting; with Save-Data on, the style is rolled but nothing downloads early.
+ * Called once a change's pieces are on and when the pointer or keyboard focus reaches the button. Does
+ * nothing if one is already waiting; with Save-Data on, the style is rolled but nothing downloads early.
  */
 export function prepareNext(): void {
   if (next || building) return; // never while a change downloads and builds its own pieces: they would compete
@@ -184,7 +184,10 @@ export function prepareNext(): void {
 }
 
 
-/** The first character, rolled ahead a little after the page has loaded (Toolbar mounts it), so even the first tap finds its files. */
+/**
+ * The first character, rolled ahead a little after the page has loaded (Toolbar mounts it), so even
+ * the first tap finds its files.
+ */
 export function prepareFirst(): void {
   void whenRevealed(20_000)
     .then(() => wait(CHARACTER.aheadAfterLoad))
@@ -200,9 +203,9 @@ let settled: Promise<void> = Promise.resolve();
 let building = false;
 
 /**
- * Resolves once the last Random character / Reset has fully landed: the face morph has finished and the hair and add-ons
- * have cross-faded. The voice screenshot waits for it (VoicePanel): mid-change, the two-render fade isn't in a single
- * render, and the face would be half-morphed. Waits again if a newer change starts meanwhile.
+ * Resolves once the last Random character / Reset has fully landed: the face morph has finished and the hair
+ * and add-ons have cross-faded. The voice screenshot waits for it (VoicePanel): mid-change, the two-render fade
+ * isn't in a single render, and the face would be half-morphed. Waits again if a newer change starts meanwhile.
  */
 export async function characterSettled(): Promise<void> {
   for (let current = settled; ; current = settled) {
@@ -221,10 +224,10 @@ function track(change: Change): Promise<void> {
 }
 
 /**
- * Build the new hair and add-ons hidden; once `faceReady` has resolved and the pieces are ready (or CHARACTER.holdFor has
- * passed), run `motion` (the face morph, emotion, pose), blend the colours and cross-fade the pieces, together.
- * `landed` resolves when that fade has finished (the Toolbar keeps its buttons disabled until then), `morphed` when the
- * morph has.
+ * Build the new hair and add-ons hidden; once `faceReady` has resolved and the pieces are ready (or
+ * CHARACTER.holdFor has passed), run `motion` (the face morph, emotion, pose), blend the colours
+ * and cross-fade the pieces, together. `landed` resolves when that fade has finished (the Toolbar
+ * keeps its buttons disabled until then), `morphed` when the morph has.
  */
 function transition(style: Style, motion: () => void, faceReady: Promise<unknown> = Promise.resolve()): Change {
   const id = ++run;
@@ -291,7 +294,8 @@ const wait = (seconds: number) => new Promise<void>((r) => setTimeout(r, seconds
 const within = (work: Promise<unknown>, seconds: number) => Promise.race([work, wait(seconds)]);
 
 export function randomCharacter(): Promise<void> {
-  // The face first, so a seeded Math.random (the stress test) gives the same faces whether or not a style was rolled ahead.
+  // The face first, so a seeded Math.random (the stress test) gives the same faces whether or not a
+  // style was rolled ahead.
   const age = rand(...CHARACTER.age);
   const old = age >= CHARACTER.old;
   const distinctiveness = rollDistinctiveness();

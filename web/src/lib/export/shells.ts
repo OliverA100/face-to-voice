@@ -1,8 +1,8 @@
 /**
  * Shell beards (lib/beardShells.ts) for character.glb. The app draws the beard's skin triangles again a few times, each
- * layer lifted off the skin by the vertex shader, with a tiling fur pattern deciding where a hair still reaches. Here the
- * same layers are built on the CPU, all in one mesh, skin side first: a viewer draws a mesh's triangles in order, so
- * the layers blend back to front for anyone looking at the face, whatever the viewer sorts by.
+ * layer lifted off the skin by the vertex shader, with a tiling fur pattern deciding where a hair still reaches.
+ * Here the same layers are built on the CPU, all in one mesh, skin side first: a viewer draws a mesh's triangles
+ * in order, so the layers blend back to front for anyone looking at the face, whatever the viewer sorts by.
  *
  *   - position: the skin as drawn (morphs applied), lifted and combed down by the same rule as the shader
  *   - TEXCOORD_0: the skin's UV × SHELLS.furScale, on a 256 px fur tile (white, alpha = where a hair is) that repeats
@@ -57,7 +57,8 @@ export function shellMesh(shells: InstancedMesh, m: Matrix4): Mesh | null {
   }
   const nv = verts.length;
 
-  // per vertex: the mask (r = coverage, g = length; bilinear, as the shader's textureLod), the drawn position, normal, comb
+  // per vertex: the mask (r = coverage, g = length; bilinear, as the shader's textureLod), the
+  // drawn position, normal, comb
   const { width, height, data } = src.pixels;
   const texel = (x: number, y: number, c: number) => data[(Math.min(height - 1, Math.max(0, y)) * width + Math.min(width - 1, Math.max(0, x))) * 4 + c] / 255;
   const mask = (u: number, v: number, c: number) => {

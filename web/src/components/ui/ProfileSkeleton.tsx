@@ -1,6 +1,6 @@
 /**
- * A recast character while it is written (CharacterCard): a tray shaped and sized like the profile it becomes, in the old
- * one's place, so the voice card keeps about its height instead of shrinking to its header and shooting back up.
+ * A recast character while it is written (CharacterCard): a tray shaped and sized like the profile it becomes, in place
+ * of the current one, so the voice card keeps about its height instead of shrinking to its header and shooting back up.
  */
 export function ProfileSkeleton({ label }: { label: string }) {
   const bar = "animate-pulse rounded-full bg-surface-2";

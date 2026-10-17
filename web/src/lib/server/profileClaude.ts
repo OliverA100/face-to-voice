@@ -1,6 +1,7 @@
 /**
  * Claude writes a character's profile from its casting (text only, no image): a structured output held to a schema
- * (profileSchema.ts), as the casting is (claude.ts). FTV_MOCK_CLAUDE=1 swaps it for a development stand-in (mockProfile.ts).
+ * (profileSchema.ts), as the casting is (claude.ts). FTV_MOCK_CLAUDE=1 swaps it for a development
+ * stand-in (mockProfile.ts).
  */
 import "server-only";
 
@@ -83,11 +84,13 @@ function castingBrief(f: DescriptionFields, look: string): string {
   );
 }
 
-/** A new profile for this casting. */
-/** One try, inside the route's 60 s with time to spare: a request cut off there never gives its daily cap back, and
- *  outlives the lock that keeps a second writer out (characterProfile.ts). */
+/**
+ * One try, inside the route's 60 s with time to spare: a request cut off there never gives its daily cap back, and
+ * outlives the lock that keeps a second writer out (characterProfile.ts).
+ */
 const PROFILE_REQUEST = { timeout: 40_000, maxRetries: 0 };
 
+/** A new profile for this casting. */
 export async function writeProfile(input: ProfileInput): Promise<CharacterProfile> {
   if (env.mockClaude) return clampProfile(mockProfile(input.fields));
   const ask = input.previous ? reimagineBrief(input.previous, LIVES[randomInt(LIVES.length)]) : "Write this character's profile.";

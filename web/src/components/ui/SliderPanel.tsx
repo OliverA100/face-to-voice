@@ -72,10 +72,10 @@ export function SliderPanel() {
     return () => ro.disconnect();
   }, []);
 
-  // data-stuck once content scrolls under it (no React state), each with the sentinel just before it: on the bar (it turns
-  // white and the rows fade under it) and, below lg, on the cap (the card's curved top under the head while the title
-  // slides away: globals.css .tabs-bar, .tabs-cap). Below lg the page scrolls and both stick under the head, so a
-  // sentinel counts as gone once it passes its element's sticky top.
+  // data-stuck once content scrolls under it (no React state), each with the sentinel just before it: on the
+  // bar (it turns white and the rows fade under it) and, below lg, on the cap (the card's curved top under
+  // the head while the title slides away: globals.css .tabs-bar, .tabs-cap). Below lg the page scrolls and
+  // both stick under the head, so a sentinel counts as gone once it passes its element's sticky top.
   useEffect(() => {
     const pairs = [
       [sentinel.current, bar.current],
@@ -162,9 +162,9 @@ export function SliderPanel() {
     document.getElementById(`tab-${next}`)?.focus();
   };
 
-  // Below lg the page scrolls (FaceBuilder); from lg the panel scrolls inside its card.
   return (
-    // edge-fades + useScrollEdges: from lg, its edges fade while there's more to scroll (no visible scrollbar)
+    // Below lg the page scrolls (FaceBuilder); from lg the panel scrolls inside its card, its edges
+    // fading while there's more to scroll (edge-fades + useScrollEdges; no visible scrollbar).
     <div ref={scroller} className="edge-fades relative flex flex-col rounded-card bg-card text-ink lg:h-full lg:overflow-y-auto">
       {/* Below lg: once the card's top reaches the head, the cap holds a curved top there (globals.css .tabs-cap) and the
           title fades out under it instead of being cut flat, until the bar sticks in the same place over it. */}
@@ -175,12 +175,11 @@ export function SliderPanel() {
       </header>
       <div ref={sentinel} aria-hidden className="h-px" />
       {/* Segmented tray: one white marker slides under the chosen tab (placeMarker). Until content scrolls under it the
-          bar has no background and lets clicks through; once stuck it turns white down to the pill and the rows fade out
-          under it (globals.css .tabs-bar). Below lg the page scrolls and the bar sticks just under the head's band
-          (--tabs-top, FaceBuilder; 1px into it, so no sliver of the rows shows between). It only paints once stuck: iOS
-          Safari 26 fills the space under its toolbar with whatever a sticky element near the bottom edge paints, which
-          hid the page there while the bar sat low on load. */}
-      {/* tabs-bar (globals.css): once stuck it turns white (below lg a plate shaped like its card's top) and the rows fade out under it */}
+          bar has no background and lets clicks through; once stuck it turns white down to the pill (below lg a plate
+          shaped like its card's top) and the rows fade out under it (globals.css .tabs-bar). Below lg the page scrolls
+          and the bar sticks just under the head's band (--tabs-top, FaceBuilder; 1px into it, so no sliver of the rows
+          shows between). It only paints once stuck: iOS Safari 26 fills the space under its toolbar with whatever a
+          sticky element near the bottom edge paints, so a bar sitting low on load would hide the page there. */}
       <div ref={bar} className="tabs-bar sticky top-0 z-10 px-5 py-3 max-lg:top-[calc(var(--tabs-top,1px)_-_1px)] md:pointer-events-none">
         <div ref={list} className="pointer-events-auto relative flex rounded-full bg-surface p-1" role="tablist" aria-label="Face controls" onKeyDown={onKey}>
           <span ref={marker} aria-hidden className="absolute inset-y-1 left-0 w-0 rounded-full bg-card shadow-control transition-[transform,width] duration-(--dur-2) ease-soft" />

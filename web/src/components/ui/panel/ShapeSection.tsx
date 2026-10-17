@@ -68,8 +68,8 @@ function RandomRow() {
   const input = useRef<HTMLInputElement>(null);
   // Off on the server's render (always the reset face); checked after mount, as a restored face may already be changed.
   const [active, setActive] = useState(false);
-  // Every notch worked out ahead in the caps worker (lib/morphs/random.ts precomputeVariations), while the row is on screen
-  // or hovered: a drag then never waits on the limiter. Again whenever the face settles.
+  // Every notch worked out ahead in the caps worker (lib/morphs/random.ts precomputeVariations), while the
+  // row is on screen or hovered: a drag then never waits on the limiter. Again whenever the face settles.
   const ahead = useRef({ seen: false, timer: 0 });
   const workAhead = useCallback(function work() {
     const a = ahead.current;

@@ -15,7 +15,8 @@
  * lip sync and cursor follow (tuned for realism).
  *
  * Reduced motion: tokens.css shortens the CSS durations to ~0; the head's tweens are not shortened (no large motion: a
- * face changing is the content, started by a click), but its idle sway and breathing stop (components/scene/IdleLife.tsx).
+ * face changing is the content, started by a click), but its idle sway and breathing stop
+ * (components/scene/IdleLife.tsx).
  */
 export const MOTION = {
   // UI (seconds; = tokens.css)

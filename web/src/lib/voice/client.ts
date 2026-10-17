@@ -11,8 +11,10 @@ import type { DesignResult as DesignReply, SelectResult } from "./types";
 
 export type { DescriptionFields, Presentation, Preview, SelectResult, VoiceRecipe } from "./types";
 
-/** The design reply, plus the face as it was sent (browser only, kept with the design in the tab): a lost casting is
- *  redone from it even after the face on screen changed (withCasting). */
+/**
+ * The design reply, plus the face as it was sent (browser only, kept with the design in the tab): a lost casting is
+ * redone from it even after the face on screen changed (withCasting).
+ */
 export interface DesignResult extends DesignReply {
   sent?: SentFace;
 }
@@ -65,7 +67,9 @@ export async function requestDesign(image: string): Promise<DesignResult> {
   return { ...(await post<DesignResult>("/api/voice/design", { image, weights: sent.weights, look: sent.look })), sent };
 }
 
-/** `generatedVoiceId`: the preview the visitor heard (the server refuses it if the voices were designed again since). */
+/**
+ * `generatedVoiceId`: the preview the visitor heard (the server refuses it if the voices were designed again since).
+ */
 export function requestSelect(descKey: string, previewIndex: number, generatedVoiceId?: string): Promise<SelectResult> {
   return post<SelectResult>("/api/voice/select", { descKey, previewIndex, generatedVoiceId });
 }

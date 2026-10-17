@@ -45,8 +45,8 @@ const ASSET_V = assetVersion();
 /**
  * The loader sphere's worker (src/components/ui/loader/chromeWorker.ts + chromeGl.ts) as one plain JS file. The
  * bundler's own worker is a chain of three files fetched one after another (a bootstrap, its runtime, then the code:
- * ~2 s on a slow 4G phone before the sphere can move); this one file is preloaded from the page's head (loader/chrome.tsx
- * Chrome `boot`), so it is cached by the time the sphere starts.
+ * ~2 s on a slow 4G phone before the sphere can move); this one file is preloaded from the page's
+ * head (loader/chrome.tsx Chrome `boot`), so it is cached by the time the sphere starts.
  * Not a general bundler: chromeGl.ts imports nothing and chromeWorker.ts imports only chromeGl.ts, so the two are
  * transpiled (types and comments dropped) and joined, chromeGl's code in its own scope.
  */
@@ -62,9 +62,11 @@ export function chromeWorkerSource(): string {
   return source;
 }
 
-/** Production builds write it to public/chrome/worker.<content hash>.js (git-ignored) and the app gets its URL
- *  (process.env.FTV_CHROME_WORKER); dev keeps the bundler's worker, which rebuilds on every edit. "" = the bundler's
- *  (also when the sources aren't there: `next start` from another folder, after the build has baked the URL in). */
+/**
+ * Production builds write it to public/chrome/worker.<content hash>.js (git-ignored) and the app gets its URL
+ * (process.env.FTV_CHROME_WORKER); dev keeps the bundler's worker, which rebuilds on every edit. "" = the bundler's
+ * (also when the sources aren't there: `next start` from another folder, after the build has baked the URL in).
+ */
 function chromeWorker(): string {
   if (process.env.NODE_ENV !== "production" || !existsSync(join(process.cwd(), "src/components/ui/loader/chromeWorker.ts"))) return "";
   const source = chromeWorkerSource();
@@ -88,7 +90,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       ...(ASSET_V ? [{ source: `/v/${ASSET_V}/:path*`, headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }] : []),
-      // the sphere's worker: its name changes with its content (and the page's preload only helps if it is reused as is)
+      // the sphere's worker: its name changes with its content (and the page's preload only helps
+      // if it is reused as is)
       { source: "/chrome/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
       // the page spends credits on a click: never inside someone else's frame
       {
@@ -105,5 +108,6 @@ const nextConfig: NextConfig = {
 };
 
 // BotID (Vercel's bot check) only works on Vercel deployments: its challenge script is served from Vercel's edge, so
-// enabling it locally breaks fetch() to the protected routes. src/instrumentation-client.ts has the matching client gate.
+// enabling it locally breaks fetch() to the protected routes. src/instrumentation-client.ts has the
+// matching client gate.
 export default process.env.VERCEL ? withBotId(nextConfig) : nextConfig;

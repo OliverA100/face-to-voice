@@ -25,8 +25,9 @@ export const EYE_LOOK = {
   veins: 0.45, // red veins on the sclera, strongest in the corners
   corners: 0.2, // sclera a little pinker towards the corners
   lidShadow: 0.4, // how dark the upper lid's shadow on the eyeball gets
-  lidShadowMm: [-1.0, 3.5], // from this height above the eye centre (mm) the shadow starts … and is full (the open lid
-  // sits ~3 mm above the centre)
+  // from this height above the eye centre (mm) the shadow starts … and is full (the open lid sits ~3 mm above the
+  // centre)
+  lidShadowMm: [-1.0, 3.5],
   lowerLid: 0.2, // the lower lid's softer contact shadow
   cornerShade: 0.25, // the eyeball turning away into the corners
   caruncle: 0.6, // pink inner corner
@@ -140,7 +141,8 @@ const SCLERA = /* glsl */ `
   float r = length(vEyeUv - 0.5);
   float corner = smoothstep(0.22, 0.36, r);
   vec3 col = diffuseColor.rgb * mix(vec3(1.0), vec3(0.97, 0.86, 0.86), corner * uCorners);
-  // veins: thin wandering lines that run in from the corners (noise stretched round the eye, so its ridges run radially)
+  // veins: thin wandering lines that run in from the corners (noise stretched round the eye, so its
+  // ridges run radially)
   float a = atan(vEyeUv.y - 0.5, vEyeUv.x - 0.5);
   vec3 q = vec3(cos(a) * 16.0, sin(a) * 16.0, r * 7.0);
   float vein = pow(1.0 - abs(eyeNoise(q) * 2.0 - 1.0), 22.0) + 0.7 * pow(1.0 - abs(eyeNoise(q * 1.9 + 5.0) * 2.0 - 1.0), 28.0);

@@ -1,15 +1,18 @@
 import gsap from "gsap";
 
 /**
- * The fill of a range slider (colour --fill in app/tokens.css, styles in app/globals.css). It runs from the slider's zero point to
- * the thumb: from the centre on bipolar sliders (.range-mid, e.g. −1…+1 or −20°…+30°), from the left edge on
- * the others. It is written as two CSS variables on the input itself, so dragging still never touches React.
+ * The fill of a range slider (colour --fill in app/tokens.css, styles in app/globals.css). It runs from the slider's
+ * zero point to the thumb: from the centre on bipolar sliders (.range-mid, e.g. −1…+1 or −20°…+30°), from the left
+ * edge on the others. It is written as two CSS variables on the input itself, so dragging still never touches React.
  *
  * Positions follow the thumb's centre, which travels from 8px to (width − 8px) for the 16px thumb.
  */
 const at = (t: number) => `calc(8px + ${t.toFixed(4)} * (100% - 16px))`;
 
-/** What a screen reader says for each slider's value (aria-valuetext): registered once by speakRange, kept current by paintRange. */
+/**
+ * What a screen reader says for each slider's value (aria-valuetext): registered once by
+ * speakRange, kept current by paintRange.
+ */
 const sayings = new WeakMap<HTMLInputElement, (v: number) => string>();
 
 /**

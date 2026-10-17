@@ -26,7 +26,7 @@ export function descriptionKey(fields: Record<string, string | string[]>): strin
 }
 
 /** Bump when the profile prompt or schema changes, so old cached profiles are ignored. */
-const PROFILE_VERSION = "p4"; // p2: dislikes; p3: title and want; p4: a greeting that says hello, no stage directions
+const PROFILE_VERSION = "p4";
 
 /**
  * A character's profile is shared by everyone who meets that voice (like the voice record), and kept apart per persona:

@@ -4,8 +4,9 @@
  * "Today's limits": what this browser has used of its own daily limits (voices picked), why, and a countdown to
  * midnight UTC, when they reset. A browser without the visitor cookie is counted with its whole network
  * (lib/server/visitor.ts), and a network that reached its ceiling shows as paused even with picks left. Opened from
- * the header's Limits button and from any limit error's "See your limits" (lib/limits/open.ts). A native <dialog>: Escape, the backdrop and the
- * page behind made inert come with it. Asks GET /api/limits each time it opens (asking counts nothing).
+ * the header's Limits button and from any limit error's "See your limits" (lib/limits/open.ts). A
+ * native <dialog>: Escape, the backdrop and the page behind made inert come with it. Asks GET
+ * /api/limits each time it opens (asking counts nothing).
  *
  * Focus: it opens on its title (mostly text to read: the title is announced, and nothing shows a ring; the native first
  * button, Close, showed one in Safari, which never focuses a clicked button and so took it for keyboard focus). Tab and

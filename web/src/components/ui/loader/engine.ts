@@ -1,11 +1,11 @@
 /**
  * The head loader's engine, shared by every look (./looks.tsx). One GSAP ticker callback per loader eases the
- * real load progress into `state.p`, lets the look draw a frame from `state`, writes the % text only when the number
- * changes, and updates aria-valuenow in 10 % steps. The hand-off to the head is one of the RevealStyles below, the
- * same for every look.
+ * real load progress into `state.p`, lets the look draw a frame from `state`, writes the % text (in a look that
+ * shows one; the shipped look doesn't) only when the number changes, and updates aria-valuenow in 10 % steps. The
+ * hand-off to the head is one of the RevealStyles below, the same for every look.
  *
- * Never touches React state. The only DOM writes are transforms and opacity (GSAP quickSetters), the waveform's
- * small 2D canvas, the % text and aria-valuenow.
+ * Never touches React state. Its only DOM writes are opacity, transforms and the window reveal's mask (GSAP), the
+ * % text and aria-valuenow.
  */
 import gsap from "gsap";
 
@@ -18,7 +18,7 @@ export interface LoaderState {
   t: number; // seconds since the loader started (stays 0 with reduced motion)
   dt: number; // seconds since the last frame (0 with reduced motion)
   p: number; // shown progress 0..1, eased
-  flat: number; // reveal: 0 → 1 while the waveform calms to a line
+  flat: number; // reveal: 0 → 1 over REVEAL.calm (no shipped look reads it)
   revealing: boolean; // the hand-off to the head has started (the sphere settles on its finish)
   through: number | null; // the morph reveal: the sphere doesn't stop on its finish but turns round (ChromeDrive.through)
   reduced: boolean; // prefers-reduced-motion: no idle motion, the reveal is a plain fade
@@ -58,7 +58,7 @@ export const TIMING = {
 
 /** The "crossfade" hand-off. Tweak here. Sine easings: no sudden start or stop anywhere. */
 const REVEAL = {
-  calm: 0.6, // s, the waveform settles to a line
+  calm: 0.6, // s, `flat` goes to 1
   out: 0.8, // s, the loader fades out…
   outScale: 0.97, // …shrinking this little
   inAt: 0.25, // s, when the head starts fading in (overlaps the fade-out: one motion, no gap)
@@ -67,8 +67,8 @@ const REVEAL = {
 };
 
 /**
- * How the loader hands over to the head. The app ships "swing" ("window" when there is no head to morph); the others are
- * kept for the style labs, which live outside the repository:
+ * How the loader hands over to the head. The app ships "swing" ("window" when there is no head to
+ * morph); the others are kept for a local lab (not in the repo):
  * - crossfade: the loader fades out shrinking a little while the head fades in (REVEAL), overlapping.
  * - pop: the caption goes first, the sphere swells and fades quickly like a bubble popping, then the head fades in.
  * - window: the head appears through a soft-edged circle that starts as the sphere and opens to fill the card, while
@@ -91,9 +91,9 @@ export function setRevealStyle(r: RevealStyle): void {
 /** The other styles' timings; tweak here. Times in s, from the moment the sphere has settled on the bubble. */
 export const REVEALS = {
   pop: { caption: 0.2, at: 0.05, out: 0.35, swell: 1.22, headAt: 0.3, head: 0.7, headFrom: 0.985 },
-  // window: caption, then the bubble dissolving while the circle opens. The circle grows slowly first (ease-in): the face
-  // is near the middle and fully shown at ~45 % of the final radius, so the face takes ~0.67 × `open`: 1.4 s shows it in
-  // ~0.95 s (0.9 s in-out, face in ~0.75 s, reads too fast; 1.8 s ease-in, ~1.2 s, too slow).
+  // window: caption, then the bubble dissolving while the circle opens. The circle grows slowly first (ease-in):
+  // the face is near the middle and fully shown at ~45 % of the final radius, so the face takes ~0.67 × `open`:
+  // 1.4 s shows it in ~0.95 s (0.9 s in-out, face in ~0.75 s, reads too fast; 1.8 s ease-in, ~1.2 s, too slow).
   // A cached head plays it at `quick` × length.
   window: { caption: 0.4, at: 0.1, open: 1.4, openEase: "power2.in", feather: 64, out: 0.7, swell: 1.06, zoomFrom: 1.03, quick: 0.75 },
   rise: { caption: 0.25, at: 0.05, out: 0.45, lift: 12, headAt: 0.4, head: 0.8, headDrop: 10 },
@@ -233,7 +233,8 @@ function buildReveal(tl: gsap.core.Timeline, style: Exclude<RevealStyle, "crossf
     if (!stage || !focus || !canMorph()) return buildReveal(tl, "window", k, root, stage, rig);
     const c = REVEALS[style];
     // "swing": the loader turned round on the bubble `since` s ago and is already on its way back; the head starts
-    // there too (its share of the morph so far), so the two move as one under the fade
+    // there too (its share of the morph so far), so the two move as one under the fade. Capped at 0.3: however late
+    // this runs, the head never skips more than 30 % of its morph.
     const t0 = style === "swing" ? Math.min(0.3, (focus.since ?? 0) / t(c.morph)) : 0;
     tl.call(
       () => {

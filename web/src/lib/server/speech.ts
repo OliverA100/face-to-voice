@@ -1,8 +1,8 @@
 /**
  * Spoken lines, aligned and cached. A paid generation is read to its end (ElevenLabs streams a line ~0.55 s after its
  * first byte, p90 0.87 s), timed by forced alignment on its audio (alignSpeech.ts, ~0.3 s) and sent with that alignment
- * in front, so even a line's first play has the aligned mouth; the same text goes to the cache. A repeat of the same line
- * in the same voice is served from the cache for free.
+ * in front, so even a line's first play has the aligned mouth; the same text goes to the cache. A
+ * repeat of the same line in the same voice is served from the cache for free.
  */
 import "server-only";
 
@@ -19,7 +19,10 @@ const memClips = new Map<string, string>();
 
 const streamOf = (ndjson: string) => new Response(ndjson).body!;
 
-/** `text` is what ElevenLabs gets, emotion tag included (lib/server/emotion.ts spokenText). Null when this line was never spoken in this voice. */
+/**
+ * `text` is what ElevenLabs gets, emotion tag included (lib/server/emotion.ts spokenText). Null
+ * when this line was never spoken in this voice.
+ */
 export async function cachedSpeech(voiceId: string, text: string): Promise<ReadableStream<Uint8Array> | null> {
   const key = ttsKey(voiceId, TTS_MODEL, text);
   const pointer = await cacheGet<{ url: string }>(`ftv:tts:${key}`);
@@ -27,7 +30,7 @@ export async function cachedSpeech(voiceId: string, text: string): Promise<Reada
   const cached = memClips.get(key) ?? (pointer.url.startsWith("data:") ? null : await fetch(pointer.url).then((r) => (r.ok ? r.text() : null)).catch(() => null));
   if (!cached) return null;
   if (hasAligned(cached)) return streamOf(cached);
-  // cached before lines were aligned (2026-10-14): aligned now, once, and cached again with it
+  // cached without aligned times: aligned now, once, and cached again with them
   const line = await alignedLine(cached, text);
   if (line === undefined) return streamOf(cached);
   after(() => store(key, line + cached));

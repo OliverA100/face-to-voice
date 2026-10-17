@@ -65,7 +65,7 @@ export function LoaderSphere({ size, voice, finish, start, startPolish, poster }
     };
   }, []);
 
-  // a new style (the voice lab) is tuned in place: no new worker, no recompile
+  // a new style (from a local lab, not in the repo) is tuned in place: no new worker, no recompile
   const style = voice?.style;
   useEffect(() => {
     if (style) sphere.current?.tune(style);

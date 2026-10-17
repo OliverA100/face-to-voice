@@ -21,7 +21,9 @@ import { paintRange, setRange, speakRange, towards } from "./rangeFill";
 
 export const fmt = (v: number) => (v > 0 ? "+" : "") + v.toFixed(2);
 
-/** Delete or Backspace on a focused slider puts it back to its default: the keyboard's double-click (aria-keyshortcuts). */
+/**
+ * Delete or Backspace on a focused slider puts it back to its default: the keyboard's double-click (aria-keyshortcuts).
+ */
 export const isResetKey = (e: { key: string; altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => (e.key === "Delete" || e.key === "Backspace") && !e.altKey && !e.ctrlKey && !e.metaKey;
 /** Keys that move a range input: only these need the slider's span. */
 const VALUE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"]);
@@ -29,8 +31,9 @@ const VALUE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "
 export type RowRefs = { inputs: Map<string, HTMLInputElement>; outputs: Map<string, HTMLOutputElement> };
 
 /**
- * The track of the slider being moved: thumb → weight, set when it is grabbed (pointer down / a key) so its end is as far
- * as this face allows right now (lib/morphs/travel.ts adaptiveTrack). Recomputed whenever another slider moved since.
+ * The track of the slider being moved: thumb → weight, set when it is grabbed (pointer down / a
+ * key) so its end is as far as this face allows right now (lib/morphs/travel.ts adaptiveTrack).
+ * Recomputed whenever another slider moved since.
  */
 const tracks = new WeakMap<HTMLInputElement, (u: number) => number>();
 /** The thumb position each input last showed (the anchor of the next grab). */

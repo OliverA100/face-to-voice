@@ -20,14 +20,16 @@ export { visitorId } from "./visitor";
 
 export type Route = "design" | "select" | "switch" | "speak" | "profile" | "talk" | "invite";
 
-/** Per visitor, per UTC day: only picking a voice (each one is a new voice saved at ElevenLabs, in a pool of 30
- *  slots) and invite code tries (no guessing at them). Everything else has no limit per visitor (2026-10-16, the
- *  owner's call): the daily caps below are hidden ceilings for a runaway day. `label` names the allowance in the limits
- *  dialog, `message` the error when it runs out.
+/**
+ * Per visitor, per UTC day: only picking a voice (each one is a new voice saved at ElevenLabs, whose voice slots are
+ * few) and invite code tries (no guessing at them). Every other step has no limit per visitor: the daily caps below
+ * are hidden ceilings for a runaway day. `label` names the allowance in the limits dialog, `message` the error when it
+ * runs out.
  *
- *  Each is counted twice: `tokens` per browser, `network` per network (visitor.ts). The network count is the ceiling
- *  that stops someone clearing cookies for a fresh allowance, set well above one browser's so a few people on the
- *  same Wi-Fi rarely meet it; without a cookie it is the only count. Tune `network` here. */
+ * Each is counted twice: `tokens` per browser, `network` per network (visitor.ts). The network count is the ceiling
+ * that stops someone clearing cookies for a fresh allowance, set well above one browser's so a few people on the
+ * same Wi-Fi rarely meet it; without a cookie it is the only count. Tune `network` here.
+ */
 export const VISITOR_LIMITS: Partial<Record<Route, { tokens: number; network: number; label: string; message: (tokens: number) => string; networkMessage: string }>> = {
   select: {
     tokens: 10,
@@ -71,7 +73,7 @@ export function requireStore(): void {
 
 const limiters = new Map<string, Ratelimit>();
 function limiterFor(route: Route, scope: Scope, r: Redis): Ratelimit {
-  // ftv:rl:<route>:<browser id> per browser (the prefix the IP hashes had before the cookie), ftv:rl:net:<route>:<network id>
+  // ftv:rl:<route>:<browser id> per browser, ftv:rl:net:<route>:<network id> per network
   const prefix = scope === "browser" ? `ftv:rl:${route}` : `ftv:rl:net:${route}`;
   let l = limiters.get(prefix);
   if (!l) {
@@ -127,8 +129,10 @@ export async function checkVisitorLimit(request: Request, route: Route): Promise
 
 type Usage = { used: number; limit: number };
 
-/** What this visitor has used of each limit today (the limits dialog): `per` says whose count `used` is, their
- *  browser's, or their network's without a cookie; `network` is the network's count either way. Reading counts nothing. */
+/**
+ * What this visitor has used of each limit today (the limits dialog): `per` says whose count `used` is, their
+ * browser's, or their network's without a cookie; `network` is the network's count either way. Reading counts nothing.
+ */
 export async function visitorUsage(request: Request): Promise<{ per: Scope; usage: Record<Route, Usage & { network: Usage }> }> {
   const network = networkId(request);
   const browser = browserId(request);

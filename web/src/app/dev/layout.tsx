@@ -1,6 +1,6 @@
 /**
- * /dev/*: development tools (the viseme tuner, the hair review, a glb probe). Development only: a production build
- * answers every /dev route with 404.
+ * /dev/*: development tools (the viseme tuner, the hair review, a glb probe, the exported model's
+ * preview). Development only: a production build answers every /dev route with 404.
  */
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";

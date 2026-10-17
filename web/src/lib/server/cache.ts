@@ -34,7 +34,7 @@ export async function cacheDel(key: string): Promise<void> {
   else await r.del(key);
 }
 
-// --- locks: one request at a time does a paid job (a design, a save) that others would only repeat ---------------------
+// --- locks: one request at a time does a paid job (a design, a save) that others would only repeat ---
 
 const memLocks = new Map<string, { token: string; until: number }>(); // key → its holder and expiry (ms)
 
@@ -42,8 +42,8 @@ const memLocks = new Map<string, { token: string; until: number }>(); // key →
 const RELEASE_IF_HELD = `if redis.call("get", KEYS[1]) == ARGV[1] then return redis.call("del", KEYS[1]) end return 0`;
 
 /**
- * Take `key` for `ttl` seconds: a token to release it with, or null when another request holds it. Expires on its own if
- * the holder dies.
+ * Take `key` for `ttl` seconds: a token to release it with, or null when another request holds it.
+ * Expires on its own if the holder dies.
  */
 export async function acquireLock(key: string, ttl: number): Promise<string | null> {
   const token = crypto.randomUUID();
@@ -115,7 +115,9 @@ export async function poolTouch(descKey: string, voiceId: string): Promise<void>
   await r.pipeline().hset(POOL_KEY, { [descKey]: value }).expire(POOL_KEY, TTL_SECONDS * 12).exec();
 }
 
-/** The voice was used again (spoken with): move it to the back of the queue, if the pool still holds it for this take. */
+/**
+ * The voice was used again (spoken with): move it to the back of the queue, if the pool still holds it for this take.
+ */
 export async function poolRefresh(descKey: string, voiceId: string): Promise<void> {
   const r = getRedis();
   const now = r ? await r.hget<PoolValue>(POOL_KEY, descKey) : memPool.get(descKey);

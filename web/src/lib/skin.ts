@@ -4,8 +4,8 @@
  * material in place. Like the hair, the choice is plain module state, kept in sessionStorage
  * (per tab: a new tab opens on the blank head), and part of the look that reaches the voice (lib/look.ts).
  *
- * The swatches are a light-to-dark ramp tuned for this renderer. Add, remove or recolour rows
- * freely; ids are what the voice step hears ("skin tone: deep brown"), so keep them readable.
+ * The swatches (lib/swatches.ts SKIN_TONES) are a light-to-dark ramp tuned for this renderer. Add, remove or recolour
+ * rows freely; ids are what the voice step hears ("skin tone: deep brown"), so keep them readable.
  */
 import gsap from "gsap";
 import { Color, type MeshPhysicalMaterial } from "three";

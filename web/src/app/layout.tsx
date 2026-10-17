@@ -5,7 +5,8 @@ import "@/components/ui/loader/orbPoster.css";
 import { ChromeBootScript } from "@/components/ui/loader/chrome";
 import { TooltipLayer } from "@/components/ui/TooltipLayer";
 
-// Inter for everything (400 for titles and text, 500 for labels), JetBrains Mono for the voice prompt and debug readouts.
+// Inter for everything (400 for titles and text, 500 for labels), JetBrains Mono for the voice
+// prompt and debug readouts.
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], weight: ["400", "500"] });
 const mono = JetBrains_Mono({ variable: "--font-jetbrains-mono", subsets: ["latin"], weight: ["400"], preload: false }); // only behind "Show prompt"
 
@@ -22,7 +23,8 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION },
 };
 
-// cover: the page reaches under the notch and Safari's toolbar (the app keeps its edges clear with env(safe-area-inset-*)).
+// cover: the page reaches under the notch and Safari's toolbar (the app keeps its edges clear with
+// env(safe-area-inset-*)).
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

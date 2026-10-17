@@ -2,7 +2,7 @@
 
 /**
  * A voice preview's orb on the Voice step: the loader's sphere, live, answering its own preview as it plays (the same
- * sphere and motion as the chat's, components/ui/TalkPanel.tsx). Picked in /dev/voice-sphere:
+ * sphere and motion as the chat's, components/ui/TalkPanel.tsx). Picked in a local lab (not in the repo):
  *   - the look, "Voice sphere · bumpy": the loader's soap bubble at its finish (full colour), with bumps that stay
  *     (the finish's own `rest`: a lower polish would wash the colour out);
  *   - the motion, "F · Swell in colour" (./loader/chrome.tsx VOICE_STYLES): the bumps swell with the voice and fall
@@ -12,7 +12,9 @@
  * all there is. Its loudness: the preview's file, measured once (lib/voice/previewLoudness.ts), read at the
  * <audio>'s currentTime. Never darkened (on hover or while playing): its colour stays full.
  *
- * The stills change only when VOICE_SPHERE, CHROME or the shader does: /dev/voice-sphere "Render orb stills".
+ * The stills (lib/brand/voice-sphere-*.webp) are rendered by a local tool (not in the repo) with the loader's shader:
+ * each voice's opening frame at VOICE_SPHERE.clocks, in VOICE_SPHERE.finish, `still` px square. Render them again when
+ * VOICE_SPHERE, CHROME or the shader changes.
  */
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { useEffect, useRef } from "react";

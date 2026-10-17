@@ -1,7 +1,7 @@
 /**
  * The phonemes of a line's words, for the browser's mouth (lib/lipsync/phonemes.ts): the CMU Pronouncing Dictionary
- * (src/data/phonemes.json, written by scripts/phonemes.ts; BSD-2, NOTICE) stays here on the server, and each spoken line
- * is sent with just its own words as a first NDJSON line, {"phonemes": {word: "HH AH0 L OW1", …}}.
+ * (src/data/phonemes.json, written by scripts/phonemes.ts; BSD-2, NOTICE) stays here on the server, and each
+ * spoken line is sent with just its own words as a first NDJSON line, {"phonemes": {word: "HH AH0 L OW1", …}}.
  */
 import "server-only";
 

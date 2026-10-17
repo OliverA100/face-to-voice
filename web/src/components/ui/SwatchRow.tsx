@@ -2,8 +2,7 @@
 
 /**
  * A titled row of round colour swatches (Style tab, Colouring: skin tone, eye colour), the chosen one's name on the
- * right. One Tab stop, the arrows move and choose (RadioGroup); names are aria-labels (shown as the app's tooltip:
- * data-tip).
+ * right. A RadioGroup; names are aria-labels, shown as the app's tooltip (data-tip).
  */
 import { RadioGroup } from "@/components/ui/RadioGroup";
 

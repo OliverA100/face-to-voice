@@ -1,7 +1,8 @@
 /**
  * A minimal .zip writer: files are stored, except those marked `deflate` (the 3D model: its floats shrink well), which
  * the browser's own CompressionStream deflates. The PNG and MP3 are already compressed, so the export stays free of
- * dependencies. Format: PKWARE APPNOTE 6.3 (local headers, central directory, end record); names are UTF-8 (flag bit 11).
+ * dependencies. Format: PKWARE APPNOTE 6.3 (local headers, central directory, end record); names
+ * are UTF-8 (flag bit 11).
  */
 
 export interface ZipEntry {

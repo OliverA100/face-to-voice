@@ -2,9 +2,9 @@
  * A spoken line's times from forced alignment on its own audio (elevenlabs.ts forcedAlignment), sent to the browser
  * before the audio as one NDJSON line, {"aligned": {characters, character_start_times_seconds, …}}. eleven_v4_turbo's
  * own stamps spread a word's letters evenly and can put a word ~0.2 s off; the aligned times are where it is said, and
- * the mouth then only snaps closures and vowels onto the sound (evaluator.ts SpeechSource.aligned). The line-test review
- * (2026-10-14, the 300 Harvard lines in six voices) passed every line this way. {"aligned": null}: aligned, but nothing
- * came back; the stamps are used.
+ * the mouth then only snaps closures and vowels onto the sound (evaluator.ts SpeechSource.aligned).
+ * The line-test review (the 300 Harvard lines in six voices) passed every line this way.
+ * {"aligned": null}: aligned, but nothing came back; the stamps are used.
  */
 import "server-only";
 
@@ -16,7 +16,9 @@ import { phonemesFor } from "./pronounce";
 
 /** Samples per second of the stream's 16-bit mono audio (elevenlabs.ts TTS_OUTPUT_FORMAT pcm_24000). */
 const PCM_RATE = 24000;
-/** A word aligned shorter than this per sound (s) beside a "pause" that has speech in it was misplaced (fixSqueezed). */
+/**
+ * A word aligned shorter than this per sound (s) beside a "pause" that has speech in it was misplaced (fixSqueezed).
+ */
 const MIN_PER_SOUND = 0.025;
 /** Loudness (dB under the line's peak, per 10 ms) that counts as speech for fixSqueezed. */
 const SPEECH_DB = -25;
@@ -92,10 +94,10 @@ function blocksDb(pcm: Buffer): Float64Array {
 const round3 = (x: number) => Math.round(x * 1000) / 1000;
 
 /**
- * Forced alignment can squeeze a word into a few milliseconds at the edge of its own sound and call the speech beside it
- * a pause ("an X that": the "X" put on the end of its own "s", the spoken "e" taken for a pause). A word aligned far
- * shorter than its sounds (MIN_PER_SOUND each) next to a "pause" with speech in it is stretched over that speech, its
- * letters spread evenly. In place; returns how many words moved.
+ * Forced alignment can squeeze a word into a few milliseconds at the edge of its own sound and call the
+ * speech beside it a pause ("an X that": the "X" put on the end of its own "s", the spoken "e" taken for
+ * a pause). A word aligned far shorter than its sounds (MIN_PER_SOUND each) next to a "pause" with speech
+ * in it is stretched over that speech, its letters spread evenly. In place; returns how many words moved.
  */
 export function fixSqueezed(chars: ForcedAlignment["characters"], pcm: Buffer, phonemes: Record<string, string>): number {
   const db = blocksDb(pcm);

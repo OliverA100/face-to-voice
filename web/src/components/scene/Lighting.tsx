@@ -8,8 +8,8 @@
  * add crisp shape on top: key, fill and rim, matching the panels. No shadow maps (a render pass for one bust);
  * contact darkness comes from the baked AO (lib/skinShader.ts).
  *
- * Tweak the numbers in LIGHTING. `__faceToVoice.lighting.rig.toneMapping("agx" | "aces" | "neutral", exposure)` switches
- * tone mapping live for comparisons.
+ * Tweak the numbers in LIGHTING. `__faceToVoice.lighting.rig.toneMapping("agx" | "aces" |
+ * "neutral", exposure)` switches tone mapping live for comparisons.
  */
 import { useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";

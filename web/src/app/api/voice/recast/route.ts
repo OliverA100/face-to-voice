@@ -1,9 +1,10 @@
 /**
  * POST /api/voice/recast   body: { image?, weights, look, faceKey, descKey }  -> { ok: true }
  * Casts the face again for a voice this visitor already has, when their casting is missing (lib/server/voice.ts
- * recastFor). The browser calls it when the profile or talk route answers "recast", then asks again. Charged like a
- * design: one Claude reading of the face. `weights` and `look` are the ones the voice was found with; `image` is sent
- * only while the face on screen is still that face (without it, Claude casts from the sliders and look alone).
+ * recastFor). The browser calls it when the profile or talk route answers "recast", then asks again. Like a design,
+ * it costs one Claude reading of the face (the site-wide daily castings cap). `weights` and `look` are the ones the
+ * voice was found with; `image` is sent only while the face on screen is still that face (without it, Claude casts
+ * from the sliders and look alone).
  */
 import { z } from "zod";
 

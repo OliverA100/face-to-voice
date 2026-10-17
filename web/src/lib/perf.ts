@@ -37,7 +37,7 @@ export function onHeadVisible(fn: () => void): () => void {
   return () => headVisibleListeners.delete(fn);
 }
 
-/** Style-lab replays: forget the first frame so the next mount marks it again. */
+/** A lab's replays (a local lab, not in the repo): forget the first frame so the next mount marks it again. */
 export function resetHeadVisible(): void {
   perf.headVisibleMs = perf.revealDoneMs = null;
 }

@@ -77,8 +77,8 @@ export function splitLook(yaw: number, pitch: number, headShare = POSE.follow.he
 const NO_LOOK = Object.freeze({ headYaw: 0, headPitch: 0, gazeYaw: 0, gazePitch: 0 });
 
 /**
- * The pose actually shown (base + cursor follow, clamped): what IdleLife draws and the look reports. `withCursor` false:
- * the pose the visitor set, without what following the cursor adds (the voice panel's "has the face changed").
+ * The pose actually shown (base + cursor follow, clamped): what IdleLife draws and the look reports. `withCursor`
+ * false: the pose the visitor set, without what following the cursor adds (the voice panel's "has the face changed").
  */
 export function currentPose(withCursor = true): Record<PoseKey, number> {
   const b = poseRig.base;
@@ -136,15 +136,20 @@ export function setPose(key: PoseKey, degrees: number): void {
   savePose();
 }
 
-/** Everything back to looking straight ahead. */
 const centreListeners = new Set<(seconds: number) => void>();
-/** The Pose tab's sliders are uncontrolled: they ride back to zero through this (over `seconds`) when the pose is centred. */
+/**
+ * The Pose tab's sliders are uncontrolled: they ride back to zero through this (over `seconds`)
+ * when the pose is centred.
+ */
 export function onPoseCentre(fn: (seconds: number) => void): () => void {
   centreListeners.add(fn);
   return () => centreListeners.delete(fn);
 }
 
-/** `seconds`: Reset passes the morph's length so the head turns back with the face. */
+/**
+ * Everything back to looking straight ahead. `seconds`: Reset passes the morph's length so the head turns back with
+ * the face.
+ */
 export function centrePose(seconds = POSE.centre): gsap.core.Tween {
   for (const s of setters.values()) gsap.killTweensOf(s);
   setters.clear();

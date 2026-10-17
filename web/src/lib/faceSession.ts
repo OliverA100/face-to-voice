@@ -37,7 +37,9 @@ function save(): void {
 }
 
 let started = false;
-/** Restore the saved face and start saving (once, browser only). Call after the morph store and emotions are configured. */
+/**
+ * Restore the saved face and start saving (once, browser only). Call after the morph store and emotions are configured.
+ */
 export function restoreFace(): void {
   if (started || typeof window === "undefined") return;
   started = true;

@@ -11,7 +11,10 @@ import { MODEL_URL } from "@/lib/data";
 import { fetchBytes } from "@/lib/fetchBytes";
 import { perf } from "@/lib/perf";
 
-/** head.glb's size in bytes (next.config.ts reads it at build). Content-Length can't be used: with brotli it's the compressed size. */
+/**
+ * head.glb's size in bytes (next.config.ts reads it at build). Content-Length can't be used: with
+ * brotli it's the compressed size.
+ */
 const HEAD_BYTES = Number(process.env.FTV_HEAD_BYTES) || 0;
 
 /** How much each stage adds to the loader's progress (sum 1). Parts = hair and add-ons on the head. */
@@ -23,7 +26,7 @@ export const headLoad = {
   chunk: false, // the three.js Scene chunk has arrived
   fromCache: false, // head.glb came from the HTTP cache (or was already in memory): the loader just fades
   revealed: false, // the loader has handed over to the head
-  /** Style lab only: pace the download to this many kbit/s (0 = off) and bypass the HTTP cache. */
+  /** A local lab only (not in the repo): pace the download to this many kbit/s (0 = off) and bypass the HTTP cache. */
   throttleKbps: 0,
 };
 
@@ -61,8 +64,8 @@ export function prefetchPart(id: string, url: string): void {
 
 /**
  * Download a piece now without touching the reveal (Random character: the next look's files arrive while the old one is
- * still live, lib/character.ts; "low" priority when it downloads the one after ahead of time). Resolves when the bytes are
- * in (never rejects); hair.ts / addons.ts take them as usual.
+ * still live, lib/character.ts; "low" priority when it downloads the one after ahead of time).
+ * Resolves when the bytes are in (never rejects); hair.ts / addons.ts take them as usual.
  */
 export function preload(url: string, priority: RequestPriority = "auto"): Promise<void> {
   let bytes = early.get(url);
@@ -113,8 +116,10 @@ export function whenPartsReady(capMs: number): Promise<void> {
 let bytes: Promise<ArrayBuffer> | null = null;
 let generation = 0; // a download superseded by resetHeadLoad stops writing progress
 
-/** head.glb couldn't be downloaded (offline, a server error): not a WebGL problem, so the scene offers a retry
- *  (components/scene/SceneErrorBoundary.tsx). */
+/**
+ * head.glb couldn't be downloaded (offline, a server error): not a WebGL problem, so the scene offers a retry
+ * (components/scene/SceneErrorBoundary.tsx).
+ */
 export class HeadDownloadError extends Error {
   constructor(cause: unknown) {
     super(cause instanceof Error ? cause.message : String(cause));
@@ -173,7 +178,7 @@ async function download(): Promise<ArrayBuffer> {
 const revealListeners = new Set<() => void>();
 const revealSubscribers = new Set<() => void>(); // React: useSyncExternalStore(subscribeRevealed, revealedSnapshot)
 
-/** React: called whenever the head becomes revealed (or a style-lab replay starts over). */
+/** React: called whenever the head becomes revealed (or a lab's replay starts over). */
 export function subscribeRevealed(fn: () => void): () => void {
   revealSubscribers.add(fn);
   return () => void revealSubscribers.delete(fn);
@@ -191,7 +196,10 @@ export function markRevealed(): void {
   for (const fn of revealSubscribers) fn();
 }
 
-/** Resolves once the reveal is over, or after `capMs` at the latest (work that would make the reveal stutter waits for it). */
+/**
+ * Resolves once the reveal is over, or after `capMs` at the latest (work that would make the reveal
+ * stutter waits for it).
+ */
 export function whenRevealed(capMs: number): Promise<void> {
   if (headLoad.revealed) return Promise.resolve();
   return new Promise((resolve) => {
@@ -205,7 +213,10 @@ export function whenRevealed(capMs: number): Promise<void> {
   });
 }
 
-/** Style lab: start over. `cold` drops the downloaded bytes (the next mount fetches again, paced by `throttleKbps`). */
+/**
+ * For a local lab (not in the repo): start over. `cold` drops the downloaded bytes (the next mount
+ * fetches again, paced by `throttleKbps`).
+ */
 export function resetHeadLoad({ cold, throttleKbps = 0 }: { cold: boolean; throttleKbps?: number }): void {
   headLoad.revealed = false;
   for (const fn of revealSubscribers) fn();

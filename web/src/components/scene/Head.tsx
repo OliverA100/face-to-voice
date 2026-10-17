@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * The head itself: parses head.glb (meshopt-compressed; the bytes were fetched early by lib/headLoad.ts), assigns materials, registers every
- * mesh with the morph store, and keeps normals and eye pivots correct after the sliders settle.
+ * The head itself: parses head.glb (meshopt-compressed; the bytes were fetched early by
+ * lib/headLoad.ts), assigns materials, registers every mesh with the morph store, and keeps normals
+ * and eye pivots correct after the sliders settle.
  */
 import { useFrame, useThree } from "@react-three/fiber";
 import { use, useEffect, useMemo, useRef } from "react";
@@ -59,9 +60,10 @@ const BLINK_ROLES = [visemes.roles.blinkLeft, visemes.roles.blinkRight];
 let drawnBack = false;
 
 /**
- * Per frame: on a face whose blink would press the lids into (or cut through) eyes sitting far forward, the eyeballs draw
- * back as the lids close (the limiter found how far at each stage of the blink, lib/morphs/limits.ts caps; real eyes do
- * this too), by how closed each eye is (blink and the look-down lid follow, as the store shows them). Nothing elsewhere.
+ * Per frame: on a face whose blink would press the lids into (or cut through) eyes sitting far
+ * forward, the eyeballs draw back as the lids close (the limiter found how far at each stage of the
+ * blink, lib/morphs/limits.ts caps; real eyes do this too), by how closed each eye is (blink and
+ * the look-down lid follow, as the store shows them). Nothing elsewhere.
  */
 function drawEyesBack(): void {
   if (!blinkRetractMm(1) && !blinkRetractMm(0.5) && !drawnBack) return;
@@ -81,7 +83,7 @@ function drawEyesBack(): void {
 /** GNM's neck joint: the bust nods and turns around this point (IdleLife). */
 export const NECK = new Vector3(0, 0.134, -0.007);
 
-// One parse per download: a remount (or a style-lab replay) reuses the parsed head, as useGLTF's cache would.
+// One parse per download: a remount (or a lab's replay) reuses the parsed head, as useGLTF's cache would.
 // The loader is imported statically so it ships inside the Scene chunk (lib/hair.ts's lazy gltfLoader() would cost
 // another round trip before the first parse).
 let parsed: { from: Promise<ArrayBuffer>; gltf: Promise<GLTF> } | null = null;
@@ -135,10 +137,10 @@ export function Head() {
     skinMesh?.geometry.setAttribute("aHairCover", new Float32BufferAttribute(new Float32Array(skinMesh.geometry.getAttribute("position").count), 1));
     const unbindSkin = skinMesh ? bindSkinSurface(skinMesh, refresher) : () => {};
     // The limiter reads the vertices that can break from the same CPU morph data (lib/morphs/limits.ts). It loads now
-    // (lib/morphs/limiter.ts: it is not in the page's first JavaScript); the caps worker gets the vertices as soon as it
-    // is here (lib/morphs/capsClient.ts; it sets its own limiter up off the main thread). The page's limiter (slider
-    // ends, Random face) sets up after the first frame, still under the loader: it takes ~0.1 s on a laptop and ~0.5 s
-    // on a slow phone, which would otherwise hold the first frame back.
+    // (lib/morphs/limiter.ts: it is not in the page's first JavaScript); the caps worker gets the vertices
+    // as soon as it is here (lib/morphs/capsClient.ts; it sets its own limiter up off the main thread). The
+    // page's limiter (slider ends, Random face) sets up after the first frame, still under the loader: it
+    // takes ~0.1 s on a laptop and ~0.5 s on a slow phone, which would otherwise hold the first frame back.
     let disposed = false;
     let limiterTimer = 0;
     let offLimiter = () => {};
@@ -165,11 +167,11 @@ export function Head() {
     const skin = skinRig.material;
     // A quality drop (lib/quality.ts) turns the skin's pores off (lib/skinShader.ts).
     const stopTier = onTier(() => applySkinTier(skin));
-    // Every morphing material's look variant compiles in the background once the head is on screen, well before any reveal:
-    // switch it on, let three issue the compile (parallel where the GPU supports it), switch it back for the next frame.
-    // Again when a reveal is coming (prepareMorph): the skin's detail maps and the iris map arrive after the first
-    // frame and change the programs' defines, which a variant compiled earlier wouldn't match (a 400 ms stall at the
-    // hand-over).
+    // Every morphing material's look variant compiles in the background once the head is on screen,
+    // well before any reveal: switch it on, let three issue the compile (parallel where the GPU
+    // supports it), switch it back for the next frame. Again when a reveal is coming (prepareMorph):
+    // the skin's detail maps and the iris map arrive after the first frame and change the programs'
+    // defines, which a variant compiled earlier wouldn't match (a 400 ms stall at the hand-over).
     const compileLook = () => {
       if (morphLookOn.current) return;
       performance.mark("morph-compile");
@@ -179,14 +181,15 @@ export function Head() {
           .then(() => {
             // …and draw one frame with it (the head is still under the loader): the GPU driver builds the pipeline for
             // a program at its first draw, which the compile can't do, and that first draw costs 40–130 ms when it
-            // falls on the reveal's first frame. uMorph = 1 and uMorphSkin = 1: drawn exactly as the head looks without the variant.
+            // falls on the reveal's first frame. uMorph = 1 and uMorphSkin = 1: drawn exactly as
+            // the head looks without the variant.
             if (morphLookOn.current || disposed) return;
             setMorphLookAll(true);
             warmFrames.current = 2;
           })
           .catch(() => {});
       } catch (err) {
-        console.warn("morph look precompile:", err); // (three's compile step throws synchronously) the reveal compiles it instead
+        console.warn("[head] morph look precompile failed:", err); // (three's compile step throws synchronously) the reveal compiles it instead
       } finally {
         setMorphLookAll(false); // never left on: the head would stay in the bubble's look
       }
@@ -196,8 +199,8 @@ export function Head() {
       precompile = window.setTimeout(compileLook, 0);
     });
     const stopMaps = onHeadVisible(() => {
-      void loadSkinMaps(skin).catch((err) => console.error("skin maps:", err));
-      void loadEyeMaps(materialFor("iris")).catch((err) => console.error("eye maps:", err));
+      void loadSkinMaps(skin).catch((err) => console.error("[head] skin maps failed to load:", err));
+      void loadEyeMaps(materialFor("iris")).catch((err) => console.error("[head] eye maps failed to load:", err));
     });
     // Both irises share one material; lib/eyes.ts recolours it in place.
     eyeRig.material = materialFor("iris");

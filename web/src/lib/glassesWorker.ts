@@ -1,4 +1,7 @@
-/** Fits glasses to the skin off the main thread (lib/glassesSolve.ts; lib/glassesFit.ts asks). One prepared frame per id. */
+/**
+ * Fits glasses to the skin off the main thread (lib/glassesSolve.ts; lib/glassesFit.ts asks). One
+ * prepared frame per id.
+ */
 import { type FitLimits, type FitResult, prepareSolve, type Solve, solveFit, type SolveInput } from "./glassesSolve";
 
 export type ToGlassesWorker =

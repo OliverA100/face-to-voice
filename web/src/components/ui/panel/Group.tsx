@@ -43,7 +43,9 @@ export function Chevron({ className }: { className: string }) {
   );
 }
 
-/** One collapsible group: an inset row (label, muted count, chevron) that eases open (details.disclose, globals.css). */
+/**
+ * One collapsible group: an inset row (label, muted count, chevron) that eases open (details.disclose, globals.css).
+ */
 export function Group({ label, count, open = false, children }: { label: string; count?: number; open?: boolean; children: ReactNode }) {
   return (
     <details open={open} className="disclose group">

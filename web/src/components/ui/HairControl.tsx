@@ -3,8 +3,8 @@
 /**
  * Hair style and colour (Style tab, Hair): length filters (Short … Tied back, Curly, All), a wrapping grid of round
  * thumbnails of the styles in the chosen filter (hair/index.json, "None" first) and the colour swatches ("Natural"
- * first, a swatch like the others: its chip is the chosen style's own colour). Until a filter is picked, the one holding the chosen
- * style shows (Short when there is none), so the selection is always in view.
+ * first, a swatch like the others: its chip is the chosen style's own colour). Until a filter is picked,
+ * the one holding the chosen style shows (Short when there is none), so the selection is always in view.
  * The state lives in lib/hair.ts (applied straight to the mesh); this component just mirrors it
  * through useSyncExternalStore, which also carries the subtle loading state.
  */
@@ -70,8 +70,7 @@ export function HairControl() {
         ))}
       </RadioGroup>
       {/* The filter's styles at once: the thumbnails wrap onto as many rows as they need (no sideways scrolling).
-          The padding leaves room for the selection ring. Each row is one Tab stop, the arrows move and choose (RadioGroup);
-          names are aria-labels (shown as the app's tooltip: data-tip; a title as well would make screen readers say each name twice). */}
+          The padding leaves room for the selection ring. */}
       {/* a new filter fades its styles in (keyed: the grid is remade); not on first show, the tab fades it in */}
       <RadioGroup key={filter} label="Hair style" className={`${picked ? "enter " : ""}mt-2 flex flex-wrap gap-2 py-0.5`}>
         <button

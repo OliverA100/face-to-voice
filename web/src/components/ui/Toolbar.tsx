@@ -3,10 +3,11 @@
 /**
  * Bottom-left over the head: Random character (a new face, style and expression at once, lib/character.ts)
  * and Reset (a blank head: face at rest, no hair, brows, lashes, beard or glasses, neutral, centred).
- * Both morph the face with the colours blending and cross-fade the hair and add-ons on the live head (lib/character.ts);
- * the buttons wait until the new pieces are on. Meanwhile both stay solid (the change is working, not unavailable):
- * the clicked one shows the spinner, and neither takes a second click (BusyPill). Then a screen reader hears the new face in words. The first character's hair and add-ons download
- * a few seconds after the page loads (prepareFirst), and pointing at or focusing Random character starts them too.
+ * Both morph the face with the colours blending and cross-fade the hair and add-ons on the live head
+ * (lib/character.ts); the buttons wait until the new pieces are on. Meanwhile both stay solid (the change is
+ * working, not unavailable): the clicked one shows the spinner, and neither takes a second click (BusyPill).
+ * Then a screen reader hears the new face in words. The first character's hair and add-ons download a few
+ * seconds after the page loads (prepareFirst), and pointing at or focusing Random character starts them too.
  * Random face alone lives in the Shape tab.
  */
 import { useEffect, useId, useState } from "react";

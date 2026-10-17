@@ -1,10 +1,10 @@
 /**
  * Darkness inside the mouth. Teeth, gums, tongue and the mouth lining are lit like the face, so without this an open
- * mouth glows pink and white. Real mouths are dark because little light gets past the lips: this darkens each fragment by how far
- * it sits behind the lips and out to the side of the opening, where the cheeks shade it (head space, after the morph
- * targets, so it holds while the mouth opens and talks). The shadow is warm, light bounced off red tissue, not grey:
- * shaded side teeth read as teeth in shadow instead of grey shapes, and the tongue stays a dull red.
- * Zero downloads. Tweak here: MOUTH (metres, head space; the lips' front is z ≈ 0.135, the front teeth ≈ 0.126).
+ * mouth glows pink and white. Real mouths are dark because little light gets past the lips: this darkens each
+ * fragment by how far it sits behind the lips and out to the side of the opening, where the cheeks shade it (head
+ * space, after the morph targets, so it holds while the mouth opens and talks). The shadow is warm, light bounced off
+ * red tissue, not grey: shaded side teeth read as teeth in shadow instead of grey shapes, and the tongue stays a dull
+ * red. Zero downloads. Tweak here: MOUTH (metres, head space; the lips' front is z ≈ 0.135, the front teeth ≈ 0.126).
  */
 import { Color, Matrix4, type Mesh, type MeshPhysicalMaterial } from "three";
 

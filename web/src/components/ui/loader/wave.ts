@@ -34,7 +34,10 @@ export function canvas2d(el: HTMLCanvasElement | null): Canvas2D | null {
  */
 export const listen = (t: number) => 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t * 1.3)) * (0.5 + 0.5 * Math.sin(t * 0.47 + 1));
 
-/** Absolutely positioned box centred on the loader's focal point (--cy), sized from --orb. No transform, so GSAP owns transforms. */
+/**
+ * Absolutely positioned box centred on the loader's focal point (--cy), sized from --orb. No
+ * transform, so GSAP owns transforms.
+ */
 export function centred(w: string, h: string = w): CSSProperties {
   return { position: "absolute", left: "50%", top: "var(--cy)", width: w, height: h, marginLeft: `calc(${w} / -2)`, marginTop: `calc(${h} / -2)` };
 }

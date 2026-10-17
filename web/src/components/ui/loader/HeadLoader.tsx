@@ -14,8 +14,8 @@ import { type Loader, type LoaderVariant, TIMING, startLoader } from "./engine";
 import { sphereTitle } from "./looks";
 
 /**
- * The look a HeadLoader uses when none is passed: "A2 · Sphere + caption, no %". setDefaultLook swaps it, so the
- * style labs (outside the repository) can try other looks on the real head.
+ * The look a HeadLoader uses when none is passed: "A2 · Sphere + caption, no %". setDefaultLook swaps it, so a
+ * local lab (not in the repo) can try other looks on the real head.
  */
 const LOOK: { current: LoaderVariant } = { current: sphereTitle };
 export const defaultLook = () => LOOK.current;
@@ -45,7 +45,7 @@ export function HeadLoader({
   progress?: () => number;
   /** Reveal by itself once the head's first frame is drawn (false: only through `controlRef`). */
   auto?: boolean;
-  /** Force reduced motion on or off (the style lab); default: the visitor's prefers-reduced-motion. */
+  /** Force reduced motion on or off (a local lab, not in the repo); default: the visitor's prefers-reduced-motion. */
   reducedMotion?: boolean;
   controlRef?: RefObject<LoaderControl | null>;
   onRevealed?: () => void;
@@ -123,8 +123,8 @@ export function HeadLoader({
       aria-valuemax={100}
       aria-valuenow={0}
       className="pointer-events-none absolute inset-0 overflow-hidden"
-      // will-change: the fade-out and shrink only composite; without it every frame would repaint the orb's grain.
-      // Sizes scale with the card (cq units) so the orb and caption stay clear of the Reset pill on phones.
+      // will-change: the fade-out and shrink only composite instead of repainting the loader every frame.
+      // Sizes scale with the card (cq units) so the sphere and caption stay clear of the Reset pill on phones.
       style={{ containerType: "size", willChange: "opacity, transform", "--orb": "min(256px, 44cqmin)", "--cy": "calc(50% - 32px)", "--cap": "calc(var(--orb) * 0.5 + clamp(28px, 8cqmin, 44px))", ...variant.vars } as CSSProperties}
     >
       <variant.Markup />

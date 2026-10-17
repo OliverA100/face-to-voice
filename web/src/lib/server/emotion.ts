@@ -42,7 +42,10 @@ export const TAG: Readonly<Record<string, [hint: string, clear: string, full: st
   pain: ["wincing", "in pain, strained", "in agony, groaning, through gritted teeth"],
 };
 
-/** "[cheerful] " at a quarter or half, "[happy, bright and bouncy] " at three quarters, "[overjoyed, …] " at full; "" for neutral or zero. */
+/**
+ * "[cheerful] " at a quarter or half, "[happy, bright and bouncy] " at three quarters, "[overjoyed,
+ * …] " at full; "" for neutral or zero.
+ */
 export function emotionTag(emotion: string, intensity: number): string {
   const k = quantiseIntensity(intensity);
   const steps = TAG[emotion];
@@ -71,7 +74,10 @@ export function emotionWords(emotion: string, intensity: number): string {
   return `${LABELS.get(emotion) ?? emotion} (${STRENGTH[Math.round(k * 4)]})`;
 }
 
-/** How each emotion is said in the Voice Design prompt: the feeling and how it sounds (the same delivery as the audio tags). Tweak by ear. */
+/**
+ * How each emotion is said in the Voice Design prompt: the feeling and how it sounds (the same
+ * delivery as the audio tags). Tweak by ear.
+ */
 const VOICE: Record<string, string> = {
   happy: "joyful, bright and bouncy",
   sad: "sorrowful, heavy and slow, close to tears",

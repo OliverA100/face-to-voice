@@ -82,8 +82,10 @@ export interface Manifest {
   nodes: Record<string, { pivot: number[]; identity_pivot_basis: Record<string, number[]> }>;
 }
 
-/** One hair style: strands from HairCS, Bystedt's demo grooms or our own groom (pipeline haircs_review.py, import_hair.py,
- * export_groom.py), index v2. */
+/**
+ * One hair style: strands from HairCS, Bystedt's demo grooms or our own groom (pipeline haircs_review.py,
+ * import_hair.py, export_groom.py), index v2.
+ */
 export interface HairStyleDef {
   id: string;
   label: string;
@@ -135,13 +137,17 @@ export interface AddonStyleDef {
   lum: { median: number; p98: number };
   alphaCutoff: number;
   tint: boolean; // informational (the app decides by category): true = strands that take a hair colour, false = shown as painted (glasses)
-  /** "strands": grown strands, drawn by lib/groom.ts; "stubble": drawn in the skin shader (pipeline stubble.py, file = its
-   *  coverage mask); "shells": a short beard (lib/beardShells.ts); absent = glasses (.glb) */
+  /**
+   * "strands": grown strands, drawn by lib/groom.ts; "stubble": drawn in the skin shader (pipeline stubble.py,
+   * file = its coverage mask); "shells": a short beard (lib/beardShells.ts); absent = glasses (.glb)
+   */
   kind?: "strands" | "stubble" | "shells";
   strands?: GroomDef;
   /** A stubble style's look: how much of the stubs show, the even shadow under them, and its Natural colours. */
   stubble?: { length: number; shadow: number; root: string; tip: string };
-  /** A strand beard's stubble under it (its outline in the skin's UVs, like a stubble style's file); look in `stubble`. */
+  /**
+   * A strand beard's stubble under it (its outline in the skin's UVs, like a stubble style's file); look in `stubble`.
+   */
   stubbleMask?: string;
   /** A short beard drawn as shells (lib/beardShells.ts); file = its mask (PNG: R coverage, G length). */
   shells?: { lengthMm: number; gravity: number; density: number; shadow: number; root: string; tip: string };
@@ -168,7 +174,7 @@ export const visemes = visemesJson as unknown as VisemesDoc;
 export const manifest = manifestJson as unknown as Manifest;
 export const hairIndex = hairIndexJson as unknown as HairIndex;
 if (process.env.NODE_ENV !== "production" && (hairIndex.version as number) !== HAIR_INDEX_VERSION) {
-  console.warn(`hair/index.json is version ${hairIndex.version}, the app expects ${HAIR_INDEX_VERSION}: regenerate it (pipeline export-groom / haircs-review)`);
+  console.warn(`[hair] hair/index.json is version ${hairIndex.version}, the app expects ${HAIR_INDEX_VERSION}: regenerate it (pipeline export-groom / haircs-review)`);
 }
 
 export const addonIndex: Record<AddonCategory, AddonIndex> = {

@@ -70,9 +70,13 @@ export const hairRig = {
   parent: null as Object3D | null,
   /** True while a style's file is on its way. */
   loading: false,
-  /** The last style asked for couldn't be loaded (offline, a server error); the picker went back to what is on the head. */
+  /**
+   * The last style asked for couldn't be loaded (offline, a server error); the picker went back to what is on the head.
+   */
   failed: false,
-  /** Development: a strand file is missing (404), so the hair files aren't installed; HairControl says how to get them. */
+  /**
+   * Development: a strand file is missing (404), so the hair files aren't installed; HairControl says how to get them.
+   */
   filesMissing: false,
 };
 /** What a first visit shows; also what the server renders, so the control hydrates cleanly. */
@@ -86,7 +90,10 @@ export type HairSnapshot = { style: HairStyle; colour: HairColourId; loading: bo
 export const HAIR_SERVER_SNAPSHOT: HairSnapshot = { ...HAIR_DEFAULTS, loading: false, failed: false, filesMissing: false };
 let snapshot: HairSnapshot = HAIR_SERVER_SNAPSHOT;
 
-/** `blendSeconds` > 0: the colour is blending (Random character), and whatever follows it should blend as long (addons.ts). */
+/**
+ * `blendSeconds` > 0: the colour is blending (Random character), and whatever follows it should
+ * blend as long (addons.ts).
+ */
 type Listener = (blendSeconds?: number) => void;
 const listeners = new Set<Listener>();
 /** Fires on every style, colour or loading change. */
@@ -187,7 +194,8 @@ const blends = new WeakMap<StrandColours, gsap.core.Tween>();
  * colour changes along with the face morph). The colours are raw sRGB, so the mix is perceptual.
  */
 export function blendStrands(colours: StrandColours, seconds: number, ...args: Parameters<typeof tintStrands> extends [unknown, ...infer R] ? R : never): void {
-  // A null ramp keeps the piece's own colours, as in tintStrands: a fresh set is black, so there is nothing to blend toward.
+  // A null ramp keeps the piece's own colours, as in tintStrands: a fresh set is black, so there is
+  // nothing to blend toward.
   if (args[0] === null) return tintStrands(colours, ...args);
   const target = strandColours();
   tintStrands(target, ...args);
@@ -353,7 +361,10 @@ function detachCurrent(): void {
 let request = 0;
 let inflight: AbortController | null = null;
 
-/** Attach (or fetch, then attach) the style in hairState.style. No-op until the head is mounted. `crossfade`: see attach(). */
+/**
+ * Attach (or fetch, then attach) the style in hairState.style. No-op until the head is mounted.
+ * `crossfade`: see attach().
+ */
 async function syncHair(crossfade = false): Promise<void> {
   const id = ++request;
   inflight?.abort();
@@ -396,7 +407,7 @@ async function syncHair(crossfade = false): Promise<void> {
     attach(group, hairRig.parent, crossfade);
   } catch (err) {
     if (!controller.signal.aborted) {
-      console.error("hair: failed to load", style.file, err);
+      console.error("[hair] failed to load", style.file, err);
       // Show what is really on the head: the picker goes back to the attached style (or None). Stored too, so a reload
       // doesn't ask for the failed file again.
       if (id === request) {
@@ -457,14 +468,19 @@ export function unmountHair(): void {
   notify();
 }
 
-/** Resolves once the style is on the head (or failed, or was superseded). `crossfade`: join lib/pieceFade.ts's open batch. */
+/**
+ * Resolves once the style is on the head (or failed, or was superseded). `crossfade`: join
+ * lib/pieceFade.ts's open batch.
+ */
 export function setHairStyle(style: HairStyle, crossfade = false): Promise<void> {
   hairState.style = style;
   persist();
   return syncHair(crossfade);
 }
 
-/** `seconds` > 0 blends the colour (Random character and Reset, with the morph; brows, lashes and beard follow as long). */
+/**
+ * `seconds` > 0 blends the colour (Random character and Reset, with the morph; brows, lashes and beard follow as long).
+ */
 export function setHairColour(colour: HairColourId, seconds = 0): void {
   hairState.colour = colour;
   persist();

@@ -102,8 +102,8 @@ const USE_TEXT: Record<Use, string> = {
 };
 
 /**
- * What visitors may do with the voice sample. Face to Voice owns the ElevenLabs Output of its paid plan (ElevenLabs Terms
- * 4(c)(ii)) and passes on the conditions ElevenLabs sets (Prohibited Use Policy §5 and §9).
+ * What visitors may do with the voice sample. Face to Voice owns the ElevenLabs Output of its paid plan
+ * (ElevenLabs Terms 4(c)(ii)) and passes on the conditions ElevenLabs sets (Prohibited Use Policy §5 and §9).
  */
 const VOICE_SAMPLE_TERMS = [
   "You may use voice-sample in your own projects, including commercial ones, on these conditions:",

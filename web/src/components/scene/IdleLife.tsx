@@ -4,8 +4,8 @@
  * Idle life on top of the pose: blinks (an additive morph layer on the blink roles), slow head sway and
  * breathing (added to the head pose on the neck pivot), eye saccades (added to the gaze on the eye pivots), and
  * the look-at-cursor follow. This component is the ONE writer of the head and eye transforms: pose (lib/pose.ts)
- * + cursor + idle, every frame. Everything runs on GSAP tweens and useFrame; no React state. With prefers-reduced-motion
- * the sway and breathing stop (the head holds still); blinks and saccades stay.
+ * + cursor + idle, every frame. Everything runs on GSAP tweens and useFrame; no React state. With
+ * prefers-reduced-motion the sway and breathing stop (the head holds still); blinks and saccades stay.
  * Parameters in lib/idle.ts and lib/pose.ts.
  */
 import { useFrame, useThree } from "@react-three/fiber";
@@ -97,7 +97,7 @@ export function IdleLife() {
       blinkStep?.kill();
       saccadeWait?.kill();
       saccadeMove?.kill();
-      // as the context's revert did: the eyes and lids back where they started (a remount starts from rest)
+      // the eyes and lids back where they started (a remount starts from rest)
       Object.assign(state, { blink: 0, eyeYaw: 0, eyePitch: 0 });
       morphs.clearLayer("blink");
       morphs.clearLayer("gaze");

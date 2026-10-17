@@ -55,7 +55,8 @@ export function openPieceFade(): void {
 
 /**
  * Hand a swap to the open batch: `leaving` stays drawn in the "before" image until the fade ends, then `remove` takes
- * it off; `arriving` is drawn in the "after" image. Returns false when no batch is collecting (the caller swaps at once).
+ * it off; `arriving` is drawn in the "after" image. Returns false when no batch is collecting (the
+ * caller swaps at once).
  */
 export function swapPiece(leaving: Object3D | null, arriving: Object3D | null, remove: () => void): boolean {
   if (!pieceFade.open || pieceFade.running) return false;

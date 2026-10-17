@@ -39,14 +39,18 @@ export interface TalkMetadata {
 /** The moods a reply may open with: the face's emotions plus neutral. */
 export const MOOD_IDS: readonly string[] = EMOTION_IDS;
 
-/** The face's expression (0..1 intensity) as a mood strength: none, a hint, clear, full (as emotionTag picks its tag). */
+/**
+ * The face's expression (0..1 intensity) as a mood strength: none, a hint, clear, full (as emotionTag picks its tag).
+ */
 export function moodStrength(emotion: string, intensity: number): 0 | 1 | 2 | 3 {
   const k = quantiseIntensity(intensity);
   if (emotion === NEUTRAL || !TAG[emotion] || k === 0) return 0;
   return k <= 0.5 ? 1 : k < 1 ? 2 : 3;
 }
 
-/** The profile as the prompt quotes it: data about a made-up character (the first words and mood are said separately). */
+/**
+ * The profile as the prompt quotes it: data about a made-up character (the first words and mood are said separately).
+ */
 function profileData(p: CharacterProfile): string {
   const { name, title, backstory, traits, habits, quirks, interests, dislikes = [], pace, vocabulary, catchphrases, want } = p;
   return JSON.stringify({ name, title, backstory, traits, habits, quirks, loves: interests, hates: dislikes, talks: `${pace}, ${vocabulary} words`, catchphrases, wants_right_now: want }, null, 1);

@@ -1,7 +1,7 @@
 /**
  * POST /api/voice/select   body: { descKey, previewIndex, generatedVoiceId? }  -> { voiceId, saved, message? }
  * Saves the chosen preview as a real ElevenLabs voice (or hands out a studio fallback). Going back to a take that is
- * already saved is free and counts against the looser "switch" limit; only a new save counts against "select".
+ * already saved is free; only a new save counts against the visitor's "select" limit (voices picked).
  */
 import { z } from "zod";
 

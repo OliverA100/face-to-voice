@@ -3,7 +3,8 @@
  * voice director. Model: Sonnet 5 with thinking off (fast, ~1 ¢ per call). Structured outputs
  * hold every list field to its values (castingSchema.ts); the prompt states the image is a synthetic
  * render, that the whole look (hair, add-ons, expression, pose, age) shapes the voice, and the one
- * thing that stays out (naming or guessing a real person). FTV_MOCK_CLAUDE=1 swaps Claude for a fixed development casting (mockCasting.ts).
+ * thing that stays out (naming or guessing a real person). FTV_MOCK_CLAUDE=1 swaps Claude for a
+ * fixed development casting (mockCasting.ts).
  */
 import "server-only";
 

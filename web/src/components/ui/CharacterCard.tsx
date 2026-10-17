@@ -67,7 +67,7 @@ export function CharacterCard({
   return (
     <div ref={root} className="flex flex-col gap-3">
       {busy ? (
-        // the new character is being written: a tray shaped like the profile it becomes, in the old one's place
+        // the new character is being written: a tray shaped like the profile it becomes (ProfileSkeleton)
         <ProfileSkeleton label="Recasting the character…" />
       ) : (
         <section aria-label={`Character: ${profile.name}`} className={`${recast ? "enter " : ""}flex flex-col gap-3 rounded-tray bg-surface p-4`}>

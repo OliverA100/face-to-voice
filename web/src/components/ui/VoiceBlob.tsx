@@ -2,8 +2,8 @@
 
 /**
  * A voice preview's orb: the header logo's look, the loader's sphere mid-swing
- * with its rainbow, each voice another moment of the loader (other bumps, other rainbow). Pre-rendered with the loader's
- * shader (loader/chromeGl.ts): a still per voice, and while `playing` a strip of 24 frames
+ * with its rainbow, each voice another moment of the loader (other bumps, other rainbow). Pre-rendered with
+ * the loader's shader (loader/chromeGl.ts): a still per voice, and while `playing` a strip of 24 frames
  * swinging close to the logo's moment (polish 0.4 → 0.65: wider, it reaches the rainbow-heavy bubble; out to the matte
  * blob it washes out), played forwards then backwards behind a one-orb window by a transform (a Web Animation on the
  * compositor, as the spinner).
@@ -150,7 +150,8 @@ export function VoiceBlob({ index, playing, size = 36 }: { index: number; playin
       style={{ width: size, height: size }}
     >
       {moving && ready ? (
-        // keys: the still is a new element (the strip's animation must not carry over); the window's <img> is added above
+        // keys: the still is a new element (the strip's animation must not carry over); the
+        // window's <img> is added above
         <span key="strip" ref={host} className="block h-full" />
       ) : (
         <span key="still" className="block h-full w-full" style={{ backgroundImage: `url(${STILLS[i].src})`, backgroundSize: "cover" }} />

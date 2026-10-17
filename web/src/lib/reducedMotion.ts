@@ -1,6 +1,7 @@
 /**
  * The visitor's prefers-reduced-motion, kept live (it can change while the page is open). CSS follows it through
- * app/tokens.css; code that animates on its own reads `reducedMotion.on` (the idle life: components/scene/IdleLife.tsx).
+ * app/tokens.css; code that animates on its own reads `reducedMotion.on` (the idle life:
+ * components/scene/IdleLife.tsx).
  */
 export const reducedMotion = { on: false };
 

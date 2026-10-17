@@ -1,7 +1,7 @@
 /**
  * The oscilloscope mark, drawn by hand on a 32×32 grid: a head over the loudest peak of an oscilloscope trace. One of
  * the app-icon options (scripts/icons.ts SOURCE "mark"; the shipped icon is the loader's blob, lib/brand/blob.png).
- * `body` is raw SVG inner markup in `currentColor`, shared by the style lab's icon sheet and
+ * `body` is raw SVG inner markup in `currentColor`, shared by a local lab's icon sheet (not in the repo) and
  * scripts/icons.ts (which writes the favicon set from it), so an edit here reaches both.
  * After editing, run `node scripts/icons.ts` from web/ to regenerate the files.
  *

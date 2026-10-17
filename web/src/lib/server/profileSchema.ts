@@ -3,9 +3,9 @@
  * the live conversation agent plays (lib/server/characterPrompt.ts).
  *
  * ProfileSchema is Claude's structured output. The fixed fields (traits, pace, vocabulary, mood) are JSON Schema enums
- * through zod's converter, as castingSchema.ts does. The API's constrained decoding doesn't take string lengths or array
- * sizes, so those are clamped afterwards (clampProfile), and the text is cleaned of anything that could read as markup
- * or an audio tag when the greeting is spoken.
+ * through zod's converter, as castingSchema.ts does. The API's constrained decoding doesn't take
+ * string lengths or array sizes, so those are clamped afterwards (clampProfile), and the text is
+ * cleaned of anything that could read as markup or an audio tag when the greeting is spoken.
  *
  * Pure module (no server-only import) so it can be unit-tested.
  */
@@ -97,8 +97,10 @@ function clip(s: string, max: number): string {
   return (space > max * 0.6 ? cut.slice(0, space) : cut).replace(/[\s,;:–-]+$/, "");
 }
 
-/** Spoken text cut to `max` characters at the end of a sentence, when one fits: a greeting cut mid-sentence is said
- *  that way ("…you ain't here to tell me, are"). Otherwise as `clip`. */
+/**
+ * Spoken text cut to `max` characters at the end of a sentence, when one fits: a greeting cut mid-sentence is said
+ * that way ("…you ain't here to tell me, are"). Otherwise as `clip`.
+ */
 function clipSentences(s: string, max: number): string {
   const t = cleanText(s);
   if (t.length <= max) return t;
@@ -106,7 +108,10 @@ function clipSentences(s: string, max: number): string {
   return end > 0 ? t.slice(0, end) : clip(t, max);
 }
 
-/** Claude's answer held to PROFILE_LIMITS: texts cleaned and clipped, lists cut to size (a list Claude left empty gets a filler). */
+/**
+ * Claude's answer held to PROFILE_LIMITS: texts cleaned and clipped, lists cut to size (a list
+ * Claude left empty gets a filler).
+ */
 export function clampProfile(p: GeneratedProfile): CharacterProfile {
   const items = (xs: string[], max: number, most: number, filler: string) => {
     const kept = xs.map((x) => clip(x, max)).filter(Boolean).slice(0, most);

@@ -32,8 +32,10 @@ function ktx2(): Promise<KTX2Loader> {
   return loader;
 }
 
-/** A texture failed on `l`: if its transcoder (public/basis/) is what failed, KTX2Loader keeps that failure for good, so
- *  the next texture gets a fresh loader. */
+/**
+ * A texture failed on `l`: if its transcoder (public/basis/) is what failed, KTX2Loader keeps that failure for good, so
+ * the next texture gets a fresh loader.
+ */
 async function dropIfBroken(from: Promise<KTX2Loader>, l: KTX2Loader): Promise<void> {
   const broken = await l.init().then(
     () => false,
@@ -49,8 +51,10 @@ export function tieredUrl(name: string): string {
   return TEXTURES_BASE + (TIERS[quality.tier].textureSize < 1024 ? `${name}@512.ktx2` : `${name}.ktx2`);
 }
 
-/** Load (once) a KTX2 texture; `srgb` for colour maps, data maps (AO, roughness, normals) stay linear. A failed load
- *  isn't kept: the next call tries again. */
+/**
+ * Load (once) a KTX2 texture; `srgb` for colour maps, data maps (AO, roughness, normals) stay linear. A failed load
+ * isn't kept: the next call tries again.
+ */
 export function loadKtx2(url: string, srgb = false): Promise<Texture> {
   let p = cache.get(url);
   if (!p) {

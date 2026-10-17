@@ -3,7 +3,7 @@
  *
  * Colours are sRGB hex (three converts them). One instance per material name is shared by
  * the left/right eye parts. Cheap by design: no transmission; lighting comes from the
- * environment map in Lighting.tsx plus a key and a fill light; nothing casts or receives
+ * environment map in Lighting.tsx plus a key, a fill and a rim light; nothing casts or receives
  * shadows. Hair materials live in lib/hair.ts.
  *
  * The look is a neutral product render on a light backdrop: muted, matte skin (no pink or

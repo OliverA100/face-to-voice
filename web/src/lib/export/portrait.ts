@@ -2,9 +2,9 @@
  * The export portrait: the character as the visitor styled it (shape, emotion, pose, hair, add-ons), seen from the
  * front, on a transparent background. One synchronous task on the app's own canvas, so the page never shows it:
  *
- *   1. hold still: the head and eyes go back to the Pose sliders (no sway, breathing, saccades or cursor follow) and the
- *      blink, lid-follow and lip-sync layers are zeroed. Strand pieces (hair, brows, lashes, beards) follow the skin
- *      at render time (groom.ts onBeforeRender), so they come along;
+ *   1. hold still: the head and eyes go back to the Pose sliders (no sway, breathing, saccades or cursor follow) and
+ *      the blink, lid-follow and lip-sync layers are zeroed. Strand pieces (hair, brows, lashes, beards) follow the
+ *      skin at render time (groom.ts onBeforeRender), so they come along;
  *   2. the drawing buffer becomes size² and a square camera renders the head twice, on black and on white;
  *   3. everything is put back and the visitor's view is redrawn, before the browser paints.
  *
@@ -58,7 +58,10 @@ export async function capturePortrait(size = PORTRAIT.size): Promise<Blob> {
   return toPng(matte(onBlack, onWhite));
 }
 
-/** Head + eyes on the Pose sliders, passing layers off. Returns the undo. The 3D model holds still the same way (lib/export/model.ts). */
+/**
+ * Head + eyes on the Pose sliders, passing layers off. Returns the undo. The 3D model holds still
+ * the same way (lib/export/model.ts).
+ */
 export function holdStill(): () => void {
   const undo: (() => void)[] = [];
 

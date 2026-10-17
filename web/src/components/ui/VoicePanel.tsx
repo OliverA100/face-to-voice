@@ -40,9 +40,9 @@ type Phase = "idle" | "designing" | "previews" | "selecting" | "ready" | "meet";
 
 // The character's profile (the Meet step) only shows once a voice is ready: its code loads then, not with the page
 // (fetched ahead on the Speak step). Meet opens only once it is here (meet()), and it is rendered as it is, not through
-// a lazy component: a lazy one paints nothing for a frame even when its code is in, and the card shrank to its header
-// before growing to the profile. So the step needs no placeholder (the profile skeleton is Recast's alone), and the card
-// eases straight from the Speak step's height to the Meet step's.
+// a lazy component: a lazy one paints nothing for a frame even when its code is in, so the card would shrink to its
+// header before growing to the profile. So the step needs no placeholder (the profile skeleton is
+// Recast's alone), and the card eases straight from the Speak step's height to the Meet step's.
 type CardModule = typeof import("@/components/ui/CharacterCard");
 let CharacterCard: CardModule["CharacterCard"] | null = null;
 let cardLoading: Promise<CardModule> | null = null;
@@ -51,7 +51,10 @@ const loadCharacterCard = () => (cardLoading ??= import("@/components/ui/Charact
 const STEPS = ["Face", "Voice", "Speak", "Meet"] as const;
 const SAME_FACE_HINT = "Change the face to find new voices";
 
-/** "grizzled sea captain, masculine, in their 70s, scottish (larger than life): gruff and jovial, …; chuckles between sentences." */
+/**
+ * "grizzled sea captain, masculine, in their 70s, scottish (larger than life): gruff and jovial, …;
+ * chuckles between sentences."
+ */
 function readsAs(f: DesignResult["fields"]): string {
   const heritage = f.ethnicity && f.ethnicity !== "unclear" ? `, ${f.ethnicity}` : "";
   const quirk = f.quirk ? `; ${f.quirk}` : "";
@@ -295,7 +298,8 @@ export function VoicePanel() {
   );
 
   return (
-    // The card eases to each step's height (useHeightTransition) while the step's content comes in from its side (.step-enter).
+    // The card eases to each step's height (useHeightTransition) while the step's content comes in
+    // from its side (.step-enter).
     <section
       ref={card}
       aria-label="Voice"
@@ -320,7 +324,8 @@ export function VoicePanel() {
                     <Spinner />
                   </span>
                 ) : i !== step && reachable[i] && !busy && !meeting ? (
-                  // hover as the panel tabs (SliderPanel): grey → ink, no underline (an underline here stands out from the rest)
+                  // hover as the panel tabs (SliderPanel): grey → ink, no underline (an underline
+                  // here stands out from the rest)
                   <button type="button" onClick={() => (i === 3 ? void meet() : goTo(i))} className="text-ink-3 transition-colors hover:text-ink">
                     {s}
                   </button>
@@ -473,8 +478,10 @@ function MeetRow({ onMeet, busy }: { onMeet: () => void; busy: boolean }) {
 /** "0:13" from a duration in seconds. */
 const clock = (secs: number) => `${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, "0")}`;
 
-/** A preview row's orb: the live sphere answering its preview (VoiceSphere); /dev/voice-sphere also shows others.
- *  `audios`: the rows' <audio> elements (a ref: read them per frame, not while rendering). */
+/**
+ * A preview row's orb: the live sphere answering its preview (VoiceSphere); a local lab (not in the repo) shows others.
+ * `audios`: the rows' <audio> elements (a ref: read them per frame, not while rendering).
+ */
 export type PreviewOrb = (p: { index: number; preview: Preview; playing: boolean; audios: RefObject<(HTMLAudioElement | null)[]> }) => ReactNode;
 const sphereOrb: PreviewOrb = ({ index, preview, playing, audios }) => <VoiceSphere index={index} url={preview.url} playing={playing} audios={audios} />;
 
@@ -507,7 +514,7 @@ export function PreviewList({
   /** A take that couldn't play (offline, an expired link): a message; null once one plays. */
   onPlayProblem?: (message: string | null) => void;
   orb?: PreviewOrb;
-  dim?: boolean; // the orb darkens on hover and focus and its icon turns white (the old image orbs, in /dev/voice-sphere)
+  dim?: boolean; // the orb darkens on hover and focus and its icon turns white (image orbs, in a local lab, not in the repo)
 }) {
   const audios = useRef<(HTMLAudioElement | null)[]>([]);
   const [playing, setPlaying] = useState<number | null>(null);
@@ -595,8 +602,8 @@ export function PreviewList({
               onClick={() => !busy && onChoose(i)}
               aria-busy={saving === i}
               aria-label={saving === i ? `Setting up voice ${i + 1}…` : inUse === i ? `In use: voice ${i + 1}` : `Use voice ${i + 1}`}
-              // min-w: the same width in use (the check) as for use; setting up shows the spinner in the label's place (BusySwap;
-              // the aria-label says "Setting up…")
+              // min-w: the same width in use (the check) as for use; setting up shows the spinner
+              // in the label's place (BusySwap; the aria-label says "Setting up…")
               className={`${inUse === i ? "pill-ghost" : "pill-primary grid"} h-8 min-w-31 gap-1.5 px-3 text-label ${saving === i ? "disabled:opacity-100" : ""}`}
             >
               {inUse === i ? (

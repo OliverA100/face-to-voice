@@ -194,7 +194,10 @@ const FRAGMENT_ROUGHNESS = /* glsl */ `
 roughnessFactor = clamp(roughnessFactor + uAgeRough, 0.05, 1.0);
 `;
 
-/** Local transforms from `mesh` up to (not including) the .glb's "head" node: raw (quantised) attribute → template metres. */
+/**
+ * Local transforms from `mesh` up to (not including) the .glb's "head" node: raw (quantised)
+ * attribute → template metres.
+ */
 export function headSpaceMatrix(mesh: Mesh, out = new Matrix4()): Matrix4 {
   out.identity();
   for (let o: Object3D | null = mesh; o && o.name !== "head"; o = o.parent) {

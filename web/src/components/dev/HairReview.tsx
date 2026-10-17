@@ -4,8 +4,8 @@
  * /dev/hair-review — decide which hair styles stay. Lists every style in the picker (hair/index.json) and the HairCS
  * candidates under review (hair/review/review.json, gitignored, made by `uv run haircs-review build`), each with
  * front / ¾ / profile shots taken with the app's real renderer (hair/review/shots/<id>__<view>.webp; the picker
- * thumbnail stands in for a missing shot). Keep / cut per style, kept in this browser (localStorage); "Export" downloads
- * decisions.json for `uv run haircs-review apply decisions.json`, which updates the picker.
+ * thumbnail stands in for a missing shot). Keep / cut per style, kept in this browser (localStorage); "Export"
+ * downloads decisions.json for `uv run haircs-review apply decisions.json`, which updates the picker.
  */
 import { useEffect, useMemo, useState } from "react";
 

@@ -122,7 +122,9 @@ export function setIntensity(value: number, source: "ui" | "code" = "ui", second
   if (source === "code") for (const fn of intensityListeners) fn(value, seconds ?? 0);
 }
 
-/** The Intensity slider follows code changes; `seconds` > 0: the change is a tween that long (its thumb rides along). */
+/**
+ * The Intensity slider follows code changes; `seconds` > 0: the change is a tween that long (its thumb rides along).
+ */
 export function onIntensityChange(fn: (value: number, seconds: number) => void): () => void {
   intensityListeners.add(fn);
   return () => intensityListeners.delete(fn);

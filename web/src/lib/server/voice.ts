@@ -27,10 +27,13 @@ export interface VoiceRecord {
   seed: number;
   cast: Pick<DescriptionFields, "presentation" | "ageRange">; // picks the closest studio voice
   design: DesignSettings & { text: string }; // what Voice Design was asked
-  /** A saved voice per preview take, so a face can switch to another of its three voices without changing the one
-   *  other faces with this description use. Empty until a preview is chosen. */
+  /**
+   * A saved voice per preview take, so a face can switch to another of its three voices without changing the one
+   * other faces with this description use. Empty until a preview is chosen.
+   */
   takes: Record<number, Take>;
-  // The take chosen last, mirrored from `takes` (voiceId is null until a preview is chosen, or after its voice was evicted).
+  // The take chosen last, mirrored from `takes` (voiceId is null until a preview is chosen, or
+  // after its voice was evicted).
   voiceId: string | null;
   studioFallback?: boolean;
   chosenIndex?: number; // set together with voiceId
@@ -58,13 +61,19 @@ const poolKey = (descKey: string, take: number) => `${descKey}#${take}`;
 const faceCacheKey = (visitor: string, k: string) => `ftv:face:${visitor}:${k}`;
 const descCacheKey = (k: string) => `ftv:desc:${k}`;
 const accentCacheKey = (visitor: string, k: string) => `ftv:accent:${visitor}:${k}`;
-/** The look a casting was made from, for the profile prompt (characterProfile.ts): the server's copy, not the browser's. */
+/**
+ * The look a casting was made from, for the profile prompt (characterProfile.ts): the server's copy, not the browser's.
+ */
 const lookCacheKey = (visitor: string, k: string) => `ftv:look:${visitor}:${k}`;
-/** What makes a voice (VoiceIdentity), shared like its record: a lost casting is redone for the same voice (recastFor). */
+/**
+ * What makes a voice (VoiceIdentity), shared like its record: a lost casting is redone for the same voice (recastFor).
+ */
 const identityCacheKey = (descKey: string) => `ftv:identity:${descKey}`;
 
-/** The casting fields descriptionIdentity() reads. Persona, timbre and quirk only for characters above "everyday":
- *  an everyday voice is shared by faces cast with different ones, so those stay each visitor's own. */
+/**
+ * The casting fields descriptionIdentity() reads. Persona, timbre and quirk only for characters above "everyday":
+ * an everyday voice is shared by faces cast with different ones, so those stay each visitor's own.
+ */
 const IDENTITY = ["presentation", "ageRange", "character", "build", "energy", "pacing", "pitch", "mood1", "mood2", "emotion", "emotionIntensity", "accent", "accentStrength", "ethnicity"] as const;
 const IDENTITY_CHARACTER = ["persona", "timbre", "quirk"] as const;
 type VoiceIdentity = Partial<Pick<DescriptionFields, (typeof IDENTITY)[number] | (typeof IDENTITY_CHARACTER)[number]>>;
@@ -82,7 +91,10 @@ function identityOf(f: DescriptionFields): VoiceIdentity {
   return Object.fromEntries(keys.map((k) => [k, f[k]])) as VoiceIdentity;
 }
 
-/** The design route's time (its maxDuration is 120 s): Voice Design gets what Claude left, so it never outlives the function. */
+/**
+ * The design route's time (its maxDuration is 120 s): Voice Design gets what Claude left, so it
+ * never outlives the function.
+ */
 export const DESIGN_BUDGET_MS = 110_000;
 /** How long a request waits for another one doing the same paid job (a design, a save) before saying "busy". */
 const WAIT_MS = 30_000;
@@ -106,7 +118,8 @@ export async function designForFace(input: {
 }): Promise<DesignResult> {
   const deadline = input.deadline ?? Date.now() + DESIGN_BUDGET_MS;
   const left = () => deadline - Date.now();
-  // 1. Description (cached per visitor, quantised face and look: what is in the picture is in the key). The gender is read from the look too.
+  // 1. Description (cached per visitor, quantised face and look: what is in the picture is in the
+  // key). The gender is read from the look too.
   const fKey = faceKey(input.weights, input.look);
   let fields = await cacheGet<DescriptionFields>(faceCacheKey(input.visitor, fKey));
   const descriptionCached = !!fields;
@@ -155,16 +168,19 @@ export async function designForFace(input: {
   };
 }
 
-/** Claude's casting of a face (charged to the daily cap), with the expression from the look and the accent this
- *  visitor's resting face was first cast with. Not cached here: designForFace and recastFor store it. */
+/**
+ * Claude's casting of a face (charged to the daily cap), with the expression from the look and the accent this
+ * visitor's resting face was first cast with. Not cached here: designForFace and recastFor store it.
+ */
 async function castFace(input: { weights: Record<string, number>; imageJpegBase64?: string; look: Look; visitor: string; voice?: string }): Promise<DescriptionFields> {
   // The expression is the emotion the voice is designed in; it comes from the validated look, not from Claude.
   const emotion = input.look.emotion ?? "neutral";
   const emotionIntensity = quantiseIntensity(Number(input.look.emotionIntensity ?? 0));
-  // The face at rest (no expression, no pose) keeps the accent it was first cast with: Claude's three accents vary per call.
+  // The face at rest (no expression, no pose) keeps the accent it was first cast with: Claude's
+  // three accents vary per call.
   const restKey = faceKey(input.weights, restingLook(input.look));
   const keptAccent = await cacheGet<string>(accentCacheKey(input.visitor, restKey));
-  await consumeDailyCap("castings"); // Claude is paid per call: a global cap, on top of the visitor's own limit
+  await consumeDailyCap("castings"); // Claude is paid per call: the site-wide daily cap
   let r;
   try {
     r = await describeFace({
@@ -237,8 +253,10 @@ function voiceRecipe(record: VoiceRecord): VoiceRecipe {
 export interface SelectOptions {
   /** The preview the visitor heard: refused when the record was designed again since (another visitor, an expiry). */
   generatedVoiceId?: string;
-  /** The visitor's limit on new voices (ratelimit "select"), called only when this choice saves one: going back to a
-   *  take that is already saved is free. */
+  /**
+   * The visitor's limit on new voices (ratelimit "select"), called only when this choice saves one: going back to a
+   * take that is already saved is free.
+   */
   chargeVisitor?: () => Promise<void>;
 }
 
@@ -339,7 +357,8 @@ async function saveTake(record: VoiceRecord, previewIndex: number): Promise<Sele
   } catch (e) {
     await refundDailyCap("saves", 1); // nothing was saved
     if (e instanceof UpstreamError && (e.upstreamStatus === 404 || /not_found|expired/i.test(e.upstreamCode))) {
-      // ElevenLabs no longer has these previews: the record can't give a voice any more, so the next design starts afresh
+      // ElevenLabs no longer has these previews: the record can't give a voice any more, so the
+      // next design starts afresh
       console.warn("[voice] the previews expired upstream; dropping their record");
       await cacheDel(descCacheKey(descKey));
       throw new ApiError("expired", EXPIRED.gone, 410);
@@ -369,7 +388,9 @@ export async function voiceSpoken(record: VoiceRecord, take: number | undefined,
   if (t && !t.studioFallback && t.voiceId === voiceId) await poolRefresh(poolKey(record.descKey, index!), voiceId);
 }
 
-/** ElevenLabs no longer has this voice (deleted outside the pool): drop it, so choosing the take again saves a new one. */
+/**
+ * ElevenLabs no longer has this voice (deleted outside the pool): drop it, so choosing the take again saves a new one.
+ */
 export async function voiceGone(descKey: string, voiceId: string): Promise<void> {
   console.warn("[voice] a saved voice is gone upstream; forgetting it");
   await poolRemove(voiceId);
@@ -424,13 +445,17 @@ async function deleteForgottenVoice(): Promise<boolean> {
   return true;
 }
 
-/** The casting this visitor was given for this face (designForFace caches it), or null when it expired or isn't theirs. */
+/**
+ * The casting this visitor was given for this face (designForFace caches it), or null when it expired or isn't theirs.
+ */
 export async function castingFor(visitor: string, fKey: string): Promise<DescriptionFields | null> {
   return cacheGet<DescriptionFields>(faceCacheKey(visitor, fKey));
 }
 
-/** Keeps a voice's identity for recasting, if it has none yet: voices found before recastFor existed get it when the
- *  visitor who found them meets the character (characterProfile.ts). */
+/**
+ * Keeps a voice's identity for recasting, if it has none yet: voices found before recastFor existed get it when the
+ * visitor who found them meets the character (characterProfile.ts).
+ */
 export async function keepIdentity(descKey: string, fields: DescriptionFields): Promise<void> {
   if (!(await cacheGet<VoiceIdentity>(identityCacheKey(descKey)))) await cacheSet(identityCacheKey(descKey), identityOf(fields));
 }
@@ -440,16 +465,18 @@ export async function castingLook(visitor: string, fKey: string): Promise<Look> 
   return (await cacheGet<Look>(lookCacheKey(visitor, fKey))) ?? {};
 }
 
-/** Code "stale": the voice panel lets "New voices" design for this face again (it is greyed out for an unchanged face). */
+/**
+ * Code "stale": the voice panel lets "New voices" design for this face again (it is greyed out for an unchanged face).
+ */
 const RECAST_GONE = "This character can't be recast here. Go to Voice and press New voices to cast this face again.";
 
 /**
  * A new casting for a voice this visitor already has, when theirs is missing (castings are kept per visitor, and a
  * visitor is their browser's cookie: a cleared cookie, another browser or a cache expiry loses them). Claude reads the
  * face again; everything that makes the voice comes from the voice's identity, so the voice stays the same and only
- * the free text (persona of an everyday character, line) is new, written for that voice. Charged like a design. The sliders and look are the
- * ones the voice was found with (checked against its face key); the picture comes only while the face on screen is
- * still that face, and without it Claude casts from the sliders and look alone.
+ * the free text (persona of an everyday character, line) is new, written for that voice. Charged like a design. The
+ * sliders and look are the ones the voice was found with (checked against its face key); the picture comes only while
+ * the face on screen is still that face, and without it Claude casts from the sliders and look alone.
  */
 export async function recastFor(input: {
   visitor: string;

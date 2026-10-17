@@ -42,5 +42,7 @@ export function saveVoiceSession(s: VoiceSession | null): void {
   }
 }
 
-/** For useSyncExternalStore: the saved voice never changes under a mounted panel (the panel itself is what writes it). */
+/**
+ * For useSyncExternalStore: the saved voice never changes under a mounted panel (the panel itself is what writes it).
+ */
 export const subscribeVoiceSession = () => () => {};

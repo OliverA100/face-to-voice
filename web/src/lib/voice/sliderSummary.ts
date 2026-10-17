@@ -6,7 +6,9 @@
  */
 import slidersJson from "@/data/sliders.json";
 
-/** Raw model components (the Advanced sliders): each moves many features, so their names mean little to the designer. */
+/**
+ * Raw model components (the Advanced sliders): each moves many features, so their names mean little to the designer.
+ */
 const RAW_KINDS: ReadonlySet<string> = new Set(["identity", "expression", "preset"]);
 
 const NAMES = new Map(

@@ -18,7 +18,8 @@ import { headBytes, headLoad, markRevealed } from "@/lib/headLoad";
 import { SceneErrorBoundary } from "./SceneErrorBoundary";
 
 // Browser only: start the downloads now instead of after the Scene chunk. head.glb first; the saved hair and
-// add-ons at low priority, so the head is revealed wearing them (the parses in Head.tsx / hair.ts / addons.ts reuse the bytes).
+// add-ons at low priority, so the head is revealed wearing them (the parses in Head.tsx / hair.ts /
+// addons.ts reuse the bytes).
 if (typeof window !== "undefined") {
   headBytes().catch(() => {}); // a failure resurfaces (and retries) in Head.tsx
   prefetchHair();
@@ -34,7 +35,10 @@ const Scene = dynamic(
   { ssr: false, loading: () => null },
 );
 
-/** `reducedMotion` forces the loader's reduced-motion mode on or off (previews of the loader); default: the visitor's setting. */
+/**
+ * `reducedMotion` forces the loader's reduced-motion mode on or off (previews of the loader);
+ * default: the visitor's setting.
+ */
 export function FaceCanvas({ reducedMotion }: { reducedMotion?: boolean }) {
   const [revealed, setRevealed] = useState(() => headLoad.revealed);
   const stage = useRef<HTMLDivElement>(null);

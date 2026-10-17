@@ -31,9 +31,11 @@ export function skinShape(): { rest: Float32Array; current: Float32Array } | nul
   return mesh && refresher ? refresher.shapeOf(mesh) : null;
 }
 
-/** Keep `acc` at the live morph offsets of skin vertices `ids` (skin space, 3 floats each); `last` remembers the weights
- *  already added (start with an empty map and zeros). `weight`: what each target counts (default: everything shown
- *  now). False before the head loads. */
+/**
+ * Keep `acc` at the live morph offsets of skin vertices `ids` (skin space, 3 floats each); `last` remembers the weights
+ * already added (start with an empty map and zeros). `weight`: what each target counts (default: everything shown
+ * now). False before the head loads.
+ */
 export function skinOffsets(ids: Int32Array, last: Map<string, number>, acc: Float32Array,
   weight: (target: string) => number = (t) => morphs.effective(t)): boolean {
   const { mesh, refresher } = skinSurface;

@@ -1,6 +1,5 @@
-// Runs once in the browser before the app hydrates. Tells BotID which routes carry the
-// challenge token, but only on Vercel (NEXT_PUBLIC_VERCEL_ENV is set there automatically);
-// anywhere else BotID's script cannot load and would break fetch() to these routes.
+// Runs once in the browser before the app hydrates, with two jobs: it starts the head loader's sphere, and it tells
+// BotID which routes carry the challenge token.
 import { initBotId } from "botid/client/core";
 
 import { bootChrome } from "@/components/ui/loader/chrome";
@@ -9,6 +8,8 @@ import { bootChrome } from "@/components/ui/loader/chrome";
 // visit): components/ui/loader/chrome.tsx bootChrome.
 bootChrome();
 
+// Only on Vercel (NEXT_PUBLIC_VERCEL_ENV is set there automatically): anywhere else BotID's script cannot load and
+// would break fetch() to these routes.
 if (process.env.NEXT_PUBLIC_VERCEL_ENV) {
   initBotId({
     protect: [

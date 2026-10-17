@@ -37,7 +37,8 @@ export function describeFace(): string {
     const id = look[c];
     if (!id || id === "none") continue;
     const style = lower(addonStyleById(c, id)?.label ?? id);
-    // "natural eyebrows", "long eyelashes", "round wire glasses"; beards and shades name themselves ("goatee", "round shades")
+    // "natural eyebrows", "long eyelashes", "round wire glasses"; beards and shades name themselves
+    // ("goatee", "round shades")
     const noun = c === "facialHair" || /shades/.test(style) ? "" : ` ${lower(ADDONS[c].label)}`;
     const own = c === "facialHair" && look.facialHairColour ? `${colourName(look.facialHairColour)} ` : "";
     parts.push(`${own}${style}${noun}`);

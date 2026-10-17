@@ -9,10 +9,10 @@
  *   noise's gradient (no per-frame CPU work, no computeVertexNormals).
  * - Fragment shader: a small MeshPhysicalMaterial (white base, metalness, roughness, Fresnel, multiple scattering, a
  *   GGX key light, ACES tone mapping, sRGB) whose reflections come from RoomEnvironment traced analytically: the ray
- *   finds the room's walls, its six grey boxes (lit by the room's one point light) and its six glowing panels, softened by
- *   the same blur PMREM would apply at that roughness. The matte light on the early blob is the room's irradiance as 9
- *   spherical-harmonic numbers, measured once from three's own render of the room. No PMREM, no textures: startup is a
- *   shader compile.
+ *   finds the room's walls, its six grey boxes (lit by the room's one point light) and its six glowing panels, softened
+ *   by the same blur PMREM would apply at that roughness. The matte light on the early blob is the room's irradiance
+ *   as 9 spherical-harmonic numbers, measured once from three's own render of the room. No PMREM, no textures: startup
+ *   is a shader compile.
  * - The rainbow halo is added after tone mapping, as in the reference.
  *
  * Nothing runs per frame except `draw` (a few uniforms + one draw call).
@@ -33,7 +33,7 @@ export interface ChromeFrame {
   drift: number; // how far the noise has moved (its speed eases with the polish, so it is integrated: createChromeFlow)
   polish: number; // 0 = lumpy matte blob … 1 = the finish
   swell?: number; // extra bump height on top of the polish's (sphere radii): a voice's loudness (createChromeFlow `voice`)
-  scale?: number; // the whole sphere's size (1 = as framed; the voice lab's "pulse")
+  scale?: number; // the whole sphere's size (1 = as framed; a voice style's `pulse`)
   rainbow?: number; // × the finish's film and halo (1 = as the finish has them; 0.3 = the busy spinner's)
   material?: number; // the polish the colour and gloss are drawn at (default `polish`): the bumps can swing while it holds
 }
@@ -57,8 +57,9 @@ export interface ChromeFinish {
   base2?: Rgb; // with base: a gradient, base at the bottom → base2 at the top
   opacity?: number; // < 1: see-through at 100 % like glass (the rim stays solid)
   tint?: { walls: Rgb; panels: Rgb[] }; // the reflected room's colours at 100 % (six panels; white when absent)
-  shape?: { kind: ShapeKind; k: number; spin?: number }; // a form it settles into (k = how much; spin = radians per
-  // second it turns in the picture plane, default CHROME_GL.shapeSpin)
+  // a form it settles into (k = how much; spin = radians per second it turns in the picture plane, default
+  // CHROME_GL.shapeSpin)
+  shape?: { kind: ShapeKind; k: number; spin?: number };
 }
 
 /** Per-sphere settings (from chrome.tsx CHROME). */
@@ -93,16 +94,18 @@ export const CHROME_GL = {
   frequency: 1.5, // noise scale on the unit sphere
   light: 1.2, // key light intensity, from (3, 3, 3)
   halo: { power: 3, bands: 1.5, cycle: 0.05 }, // fresnel exponent, rainbow repeats across the rim, hue turns per second
-  film: { bands: 1.7, flow: 0.35, cycle: 0.03, gain: 1.8, gainColours: 1.25, body: 0.45 }, // iridescent finishes:
-  // rainbow repeats from centre to rim, how much the surface's tilt shifts it, hue turns per second, brightness of the
-  // coloured reflection (rainbow; a finish's own colours), how much the film also tints a non-metal body
+  // iridescent finishes: rainbow repeats from centre to rim, how much the surface's tilt shifts it, hue turns per
+  // second, brightness of the coloured reflection (rainbow; a finish's own colours), how much the film also tints a
+  // non-metal body
+  film: { bands: 1.7, flow: 0.35, cycle: 0.03, gain: 1.8, gainColours: 1.25, body: 0.45 },
   shapeSpin: 0.1, // radians per second a finish's form spins in the picture plane
   blur: 0.04, // radians, the PMREM blur of the whole room (fromScene's sigma)
 };
 
 /**
  * The reference's setPolish, towards a finish: bumps, roughness and shape ease (cosine) from the blob's values to the
- * finish's; metalness, halo, iridescence and the colours rise linearly. The plain chrome finish is the reference exactly.
+ * finish's; metalness, halo, iridescence and the colours rise linearly. The plain chrome finish is
+ * the reference exactly.
  */
 export function polishUniforms(p: number, amp: number, fin: ChromeFinish) {
   const ease = (1 + Math.cos(p * Math.PI)) / 2, u = 1 - ease;
@@ -112,8 +115,8 @@ export function polishUniforms(p: number, amp: number, fin: ChromeFinish) {
 const f = (n: number) => (Number.isInteger(n) ? n.toFixed(1) : String(+n.toFixed(5)));
 const v3 = (a: number[]) => `vec3(${a.map(f).join(",")})`;
 
-// RoomEnvironment (three/examples/jsm/environments/RoomEnvironment.js), in its own coordinates: the PMREM camera sits at
-// the scene origin, which is (0, 3.5, 0) here (the room is moved down 3.5).
+// RoomEnvironment (three/examples/jsm/environments/RoomEnvironment.js), in its own coordinates: the
+// PMREM camera sits at the scene origin, which is (0, 3.5, 0) here (the room is moved down 3.5).
 const ROOM = { c: [-0.757, 13.219, 0.717], s: [31.713, 28.305, 28.591] };
 const POINT = { at: [0.418, 16.199, 0.3], intensity: 900, cutoff: 28 };
 const BOXES = [
@@ -136,7 +139,10 @@ const PANELS = [
 // LightProbeGenerator on a 128 px cube render of the room, folded with shGetIrradianceAt's constants).
 const SH = [1.056 - 0.0965, 0.5717, 0.5335, 0.0896, 0.0587, 0.2975, 0.2894, -0.0952, -0.0833];
 
-/** The room's blur taps sit this many sigmas out (5 taps at ±1.1σ come close to the reference's Gaussian on the box edges). */
+/**
+ * The room's blur taps sit this many sigmas out (5 taps at ±1.1σ come close to the reference's
+ * Gaussian on the box edges).
+ */
 const ROOM_TAP = 1.1;
 
 /**
@@ -153,8 +159,8 @@ const AXES = ["vec3(1.,0.,0.)", "vec3(0.,1.,0.)", "vec3(0.,0.,1.)"];
 
 // Simplex noise with its gradient: webgl-noise by Ian McEwan (Ashima Arts) and Stefan Gustavson, noise3Dgrad.glsl.
 // Copyright (C) 2011 Ashima Arts, Copyright (C) 2011-2016 Stefan Gustavson; MIT License
-// (https://github.com/stegu/webgl-noise/blob/master/LICENSE). Adapted: minified, with the 0.6 kernel and 42 scale of the
-// original (closest to three's SimplexNoise).
+// (https://github.com/stegu/webgl-noise/blob/master/LICENSE). Adapted: minified, with the 0.6
+// kernel and 42 scale of the original (closest to three's SimplexNoise).
 export const NOISE = `
 vec3 m289(vec3 x){return x-floor(x*(1./289.))*289.;}
 vec4 m289(vec4 x){return x-floor(x*(1./289.))*289.;}
@@ -192,6 +198,7 @@ const SHAPES: Record<ShapeKind | "none", string> = {
   cube: "g=4.*q*q*q;return dot(q*q,q*q)-.6;", // a rounded cube
 };
 
+// gl_Position is a perspective projection written out: `proj` is the focal length (from the fov), near 0.1, far 100.
 const vert = (o: ChromeLook, proj = 1 / Math.tan(((o.fov / 2) * Math.PI) / 180)) => `
 attribute vec3 aP;
 uniform float uT,uDrift,uAmp,uShape,uTurn,uAspect,uScale;
@@ -496,20 +503,21 @@ export interface ChromeFlowConfig {
   dwell: number; // 0..1, how much it slows into each end: 0 = turns at constant speed, 1 = a pendulum (cosine)
   settleSpeed: number; // the final approach's average speed, × the swing's (a faster one read as skipping ahead)
   maxStep: number; // s, the most the clock advances in one frame (after a stall it carries on instead of jumping)
-  voice?: ChromeVoiceStyle; // how it answers a voice (chrome.tsx CHROME_VOICE); without it, ChromeDrive.voice is ignored
-  evenBumps?: number; // 0..1, see evenBumped (0 = the swing as it always was; the loader's own swing leaves it at 0)
+  voice?: ChromeVoiceStyle; // how it answers a voice (chrome.tsx VOICE_STYLES); without it, ChromeDrive.voice is ignored
+  evenBumps?: number; // 0..1, see evenBumped (0 = the plain swing, the loader's own)
   bumps?: [number, number]; // the bump height at the blob and at the finish (ChromeLook.amp, its finish's rest): evenBumps needs them
   startPolish?: number; // the polish it opens on (default 0, the loader's blob; a voice orb opens on its finish, 1)
-  colourFloor?: number; // 0..1: the colour and gloss never drop below this polish's, so the lumpy blob keeps a little
-  // rainbow (ChromeFrame.material; 0 = the blob fully white). A voice's swing may set its own (ChromeVoice.colourFloor)
+  // 0..1: the colour and gloss never drop below this polish's, so the lumpy blob keeps a little rainbow
+  // (ChromeFrame.material; 0 = the blob fully white). A voice's swing may set its own (ChromeVoice.colourFloor)
+  colourFloor?: number;
 }
 
 /**
  * Even bumps: the swing's s (0..1, blob → bubble) → polish, so the bumps change at a steady rate to the eye (their
- * log), blended in by `b` (0 = s). With the swing's own polish, the bumps near the smooth bubble are tiny and their first
- * growth (0.03 → 0.1: three times as big) read as the sphere suddenly expanding, while the same swing time at the
- * lumpy end (0.4 → 0.33) hardly showed. Fully even, the expansion is ~43 % gentler and the bubble shows ~45 % longer
- * per swing; the lumpy end is shorter. `amp`, `rest`: the bump height at the blob and at the finish.
+ * log), blended in by `b` (0 = s). With the swing's own polish, the bumps near the smooth bubble are tiny and their
+ * first growth (0.03 → 0.1: three times as big) read as the sphere suddenly expanding, while the same swing time at
+ * the lumpy end (0.4 → 0.33) hardly showed. Fully even, the expansion is ~43 % gentler and the bubble shows ~45 %
+ * longer per swing; the lumpy end is shorter. `amp`, `rest`: the bump height at the blob and at the finish.
  */
 export function evenBumped(s: number, b: number, amp: number, rest: number): number {
   if (!b) return s;
@@ -521,12 +529,13 @@ export function evenBumped(s: number, b: number, amp: number, rest: number): num
 /**
  * How the sphere answers a voice: the loudness (0..1, ChromeVoice.level) is smoothed into an envelope, which can grow
  * the bumps, pull the polish back towards the lumpy blob, roll the noise faster and grow the sphere. Each is "at full
- * loudness"; 0 turns it off. The styles compared in the voice lab are chrome.tsx VOICE_STYLES.
+ * loudness"; 0 turns it off. The styles to pick from are chrome.tsx VOICE_STYLES.
  */
 export interface ChromeVoiceStyle {
   swing: boolean; // keep the loader's blob ↔ finish swing going underneath; false: hold ChromeVoice.polish
-  holdColour?: boolean; // the colour and gloss stay at ChromeVoice.polish; the shape swings as the loader's (swing) or
-  // rests on the smooth finish (no swing), so the bumps come from the voice alone, the same for every talker
+  // the colour and gloss stay at ChromeVoice.polish; the shape swings as the loader's (swing) or rests on the smooth
+  // finish (no swing), so the bumps come from the voice alone, the same for every talker
+  holdColour?: boolean;
   dip: number; // polish lost (towards the blob's lumps, matte and white)
   swell: number; // extra bump height (sphere radii; the blob's own bumps are 0.4)
   flow: number; // extra noise drift per second (the bumps roll faster)
@@ -555,9 +564,10 @@ export interface ChromeVoice {
 export interface ChromeDrive {
   moving: boolean; // false: hold still (reduced motion, or not on screen yet)
   settling: boolean; // the reveal has started: head for the finish and stay there…
-  through: number | null; // …or, for the morph reveal, s the polish then takes to run back to the blob: it reaches the
-  // finish at that run's starting speed and turns straight round onto it (swingBack), like the swing's own turns
-  hold: number | null; // the style lab: pin the polish here
+  // …or, for the morph reveal, s the polish then takes to run back to the blob: it reaches the finish at that run's
+  // starting speed and turns straight round onto it (swingBack), like the swing's own turns
+  through: number | null;
+  hold: number | null; // a local lab (not in the repo): pin the polish here
   voice?: ChromeVoice | null; // a voice drives it (ChromeFlowConfig.voice says how); null: the loader's own motion
 }
 
@@ -576,7 +586,7 @@ export const swingBack = (x: number, dwell: number) => 1 - (x + (0.5 - 0.5 * Mat
  * pace (a quick settle rushed at 3–4× the swing and read as skipping ahead), and stays there.
  */
 export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; step(dt: number, d: ChromeDrive): void; settled(): boolean } {
-  // (its colour floor from the first frame: the page's poster is that frame, and it holds on it until it moves)
+  // `material` is on its colour floor from the first frame: the page's poster is that frame, held until it moves
   const p0 = c.startPolish ?? 0;
   const frame: ChromeFrame = { time: c.start, drift: c.start * c.speed, polish: p0, material: c.colourFloor ? c.colourFloor + (1 - c.colourFloor) * p0 : undefined };
   let wave = 0; // s into the swing
@@ -652,6 +662,8 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
         const cs = 0.5 - 0.5 * Math.cos(w), csV = (Math.PI / c.period) * Math.sin(w);
         const sw = tri + (cs - tri) * c.dwell;
         frame.polish = even(sw, k);
+        // velocity in polish units: with even bumps (k) the polish is even(sw), so × even()'s slope
+        // (a central difference)
         const slope = k ? (even(Math.min(1, sw + 1e-4), k) - even(Math.max(0, sw - 1e-4), k)) / (Math.min(1, sw + 1e-4) - Math.max(0, sw - 1e-4)) : 1;
         velocity = (triV + (csV - triV) * c.dwell) * pace * slope;
         if (voice && !voice.swing) frame.polish = clamp01(frame.polish - env * vs!.dip); // swinging under a voice (recomputed each frame)
@@ -667,7 +679,8 @@ export function createChromeFlow(c: ChromeFlowConfig): { frame: ChromeFrame; ste
       if (vs) {
         frame.swell = env * vs.swell;
         frame.scale = 1 + env * vs.pulse;
-        // holdColour: the colour and gloss stay at the talker's polish while the bumps swing (eased in and out: no jump)
+        // holdColour: the colour and gloss stay at the talker's polish while the bumps swing (eased
+        // in and out: no jump)
         const holding = !!(vs.holdColour && voice && !voice.swing), k = 1 - Math.exp(-step / Math.max(0.05, vs.ease));
         if (holding && colourHold < 1e-3) colour = base; // from the colour on show
         if (holding) colour += (voice!.polish - colour) * k;

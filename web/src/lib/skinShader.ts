@@ -47,15 +47,17 @@ export const SKIN_SHADE = {
   oilSheen: 0.15, // clearcoat strength at B = 1 (a soft second highlight on the T-zone)
   oilSheenRoughness: 0.32,
   // subsurface look
-  wrap: [0.1, 0.04, 0.02], // per-channel light wrap (red reaches furthest round the form); normalised, so it softens
-  // the terminator without brightening the tone (0.22/0.08/0.04 turned shadow edges orange)
+  // per-channel light wrap (red reaches furthest round the form); normalised, so it softens the terminator without
+  // brightening the tone (0.22/0.08/0.04 turned shadow edges orange)
+  wrap: [0.1, 0.04, 0.02],
   translucency: 0.3, // back-light through thin skin (A)
   transColour: [1.0, 0.4, 0.3], // the blood colour of light that went through
   transPower: 3.0, // how tight the glow is round the light direction
   transDistort: 0.3, // how much the surface normal bends the light on its way through
   // pores
-  detailDepth: 0.16, // mm: the height of the pore/line texture on the face (deepest in the oily T-zone; exaggerated:
-  // at true depth they vanish below a pixel)
+  // mm: the height of the pore/line texture on the face (deepest in the oily T-zone; exaggerated: at true depth they
+  // vanish below a pixel)
+  detailDepth: 0.16,
   detailTile: 30, // mm one tile covers (pipeline/config/skin.toml [detail] tile_mm)
   // stubble
   stubbleTile: 12, // mm one follicle tile covers (pipeline/config/stubble.toml [follicles])
@@ -255,7 +257,7 @@ const SKIN_DIFFUSE = /* glsl */ `
 `;
 const PHYSICAL_PARS = ShaderChunk.lights_physical_pars_fragment.includes(LAMBERT)
   ? ShaderChunk.lights_physical_pars_fragment.replace(LAMBERT, SKIN_DIFFUSE)
-  : (console.warn("skinShader: three's direct diffuse line changed; the subsurface look is off"), ShaderChunk.lights_physical_pars_fragment);
+  : (console.warn("[shader] three's direct diffuse line changed; the subsurface look is off"), ShaderChunk.lights_physical_pars_fragment);
 
 export function installSkinShader(material: MeshPhysicalMaterial): void {
   material.onBeforeCompile = (shader) => {
@@ -302,8 +304,10 @@ export async function loadSkinMaps(material: MeshPhysicalMaterial): Promise<void
   material.needsUpdate = true;
 }
 
-/** Stubble on (a facial hair "stubble" style, lib/addons.ts): its mask, the follicle texture and its look; the colour
- *  is the facial hair's colour set, by reference, so colour changes and blends follow. One recompile. */
+/**
+ * Stubble on (a facial hair "stubble" style, lib/addons.ts): its mask, the follicle texture and its look; the colour
+ * is the facial hair's colour set, by reference, so colour changes and blends follow. One recompile.
+ */
 export function enableStubble(material: MeshPhysicalMaterial, mask: Texture, detail: Texture, look: { length: number; shadow: number }, colour: Color): void {
   detail.wrapS = detail.wrapT = RepeatWrapping;
   detail.needsUpdate = true;
@@ -353,8 +357,10 @@ function currentSkinPieces(cover: BufferAttribute): SkinPieces {
   };
 }
 
-/** A copy of the skin's piece state now (lib/pieceFade.ts: the "before" image keeps it while the pieces swap). Null
- *  before the head loads. The cover is a separate attribute, uploaded once and then swapped in by reference. */
+/**
+ * A copy of the skin's piece state now (lib/pieceFade.ts: the "before" image keeps it while the pieces swap). Null
+ * before the head loads. The cover is a separate attribute, uploaded once and then swapped in by reference.
+ */
 export function snapshotSkinPieces(): SkinPieces | null {
   const live = skinSurface.mesh?.geometry.getAttribute("aHairCover") as BufferAttribute | undefined;
   if (!live) return null;

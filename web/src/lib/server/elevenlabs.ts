@@ -25,8 +25,10 @@ export interface Preview {
   durationSecs: number;
 }
 
-/** A non-OK answer from ElevenLabs. Its status stays on the server (the browser gets MESSAGES.upstream): a 404 tells a
- *  deleted voice or an expired preview apart from an outage. */
+/**
+ * A non-OK answer from ElevenLabs. Its status stays on the server (the browser gets MESSAGES.upstream): a 404 tells a
+ * deleted voice or an expired preview apart from an outage.
+ */
 export class UpstreamError extends ApiError {
   constructor(
     readonly upstreamStatus: number,
@@ -171,8 +173,8 @@ export interface ForcedAlignment {
 }
 
 /**
- * Forced alignment (billed as speech to text): where each character of `text` is said in `wav`. ~0.2–0.35 s for lines of
- * 2.5–13 s (2026-10-14). The speak route's lines are timed with it (speech.ts), not with the voice's own stamps.
+ * Forced alignment (billed as speech to text): where each character of `text` is said in `wav`. ~0.2–0.35 s for
+ * lines of 2.5–13 s. The speak route's lines are timed with it (speech.ts), not with the voice's own stamps.
  */
 export async function forcedAlignment(wav: Uint8Array, text: string, timeoutMs = 8_000): Promise<ForcedAlignment> {
   const form = new FormData();
@@ -215,8 +217,10 @@ function mockDesign(description: string, seed: number): { previews: Preview[]; t
   };
 }
 
-/** A buzzing tone with evenly spaced character times, so lip sync runs without credits. Like the real stream, an
- *  emotion tag at the start is in the alignment (the client drops it). */
+/**
+ * A buzzing tone with evenly spaced character times, so lip sync runs without credits. Like the real stream, an
+ * emotion tag at the start is in the alignment (the client drops it).
+ */
 function mockSpeechStream(text: string): ReadableStream<Uint8Array> {
   const rate = 24000;
   const perChar = 0.065;

@@ -1,6 +1,6 @@
 /**
- * The voice routes' replies, shared by the server (lib/server/voice.ts) and the browser (lib/voice/client.ts), so a field
- * added on one side reaches the other. Types only: importing it costs the browser nothing.
+ * The voice routes' replies, shared by the server (lib/server/voice.ts) and the browser (lib/voice/client.ts),
+ * so a field added on one side reaches the other. Types only: importing it costs the browser nothing.
  */
 import type { DescriptionFields, Presentation } from "@/lib/server/prompt";
 
@@ -12,7 +12,10 @@ export interface Preview {
   durationSecs: number;
 }
 
-/** Everything sent to Voice Design for this voice, for the export. Re-running it gives a similar voice, not the same one. */
+/**
+ * Everything sent to Voice Design for this voice, for the export. Re-running it gives a similar
+ * voice, not the same one.
+ */
 export interface VoiceRecipe {
   voiceDescription: string;
   text: string;

@@ -31,7 +31,10 @@ export const HAIR_COLOURS = [
   { id: "platinum", label: "Platinum", hex: "#d6c7a4", shadow: "#8a7a5a", highlight: "#f2e8cf" },
   { id: "white", label: "White", hex: "#d9d4cc", shadow: "#8d8a85", highlight: "#f4f1ec" },
 ] as const;
-/** The style's own colour: the fallback wherever a hair colour id is unknown (the list is sorted by lightness, not by it). */
+/**
+ * The style's own colour: the fallback wherever a hair colour id is unknown (the list is sorted by
+ * lightness, not by it).
+ */
 export const NATURAL_HAIR = HAIR_COLOURS.find((c) => c.id === "natural")!;
 
 /**

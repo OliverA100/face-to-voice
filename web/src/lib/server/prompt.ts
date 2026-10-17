@@ -63,15 +63,19 @@ export function pickAccent(accents: string[], key: string): string {
  * than life, so a plain face is always cast as everyday. Raise FANTASY_ODDS for fewer fantasy characters.
  */
 export const FANTASY_ODDS = 3;
-/** Fantasy archetypes the casting is shown a few of, so its picks don't all copy the same example. Human ones only:
- *  the head is human. Add freely. */
+/**
+ * Fantasy archetypes the casting is shown a few of, so its picks don't all copy the same example. Human ones only:
+ * the head is human. Add freely.
+ */
 export const FANTASY_ARCHETYPES = [
   "ancient forest wizard", "cackling swamp witch", "pompous court alchemist", "battle-worn knight", "pirate queen",
   "travelling fortune-teller", "retired dragon hunter", "castle cook", "village herbalist", "wandering bard",
   "royal jester", "mountain hermit", "potion seller", "monster hunter", "temple oracle", "gloomy castle gravedigger",
 ] as const;
-/** What a young fantasy character might be, three shown per face: without them every teenager came out an
- *  "apprentice", and with the same three every time, all of them those three. */
+/**
+ * What a young fantasy character might be, three shown per face: without them every teenager came out an
+ * "apprentice", and with the same three every time, all of them those three.
+ */
 export const FANTASY_YOUNG = [
   "squire", "thief", "runaway noble", "stable hand", "shepherd", "page", "pickpocket", "dragon keeper's helper",
   "tavern runner", "novice witch", "ferry hand", "street performer",
@@ -131,8 +135,10 @@ export interface DescriptionFields {
 /** The fields Claude fills (the expression is added by the server). */
 export type CastFields = Omit<DescriptionFields, "emotion" | "emotionIntensity">;
 
-/** Words that must never reach the voice prompt (none today; add any you want blocked). Matched
- *  case-insensitively on word boundaries. */
+/**
+ * Words that must never reach the voice prompt (none today; add any you want blocked). Matched
+ * case-insensitively on word boundaries.
+ */
 const DENY: string[] = [];
 const DENY_RE = DENY.length ? new RegExp(`\\b(${DENY.join("|")})\\b`, "i") : null;
 
@@ -152,7 +158,8 @@ const cleanWords = (s: string, max: number, words = 6) => {
 };
 
 // Voice Design charges about one credit per character of this line (ElevenLabs needs at least 100). Claude is asked
-// for 24-30 words (~140-175 chars); the slack above that keeps a slightly long line from being cut to one short sentence.
+// for 24-30 words (~140-175 chars); the slack above that keeps a slightly long line from being cut
+// to one short sentence.
 export const LINE_MAX = 200;
 
 /**
@@ -277,7 +284,9 @@ export function expressionLine(emotion: string | undefined, intensity: number | 
     : "Expression on the face: neutral (the character's resting temperament).";
 }
 
-/** "Age slider: +0.80 (much older than the base head)". Built here from the validated number, never from browser text. */
+/**
+ * "Age slider: +0.80 (much older than the base head)". Built here from the validated number, never from browser text.
+ */
 export function ageLine(value: number | undefined): string {
   const v = Math.max(-1, Math.min(1, value ?? 0));
   const words = v <= -0.6 ? "much younger than" : v <= -0.2 ? "younger than" : v < 0.2 ? "about the same age as" : v < 0.6 ? "older than" : "much older than";

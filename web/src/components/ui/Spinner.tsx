@@ -8,12 +8,12 @@ import { MOTION } from "@/lib/motion";
 import { whenIdle } from "@/lib/whenIdle";
 
 /**
- * The busy spinner: the loader's sphere. The loader's whole swing, blob → bubble, with the rainbow film and halo at 30 %
- * (the full film at the bubble end is far more rainbow than the header logo; a short swing around the logo's moment
- * keeps the colour down but barely shows any motion), pre-rendered with the real shader in the header logo's treatment
- * (a 14 px white bubble all but vanishes on a white pill) as one strip of `frames` frames, played forwards then
- * backwards (a seamless loop; no WebGL, the browser animates it like any image). The strip is rendered with the loader's
- * shader (loader/chromeGl.ts), so it changes only when these do.
+ * The busy spinner: the loader's sphere. The loader's whole swing, blob → bubble, with the rainbow film and
+ * halo at 30 % (the full film at the bubble end is far more rainbow than the header logo; a short swing around
+ * the logo's moment keeps the colour down but barely shows any motion), pre-rendered with the real shader in
+ * the header logo's treatment (a 14 px white bubble all but vanishes on a white pill) as one strip of `frames`
+ * frames, played forwards then backwards (a seamless loop; no WebGL, the browser animates it like any image).
+ * The strip is rendered with the loader's shader (loader/chromeGl.ts), so it changes only when these do.
  */
 export const SPINNER = { size: 18, frames: 24, half: 1.2 }; // px, frames in the strip, s from blob to bubble
 
@@ -63,7 +63,10 @@ export function Spinner({ shown = true, late = false }: { shown?: boolean; late?
 /** How long a busy pill keeps the spinner for its exit (--dur-2). */
 const EXIT_MS = MOTION.move * 1000;
 
-/** Whether the spinner is mounted: from `busy` until it has shrunk away. (Only once busy: the strip loads after the reveal.) */
+/**
+ * Whether the spinner is mounted: from `busy` until it has shrunk away. (Only once busy: the strip
+ * loads after the reveal.)
+ */
 export function useSpinnerPresent(busy: boolean): boolean {
   const [present, setPresent] = useState(busy);
   if (busy && !present) setPresent(true);
@@ -77,8 +80,8 @@ export function useSpinnerPresent(busy: boolean): boolean {
 
 /**
  * A busy pill whose spinner takes the label's place (every busy pill in the app): the pill keeps its natural width;
- * while `busy` the label fades out and the bubble grows in the middle (opacity + scale: the compositor). The label stays
- * in the button, so screen readers still hear it. The pill needs `grid`.
+ * while `busy` the label fades out and the bubble grows in the middle (opacity + scale: the
+ * compositor). The label stays in the button, so screen readers still hear it. The pill needs `grid`.
  */
 export function BusySwap({ busy, children }: { busy: boolean; children: ReactNode }) {
   const present = useSpinnerPresent(busy);

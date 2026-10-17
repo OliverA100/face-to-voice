@@ -11,7 +11,10 @@ export type Tie = { idx: Int32Array; wts: Float32Array };
 
 export const cellKey = (x: number, y: number, z: number) => ((x + 1024) * 2048 + (y + 1024)) * 2048 + (z + 1024);
 
-/** `rest` (skin space) in head space by `m` (Matrix4 elements, column-major; as three.js's Vector3.applyMatrix4), bucketed. */
+/**
+ * `rest` (skin space) in head space by `m` (Matrix4 elements, column-major; as three.js's
+ * Vector3.applyMatrix4), bucketed.
+ */
 export function skinGrid(rest: Float32Array, m: ArrayLike<number>): SkinGrid {
   const count = rest.length / 3;
   const head = new Float32Array(rest.length);

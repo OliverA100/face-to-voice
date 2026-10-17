@@ -54,10 +54,12 @@ export const SHELLS = {
 
 let furTexture: DataTexture | null = null;
 
-/** The tileable fur pattern (made once). Each channel is 1 where a hair reaches at least a given height (R 0.2,
- *  G 0.45, B 0.7, A 0.9 of full length), 0 elsewhere. Mipmapping turns that into the share of hair reaching each
- *  height, so far away a layer draws as partial coverage (alpha-to-coverage) instead of collapsing into a solid
- *  sheet, and close up the hairs are crisp discs. */
+/**
+ * The tileable fur pattern (made once). Each channel is 1 where a hair reaches at least a given height (R 0.2,
+ * G 0.45, B 0.7, A 0.9 of full length), 0 elsewhere. Mipmapping turns that into the share of hair reaching each
+ * height, so far away a layer draws as partial coverage (alpha-to-coverage) instead of collapsing into a solid
+ * sheet, and close up the hairs are crisp discs.
+ */
 export const BANDS = [0.2, 0.45, 0.7, 0.9];
 export function fur(): DataTexture {
   if (furTexture) return furTexture;

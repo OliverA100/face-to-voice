@@ -45,7 +45,8 @@ export function PoseSection() {
     }
   };
 
-  // The rows render at 0; a pose restored after a reload (lib/pose.ts) is already in the rig. Gaze rows stay at 0 while following.
+  // The rows render at 0; a pose restored after a reload (lib/pose.ts) is already in the rig. Gaze
+  // rows stay at 0 while following.
   useEffect(() => {
     for (const [target, input] of inputs) {
       const v = poseRig.follow.on && target.startsWith("pose_gaze") ? 0 : poseRig.base[POSE_TARGETS[target]];

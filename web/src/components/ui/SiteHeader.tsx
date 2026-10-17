@@ -9,10 +9,11 @@ const REPO_URL = "https://github.com/OliverA100/face-to-voice";
 const NAME = "flex items-center gap-2 whitespace-nowrap text-input font-medium tracking-[-0.01em]";
 
 /**
- * The top bar: the logo and name, the tagline (from lg), and the links (on the builder, Limits too: LimitsDialog.tsx). Shared by the builder and the 404 page.
- * `home`: on the builder the name is the page's h1; anywhere else it links home and the page has its own h1.
- * Below lg it sticks to the top (the builder's page scrolls under it, FaceBuilder.tsx). From lg it is static and has no
- * z-index: as a flex item its z-20 would still lift it over the cards below, hiding their 0.5px top ring.
+ * The top bar: the logo and name, the tagline (from lg), and the links (on the builder, Limits too:
+ * LimitsDialog.tsx). Shared by the builder and the 404 page. `home`: on the builder the name is the
+ * page's h1; anywhere else it links home and the page has its own h1. Below lg it sticks to the top
+ * (the builder's page scrolls under it, FaceBuilder.tsx). From lg it is static and has no z-index:
+ * as a flex item its z-20 would still lift it over the cards below, hiding their 0.5px top ring.
  */
 export function SiteHeader({ home = false }: { home?: boolean }) {
   const name = (

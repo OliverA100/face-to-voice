@@ -23,11 +23,17 @@ export const VISITOR_COOKIE = "ftv_visitor";
 /** A year: the id outlives any limit or cache it scopes, and stays under Chrome's 400-day cap on cookie lifetimes. */
 export const VISITOR_COOKIE_MAX_AGE = 365 * 24 * 60 * 60;
 
-/** The cookie's signing key: derived from RATE_LIMIT_SALT, so it differs from the key that hashes IPs. Empty without a salt. */
+/**
+ * The cookie's signing key: derived from RATE_LIMIT_SALT, so it differs from the key that hashes
+ * IPs. Empty without a salt.
+ */
 const signingKey = () => (env.rateLimitSalt ? createHmac("sha256", env.rateLimitSalt).update("ftv visitor cookie").digest() : null);
 const sign = (key: Buffer, id: string) => createHmac("sha256", key).update(id).digest("base64url").slice(0, 22); // 132 bits
 
-/** A new cookie value, "<id>.<signature>": 18 random bytes (24 characters, like the old IP hashes), or null without a salt. */
+/**
+ * A new cookie value, "<id>.<signature>": 18 random bytes (24 characters, as long as a network id),
+ * or null without a salt.
+ */
 export function newVisitorCookie(): string | null {
   const key = signingKey();
   if (!key) return null;
@@ -48,7 +54,8 @@ export function readVisitorCookie(value: string | undefined): string | null {
 /** This request's browser id (null without a valid cookie: blocked cookies, or a route the proxy doesn't run on). */
 export function browserId(request: Request): string | null {
   const cookies = request.headers.get("cookie") ?? "";
-  // A browser sends one ftv_visitor; read it by hand, so this works on a plain Request (route tests) as on a NextRequest
+  // A browser sends one ftv_visitor; read it by hand, so this works on a plain Request (route
+  // tests) as on a NextRequest
   const value = cookies.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${VISITOR_COOKIE}=`))?.slice(VISITOR_COOKIE.length + 1);
   return readVisitorCookie(value);
 }
@@ -83,7 +90,7 @@ export function networkId(request: Request): string {
 
 /**
  * Who this request is for their own things (castings, Recast characters, chats): the browser id, or the network id
- * when the browser has no valid cookie (then everyone on that network shares them, as everyone did before the cookie).
+ * when the browser has no valid cookie (then everyone on that network shares them).
  */
 export function visitorId(request: Request): string {
   if (!env.rateLimitSalt) throw new ApiError("unavailable", MESSAGES.unavailable, 503);

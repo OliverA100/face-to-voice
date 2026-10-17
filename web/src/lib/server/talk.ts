@@ -1,8 +1,8 @@
 /**
- * Live conversations: the browser asks for a room, the server mints a short-lived LiveKit token that also dispatches the
- * character agent into that room with everything it needs (the voice, the instructions). Nothing the agent trusts comes
- * from the browser: the voice id is read from the voice record, the profile from the cache, and both are signed into
- * the token with the API secret.
+ * Live conversations: the browser asks for a room, the server mints a short-lived LiveKit token
+ * that also dispatches the character agent into that room with everything it needs (the voice, the
+ * instructions). Nothing the agent trusts comes from the browser: the voice id is read from the
+ * voice record, the profile from the cache, and both are signed into the token with the API secret.
  *
  *   POST /api/talk/token ─► invite ─► slot (MAX_CONCURRENT_TALKS at a time) ─► voice + profile ─► AccessToken
  *                                                                                              room:  talk-<uuid>
@@ -25,15 +25,19 @@ import type { TalkTicket } from "@/lib/talk/ticket";
 
 /** The agent's name: it only joins rooms that dispatch it by name (explicit dispatch). */
 const AGENT_NAME = "ftv-character";
-/** How long the token may be used to join (the browser joins at once); a reconnect after that is still allowed by
- *  LiveKit. Short: within it the token could create its room again (and dispatch another agent) once the first closed. */
+/**
+ * How long the token may be used to join (the browser joins at once); a reconnect after that is still allowed by
+ * LiveKit. Short: within it the token could create its room again (and dispatch another agent) once the first closed.
+ */
 const TOKEN_TTL_SECONDS = 20;
 /** A slot outlives the conversation by this much (the agent's goodbye, a slow close); then it frees itself. */
 const SLOT_GRACE_SECONDS = 30;
 /** A slot whose room LiveKit doesn't know after this long was never joined (or has ended): it is freed. */
 const UNJOINED_SECONDS = 45;
-/** How long a slot and the voice's pin last: the conversation starts when the visitor joins, up to the token's life
- *  after it was minted, then runs maxSeconds, plus the goodbye and a slow close. */
+/**
+ * How long a slot and the voice's pin last: the conversation starts when the visitor joins, up to the token's life
+ * after it was minted, then runs maxSeconds, plus the goodbye and a slow close.
+ */
 const holdSeconds = () => env.talk.maxSeconds + TOKEN_TTL_SECONDS + SLOT_GRACE_SECONDS;
 
 export const TALK_MESSAGES = {
@@ -46,8 +50,10 @@ export const TALK_MESSAGES = {
 
 const digest = (s: string) => createHash("sha256").update(s).digest();
 
-/** Whether `code` opens talking: always once TALK_PUBLIC=1, else one of TALK_INVITE_CODES (constant time, digests of
- *  equal length, so neither the code nor its length leaks). */
+/**
+ * Whether `code` opens talking: always once TALK_PUBLIC=1, else one of TALK_INVITE_CODES (constant time, digests of
+ * equal length, so neither the code nor its length leaks).
+ */
 export function inviteOk(code: string | undefined): boolean {
   if (talkIsPublic()) return true;
   const given = digest(code ?? "");
@@ -62,16 +68,19 @@ export function talkConfigured(): boolean {
 }
 
 // --- conversations at a time (MAX_CONCURRENT_TALKS) -----------------------------------------------------------------
-// A Redis sorted set of "<visitor>|<room>" scored by when the slot expires. A visitor's new conversation replaces their
-// own previous one (its room is closed, so the limit still holds). LiveKit is the truth about which rooms still exist:
-// when the slots are full, rooms LiveKit no longer has (ended early, or never joined) are freed first.
+// A Redis sorted set of "<visitor>|<room>" scored by when the slot expires. A browser holds one slot at a time; its new
+// conversation can replace its own previous one (that room is closed, so the limit still holds).
+// LiveKit is the truth about which rooms still exist: when the slots are full, rooms LiveKit no
+// longer has (ended early, or never joined) are freed first.
 
 const SLOTS_KEY = "ftv:talk:slots";
 const memSlots = new Map<string, number>(); // "<visitor>|<room>" → expiry (ms)
 const roomOf = (member: string) => member.slice(member.indexOf("|") + 1);
 
-/** Slot checks wait for LiveKit under the slots lock: a short timeout and no retries in other regions keep them well
- *  inside the lock (the SDK's defaults, 10 s per request plus failover, could outlast it and let two slots in). */
+/**
+ * Slot checks wait for LiveKit under the slots lock: a short timeout and no retries in other regions keep them well
+ * inside the lock (the SDK's defaults, 10 s per request plus failover, could outlast it and let two slots in).
+ */
 const LIVEKIT_TIMEOUT_SECONDS = 4;
 const SLOTS_LOCK_SECONDS = 30;
 
@@ -87,11 +96,11 @@ async function liveRooms(names: string[]): Promise<Set<string>> {
 }
 
 /**
- * Take a conversation slot for `room`, or throw `busy`. A Redis failure counts as busy (fail closed). Under a lock, so two
- * requests at once can't both see a free slot. `replaces`: the room of this browser's previous conversation ("Have another
- * chat"), ended here if it is this visitor's; not every room of theirs (a browser without cookies is its whole network).
- * `ownBrowser`: the visitor is one browser (a cookie), so it may hold one slot at a time; a network id never is limited
- * this way, or one chat would block everyone behind the same address.
+ * Take a conversation slot for `room`, or throw `busy`. A Redis failure counts as busy (fail closed). Under a lock,
+ * so two requests at once can't both see a free slot. `replaces`: the room of this browser's previous conversation
+ * ("Have another chat"), ended here if it is this visitor's; not every room of theirs (a browser without cookies is
+ * its whole network). `ownBrowser`: the visitor is one browser (a cookie), so it may hold one slot at a time; a
+ * network id never is limited this way, or one chat would block everyone behind the same address.
  */
 export async function takeSlot(room: string, visitor: string, replaces?: string, ownBrowser = false): Promise<void> {
   const lock = await acquireLock("ftv:lock:talk-slots", SLOTS_LOCK_SECONDS).catch(() => null);
@@ -168,8 +177,8 @@ export async function releaseSlot(room: string): Promise<void> {
 
 
 /**
- * Everything after the guards: the voice, the profile, the slot and the token. Gives the slot back if it fails. The
- * visitor's talk is spent last, once everything else worked.
+ * Everything after the guards: the voice, the profile, the slot and the token. Gives the slot back if it fails.
+ * `chargeVisitor` runs last, once everything else worked.
  */
 export async function startTalk(input: {
   visitor: string;
@@ -178,7 +187,7 @@ export async function startTalk(input: {
   take?: number;
   replaces?: string; // the room of this browser's previous conversation
   ownBrowser: boolean; // the visitor id is a browser cookie, not a network
-  chargeVisitor: () => Promise<void>; // the visitor's daily talks: spent only once a slot is theirs
+  chargeVisitor: () => Promise<void>; // the visitor's limit on talks, if VISITOR_LIMITS sets one: only once a slot is theirs
 }): Promise<TalkTicket> {
   if (!talkConfigured()) throw new ApiError("unavailable", MESSAGES.unavailable, 503);
   const record = await voiceRecord(input.descKey);
@@ -191,7 +200,8 @@ export async function startTalk(input: {
   const profile = (await savedProfile(input.visitor, pKey))?.profile;
   if (!profile) throw new ApiError("bad_request", TALK_MESSAGES.noProfile, 400);
   // The voice stays out of the pool's evictions for the whole conversation, pinned before anything slow happens; a save
-  // that read the pool just before may still have taken it, so the record is read again (a pin that goes unused expires).
+  // that read the pool just before may still have taken it, so the record is read again (a pin that
+  // goes unused expires).
   await pinVoice(voiceId, holdSeconds());
   const now = await voiceRecord(input.descKey);
   if (!now || !Object.values(now.takes).some((t) => t?.voiceId === saved)) throw new ApiError("expired", TALK_MESSAGES.retired, 410);
@@ -222,11 +232,12 @@ export async function startTalk(input: {
       maxParticipants: 2,
       emptyTimeout: 30,
       departureTimeout: 10,
-      // `again`: this browser had a chat with them already (the greeting was heard), whether or not that room still exists
+      // `again`: this browser had a chat with them already (the greeting was heard), whether or not
+      // that room still exists
       agents: [new RoomAgentDispatch({ agentName: AGENT_NAME, metadata: JSON.stringify(talkMetadata({ voiceId, profile, fields, maxSeconds, again: !!input.replaces })) })],
     });
     const token = await at.toJwt();
-    // only now: a busy slot, a retired voice, a missing profile or a failure here must not cost one of the visitor's talks
+    // only now: a busy slot, a retired voice, a missing profile or a failure here must not count against the visitor
     await input.chargeVisitor();
     return { serverUrl: env.livekit.url, token, room, name: profile.name, maxSeconds };
   } catch (e) {

@@ -2,8 +2,8 @@
  * The live renderer, scene and camera (set by components/scene/Capture.tsx), for code outside the canvas: the voice's
  * screenshot and shader warm-ups. A plain module, so importing it doesn't pull React Three Fiber into the page's first
  * JavaScript (the canvas is a lazy chunk).
- * The drawing buffer is not preserved between frames (cheaper), so captureFace() renders one frame explicitly and copies
- * it synchronously in the same task.
+ * The drawing buffer is not preserved between frames (cheaper), so captureFace() renders one frame
+ * explicitly and copies it synchronously in the same task.
  */
 import type { Camera, Mesh, MeshStandardMaterial, Object3D, Scene, Texture, WebGLRenderer } from "three";
 

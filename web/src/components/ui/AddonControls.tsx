@@ -2,8 +2,9 @@
 
 /**
  * Eyebrows, eyelashes, facial hair and glasses (Style tab): one row per category, a wrapping grid of
- * round thumbnails (renders of our fitted assets, listed in addons/<category>/index.json, "None" first). Facial hair also gets colour swatches: the first
- * chip wears the hair colour (the default), the others give the beard a colour of its own.
+ * round thumbnails (renders of our fitted assets, listed in addons/<category>/index.json, "None"
+ * first). Facial hair also gets colour swatches: the first chip wears the hair colour (the
+ * default), the others give the beard a colour of its own.
  * The state lives in lib/addons.ts (applied straight to the meshes); this component mirrors it
  * through useSyncExternalStore, as HairControl does.
  */
@@ -56,8 +57,7 @@ function AddonRow({ category, state }: { category: AddonCategory; state: AddonSn
           {loading ? "Loading…" : failed ? "Couldn't load. Try again" : current}
         </span>
       </div>
-      {/* Every style visible at once: the thumbnails wrap onto more rows (no sideways scrolling). One Tab stop, the arrows
-          move and choose (RadioGroup); names are aria-labels (shown as the app's tooltip: data-tip; a title as well would be read twice). */}
+      {/* Every style visible at once: the thumbnails wrap onto more rows (no sideways scrolling). */}
       <RadioGroup label={`${label} style`} className="mt-2 flex flex-wrap gap-2 py-0.5">
         <button
           type="button"

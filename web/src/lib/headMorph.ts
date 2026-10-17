@@ -16,8 +16,9 @@ export interface ScreenCircle {
 }
 
 /**
- * Which morph: "pieces" (a style-lab option: the face forms first, region by region, the hair grows from its roots) or
- * "swing" (E: the loader's own last swing, bubble → blob, landing on the face: one curve drives everything).
+ * Which morph: "pieces" (an option in a local lab, not in the repo: the face forms first, region by
+ * region, the hair grows from its roots) or "swing" (E: the loader's own last swing, bubble → blob,
+ * landing on the face: one curve drives everything).
  */
 export type MorphStyle = "pieces" | "swing";
 

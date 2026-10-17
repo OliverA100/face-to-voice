@@ -13,8 +13,8 @@
  *   - attribute "ftv.mood": "happy:0.75", the mood of the current reply (ours)
  *   - attribute "ftv.end": why the agent ended it (time_up, idle, voice_error, left)
  *   - text stream "lk.transcription": the character's words as they are spoken, and the visitor's as transcribed
- *   - text stream "ftv.words": each reply's word timings, ahead of its audio, where its voice starts on their clock, and
- *     its loudness as the agent made it (10 ms blocks), for the lip sync (lib/lipsync/live.ts)
+ *   - text stream "ftv.words": each reply's word timings, ahead of its audio, where its voice starts on their clock,
+ *     and its loudness as the agent made it (10 ms blocks), for the lip sync (lib/lipsync/live.ts)
  *
  * The face follows: the mouth from the voice (LiveSpeech, registered with LipSync), the expression from the mood, and
  * nods while the visitor talks and as the character answers (lib/talk/face.ts). The chat's sphere follows level():
@@ -55,13 +55,16 @@ export interface TalkSnapshot {
 const WAKING_AFTER_MS = 2500;
 /**
  * No agent after this long: it isn't coming. LiveKit quotes 10–20 s for a cold start, but waking this agent from sleep
- * took longer than 30 s, and leaving sooner empties the room, which cancels the agent's wake-up: every chat after a
- * quiet spell failed until the next deploy (2026-10-12).
+ * can take longer than 30 s, and leaving sooner empties the room, which cancels the agent's wake-up (so no chat after a
+ * quiet spell would ever start).
  */
 const GIVE_UP_MS = 90_000;
 
 type AudioSessionNavigator = Navigator & { audioSession?: { type: string } };
-/** iPhone and iPad: talking needs the play-and-record session (speaker and mic together); computers are left alone (lib/lipsync/player.ts). */
+/**
+ * iPhone and iPad: talking needs the play-and-record session (speaker and mic together); computers
+ * are left alone (lib/lipsync/player.ts).
+ */
 function audioSession(type: "play-and-record" | "auto") {
   const nav = navigator as AudioSessionNavigator;
   if (!(nav.maxTouchPoints > 1) || !nav.audioSession) return;
@@ -91,18 +94,19 @@ function micFailure(e: unknown): EndReason {
 
 /**
  * iPhones and iPads: the microphone without echo cancellation (or the other voice processing), and muted while the
- * character speaks. On an iPhone's loudspeaker the chats popped all through the character's speech, with headphones they
- * didn't (2026-10-16): iOS's echo canceller chops the call's playback. Without it the microphone would hear the
- * character, so it listens only between replies (no interrupting it mid-sentence). Checked on an iPhone: no pops, the
- * character never heard itself.
+ * character speaks. On an iPhone's loudspeaker iOS's echo canceller chops the call's playback (pops all through the
+ * character's speech; headphones are fine). Without it the microphone would hear the character, so it listens only
+ * between replies (no interrupting it mid-sentence). Checked on an iPhone: no pops, the character never heard itself.
  */
 const echoOff = () => isAppleTouch();
-/** After the character stops (its state), the microphone waits this long (ms): the voice is held back and still heard. */
+/**
+ * After the character stops (its state), the microphone waits this long (ms): the voice is held back and still heard.
+ */
 const DUPLEX_TAIL_MS = 400;
 /**
- * Without the echo canceller iOS plays the voice much quieter on the loudspeaker (2026-10-16: a plain 10x gain into a
- * limiter "could be higher"; the voice already peaks at full scale, so gain alone only clips). It is compressed and
- * made up (live.ts: +5 dB of speech loudness at this make-up gain, nothing clipped; louder and it clips again).
+ * Without the echo canceller iOS plays the voice much quieter on the loudspeaker, and the voice already peaks at full
+ * scale, so gain alone only clips. It is compressed and made up (live.ts: +5 dB of speech loudness at this make-up
+ * gain, nothing clipped; louder and it clips again).
  */
 const CHAT_MAKEUP = 2;
 
@@ -266,7 +270,8 @@ export class TalkSession {
           else this.set({ caption });
         }
       } else {
-        // the line is every final segment since the character last spoke, once each, and the draft now (lib/talk/heard.ts)
+        // the line is every final segment since the character last spoke, once each, and the draft
+        // now (lib/talk/heard.ts)
         const final = reader.info.attributes?.["lk.transcription_final"] !== "false";
         this.heard.add(reader.info.attributes?.["lk.segment_id"] ?? reader.info.id, await reader.readAll(), final);
         this.set({ heard: this.heard.text });
@@ -279,8 +284,8 @@ export class TalkSession {
     try {
       const pub = await room.localParticipant.setMicrophoneEnabled(true);
       this.micTrackSid = pub?.trackSid ?? null;
-      // iPhones and iPads (halfDuplex): the greeting can start before the microphone is published (duplex found nothing to mute, and the
-      // character heard itself on its first reply: 2026-10-16)
+      // iPhones and iPads (halfDuplex): the greeting can start before the microphone is published, when duplex had
+      // nothing to mute (the character would hear itself on its first reply)
       if (this.halfDuplex && this.agentState === "speaking") this.duplex("speaking");
     } catch (e) {
       this.finish(micFailure(e));
@@ -326,8 +331,10 @@ export class TalkSession {
     return this.mic.level();
   }
 
-  /** iPhones and iPads (halfDuplex): the microphone off while the character speaks, back on just after (unless the
-   *  visitor muted it). */
+  /**
+   * iPhones and iPads (halfDuplex): the microphone off while the character speaks, back on just after (unless the
+   * visitor muted it).
+   */
   private duplex(state: string) {
     const track = this.room.localParticipant.getTrackPublication(Track.Source.Microphone)?.track;
     if (!track) return;

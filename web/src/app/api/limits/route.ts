@@ -1,8 +1,9 @@
 /**
  * GET /api/limits  -> Limits (lib/limits/types.ts)
  * What this visitor has used of their own limits today (voices picked; invite code tries are counted but never shown),
- * whether that is per browser or (without the visitor cookie) per network, the network's ceiling, and when they reset. The site-wide daily caps are hidden ceilings, not shown. Read-only: asking counts nothing.
- * Same-origin only (no BotID: nothing here costs money).
+ * whether that is per browser or (without the visitor cookie) per network, the network's ceiling,
+ * and when they reset. The site-wide daily caps are hidden ceilings, not shown. Read-only: asking
+ * counts nothing. Same-origin only (no BotID: nothing here costs money).
  */
 import { errorResponse } from "@/lib/server/errors";
 import { assertSameOrigin } from "@/lib/server/guards";

@@ -19,8 +19,10 @@ export type ViewSpec = {
 
 const DEFAULT: ViewSpec = { target: [0, 0.265, 0.05], yaw: 0, pitch: 0.6, dist: 0.9 };
 
-/** The app's lens is fov 16 (Scene.tsx); a spec without its own fov keeps its framing by standing this much further back
- *  (the presets were measured with fov 24). */
+/**
+ * The app's lens is fov 16 (Scene.tsx); a spec without its own fov keeps its framing by standing this much further back
+ * (the presets were measured with fov 24).
+ */
 const LENS = { fov: 16, distScale: Math.tan((12 * Math.PI) / 180) / Math.tan((8 * Math.PI) / 180) };
 
 /** Whole head and close-ups. Landmarks from data/ageing.json (template space ≈ world at rest). */

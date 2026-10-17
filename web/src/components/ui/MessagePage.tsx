@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { SiteHeader } from "@/components/ui/SiteHeader";
 import { LoaderSphere } from "@/components/ui/loader/LoaderSphere";
 
-/** A whole page with one message on the head's grey card (the 404, the error page): the sphere, a title and a way on. */
+/**
+ * A whole page with one message on the head's grey card (the 404, the error page): the sphere, a title and a way on.
+ */
 export function MessagePage({ eyebrow, title, text, children }: { eyebrow: string; title: string; text: string; children: ReactNode }) {
   return (
     <div className="flex min-h-dvh w-full flex-col bg-page pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] text-ink">

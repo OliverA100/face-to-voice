@@ -67,7 +67,10 @@ const LABELS: Record<string, Map<string, string>> = {
 
 const words = (id: string) => id.replace(/[_-]+/g, " ").toLowerCase();
 
-/** "hair style: crop; hair colour: natural" (empty string when nothing is styled). Entries that are not in KEYS are left out. */
+/**
+ * "hair style: crop; hair colour: natural" (empty string when nothing is styled). Entries that are
+ * not in KEYS are left out.
+ */
 export function lookText(look: Look): string {
   const parts = Object.keys(look)
     .filter((key) => Object.hasOwn(KEYS, key) && !EMOTION_KEYS.has(key) && !key.startsWith("pose"))

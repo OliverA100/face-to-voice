@@ -77,10 +77,10 @@ const secondsLeft = (left: number) => {
 
 /**
  * The sphere beside the chat's state. While someone talks it answers their voice (how: ./loader/chrome.tsx
- * VOICE_STYLES, compared in /dev/voice-sphere), holding `polish` (0 = the loader's lumpy white blob, 1 = the soap
- * bubble with its rainbow): mostly white while the character talks, colourful while you do. Thinking, it swings as
- * the busy spinner does (the loader's whole swing, quicker, the rainbow at 30 %); connecting and waking, as the loader
- * does; once the chat is over it rests on the bubble.
+ * VOICE_STYLES, compared in a local lab, not in the repo), holding `polish` (0 = the loader's lumpy white
+ * blob, 1 = the soap bubble with its rainbow): mostly white while the character talks, colourful while
+ * you do. Thinking, it swings as the busy spinner does (the loader's whole swing, quicker, the rainbow at
+ * 30 %); connecting and waking, as the loader does; once the chat is over it rests on the bubble.
  */
 export const CHAT_SPHERE = {
   size: 34, // px, the sphere's --orb size, as the Voice step's orbs (the ball is CHROME.ball of it; its box adds room for the bumps)
@@ -90,7 +90,7 @@ export const CHAT_SPHERE = {
   thinking: { swing: true, pace: 3 / 2.4, rainbow: 0.3, evenBumps: 0, colourFloor: 0.25 },
 };
 
-/** What the live view needs from a session: a TalkSession (the voice lab passes a stand-in). */
+/** What the live view needs from a session: a TalkSession (a local lab, not in the repo, passes a stand-in). */
 export type LiveTalkSession = Pick<TalkSession, "subscribe" | "snapshot" | "setMuted" | "end" | "level"> & { room: Pick<TalkSession["room"], "startAudio"> };
 
 export function TalkPanel({
@@ -225,7 +225,7 @@ export function LiveTalk({
   maxSeconds: number;
   starting: boolean;
   onAgain: () => void;
-  sphere?: { style: ChromeVoiceStyle; size: number }; // the voice lab's
+  sphere?: { style: ChromeVoiceStyle; size: number }; // a local lab's (not in the repo)
 }) {
   const snap: TalkSnapshot = useSyncExternalStore(session.subscribe, session.snapshot, session.snapshot);
   // read every frame by the sphere, from the session itself (not this render's snapshot)

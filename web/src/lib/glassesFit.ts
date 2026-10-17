@@ -1,8 +1,9 @@
 /**
  * Glasses on the face actually shown. The pipeline bakes how a frame follows each face-shape slider at ±1
- * (pipeline glasses_fit.bind_glasses); far slider ends and mixes of sliders go past what that bake knows, and the arms or the
- * front can end up inside the head (a narrow or long head, big ears, a low brow). Whenever the face's shape settles,
- * the frame is checked against the skin, and only where a point is deeper in the skin than on the average face:
+ * (pipeline glasses_fit.bind_glasses); far slider ends and mixes of sliders go past what that bake
+ * knows, and the arms or the front can end up inside the head (a narrow or long head, big ears, a
+ * low brow). Whenever the face's shape settles, the frame is checked against the skin, and only
+ * where a point is deeper in the skin than on the average face:
  *   seat   the whole frame slides forward (z) until its front is out;
  *   splay  each arm opens (sideways, growing behind the hinge, like a real frame's hinge) until it is out.
  * An optician's fit, like the pipeline's place_glasses. Both are written into the frame's own positions; its face-shape
@@ -15,8 +16,8 @@
  * Behind the ear root the arms' tips are left free to tuck in, as the pipeline's fit does. Tweak in GLASSES_FIT.
  *
  * The rays run off the main thread (lib/glassesSolve.ts in lib/glassesWorker.ts; in place where there are no workers):
- * a phone took up to half a second per fit, once when the frame went on and again every few frames while a face morphed.
- * A new frame is shown once its first fit is on (`fitted`, which the add-on swap waits for).
+ * a phone took up to half a second per fit, once when the frame went on and again every few frames while a
+ * face morphed. A new frame is shown once its first fit is on (`fitted`, which the add-on swap waits for).
  */
 import { BufferAttribute, Matrix3, Matrix4, type Mesh, type Object3D, Vector3 } from "three";
 
@@ -76,8 +77,10 @@ function solver(): Worker | null {
   return worker;
 }
 
-/** Fit a prepared frame to the skin shown now (`current`, skin space; `pts`, the tested points as shown): in the worker,
- *  or here. Null when it couldn't be done. */
+/**
+ * Fit a prepared frame to the skin shown now (`current`, skin space; `pts`, the tested points as shown): in the worker,
+ * or here. Null when it couldn't be done.
+ */
 async function solveNow(prep: Prep, read: () => { current: Float32Array; pts: Float32Array }): Promise<FitResult | null> {
   const limits = { maxSeatMm: GLASSES_FIT.maxSeatMm, maxSplay: GLASSES_FIT.maxSplay };
   const skinMatrix = skinSurface.toHead.elements.slice();
@@ -101,8 +104,8 @@ async function solveNow(prep: Prep, read: () => { current: Float32Array; pts: Fl
 
 /**
  * Fit `node` (a glasses style, under the head's root node `root`) to the skin now and whenever the shape settles.
- * `fitted` resolves once the first fit is on (or couldn't be done; at most FIRST_FIT_WAIT_MS), so a swap can wait for it
- * and the frame never shows unfitted; `unfit` takes it off.
+ * `fitted` resolves once the first fit is on (or couldn't be done; at most FIRST_FIT_WAIT_MS), so a
+ * swap can wait for it and the frame never shows unfitted; `unfit` takes it off.
  */
 export function fitGlasses(node: Object3D, root: Object3D): { fitted: Promise<void>; unfit: () => void } {
   let prepared: Prep | null = null;
@@ -135,7 +138,7 @@ export function fitGlasses(node: Object3D, root: Object3D): { fitted: Promise<vo
     whenIdle(go, 200, 0);
   };
   // the first fit at once (the frame is not shown yet when it goes on in a cross-fade)
-  const first = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(run).catch((err: unknown) => console.warn("glasses: fit failed", err));
+  const first = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(run).catch((err: unknown) => console.warn("[glasses] fit failed", err));
   const fitted = Promise.race([first, new Promise<void>((resolve) => setTimeout(resolve, FIRST_FIT_WAIT_MS))]);
   const off = onSkinShape(later);
   const unfit = () => {

@@ -1,8 +1,8 @@
 /**
  * POST /api/talk/token   body: { faceKey, descKey, take?, invite?, replaces? }  -> { serverUrl, token, room, name, maxSeconds }
  * A short-lived LiveKit token for a live conversation with this visitor's character (lib/server/talk.ts). The same
- * guards as every paid route, plus the invite-only switch and one conversation at a time. The browser names the face
- * and the voice; the voice id, the profile and the instructions the agent gets are the server's own.
+ * guards as every paid route, plus the invite-only switch and one conversation per browser at a time. The browser
+ * names the face and the voice; the voice id, the profile and the instructions the agent gets are the server's own.
  */
 import { z } from "zod";
 

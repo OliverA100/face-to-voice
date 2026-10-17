@@ -41,7 +41,7 @@ export function useStepFocus(card: RefObject<HTMLElement | null>): void {
         if (!next) continue;
         // Not scrolled to after a tap or click: a new step shows from its top (scrollVoiceCardTop), and its first
         // control can sit below the fold on a phone. After keyboard use the focus shows (:focus-visible), so it is
-        // brought into view as before.
+        // brought into view.
         next.focus({ preventScroll: true });
         if (next.matches(":focus-visible")) next.scrollIntoView({ block: "nearest" });
         return;

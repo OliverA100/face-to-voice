@@ -1,11 +1,10 @@
 "use client";
 
 /**
- * Page shell: a slim top bar, the 3D bust in a big rounded card, and the slider panel in a
- * second card beside it. One VoicePanel instance: on phones and tablets it sits above the
- * sliders in a scrolling column; from `lg` up it floats bottom-right over the bust (placed in
- * the scene's grid cell, so state survives a rotation). Tokens live in app/tokens.css, the pill/card
- * classes in app/globals.css.
+ * Page shell: a slim top bar, the 3D bust in a big rounded card, and the slider panel in a second card beside it. One
+ * VoicePanel instance: below `xl` it sits above the sliders (in the scrolling column on phones and tablets, in the side
+ * column from `lg`); from `xl` up it floats bottom-right over the bust (placed in the scene's grid cell, so state
+ * survives a rotation). Tokens live in app/tokens.css, the pill/card classes in app/globals.css.
  */
 import "@/lib/export/openLink"; // FIRST: a rebuild link (/#c=…) must reach sessionStorage before anything restores from it
 import { captureFace } from "@/lib/sceneRig";
@@ -109,7 +108,8 @@ if (debugHandle) {
     glassesFit: { GLASSES_FIT, state: glassesFitState },
     pieceFade,
     // rendering, camera and capture
-    // the studio lights, once the canvas chunk has them (importing them here would put the canvas code in the first load)
+    // the studio lights, once the canvas chunk has them (importing them here would put the canvas
+    // code in the first load)
     lighting: () => import("@/components/scene/Lighting").then((m) => ({ LIGHTING: m.LIGHTING, rig: m.lightingRig })),
     quality: { state: quality, set: setTier },
     view,
@@ -123,9 +123,10 @@ if (debugHandle) {
 
 export function FaceBuilder() {
   return (
-    // Below lg the page itself scrolls (not a box inside it), so iOS Safari shrinks its bars and the cards pass under the
-    // toolbar; the header and the head stick. --head-top / --tabs-top: where the head and the slider tabs stick.
-    // viewport-fit=cover (app/layout.tsx) lets the page reach under the notch and the bars, so the edges keep clear of the safe areas.
+    // Below lg the page itself scrolls (not a box inside it), so iOS Safari shrinks its bars and
+    // the cards pass under the toolbar; the header and the head stick. --head-top / --tabs-top:
+    // where the head and the slider tabs stick. viewport-fit=cover (app/layout.tsx) lets the page
+    // reach under the notch and the bars, so the edges keep clear of the safe areas.
     <div className="flex min-h-dvh w-full flex-col bg-page pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] text-ink [--head-top:calc(env(safe-area-inset-top)_+_3.5rem)] [--tabs-top:calc(var(--head-top)_+_44svh_+_0.75rem)] md:[--head-top:calc(env(safe-area-inset-top)_+_4rem)] lg:h-dvh">
       <SiteHeader home />
 

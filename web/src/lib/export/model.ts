@@ -10,8 +10,8 @@
  *     of the mouth its shade. JPEG textures, seams padded so a filtered lookup never reaches the background.
  *   - the cornea becomes a faint clear shell (in the app it is black and additive: reflections only).
  *
- * Strand pieces (hair, brows, lashes, strand beards) become ribbons, the child strands included (lib/export/strands.ts);
- * shell beards their fur layers, built on the CPU (lib/export/shells.ts).
+ * Strand pieces (hair, brows, lashes, strand beards) become ribbons, the child strands included
+ * (lib/export/strands.ts); shell beards their fur layers, built on the CPU (lib/export/shells.ts).
  * Tweak here: MODEL.
  */
 import {
@@ -63,8 +63,8 @@ const MOUTH_SHADE = "diffuseColor.rgb * mix(uMouthDeep, vec3(uMouthLight), mouth
 const SHADE: Record<string, string> = { mouth: MOUTH_SHADE, teeth: MOUTH_SHADE, gums: MOUTH_SHADE, tongue: MOUTH_SHADE };
 
 /**
- * The GLB's bytes. Waits for a Random character / Reset to land and for the semantic and emotion targets. `strands`: the
- * hair, brows, lashes and strand beards as guide ribbons, with their child strands too, or left out.
+ * The GLB's bytes. Waits for a Random character / Reset to land and for the semantic and emotion targets.
+ * `strands`: the hair, brows, lashes and strand beards as guide ribbons, with their child strands too, or left out.
  */
 export async function buildModel({ strands = "children" }: { strands?: StrandMode | "none" } = {}): Promise<Uint8Array> {
   await characterSettled();

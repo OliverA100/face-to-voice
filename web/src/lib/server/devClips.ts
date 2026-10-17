@@ -1,8 +1,8 @@
 /**
  * Development only: every line the speak route sends (a paid generation or a cache hit) is also saved as an NDJSON clip
- * in pipeline/out/lipsync/clips/, with a .json beside it (the line, the voice, the emotion), so /dev/lipsync can replay
- * it forever without another call. The same stream is never saved twice (the file name ends in a hash of it). Outside
- * `next dev` the stream is passed through untouched.
+ * in pipeline/out/lipsync/clips/, with a .json beside it (the line, the voice, the emotion), so the lip-sync lab (a
+ * local lab, not in the repo) can replay it forever without another call. The same stream is never saved twice (the
+ * file name ends in a hash of it). Outside `next dev` the stream is passed through untouched.
  */
 import "server-only";
 

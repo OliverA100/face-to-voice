@@ -1,7 +1,8 @@
 /**
- * The invite-only switch, browser side. Opening the site with /?talk=<code> keeps the code for this tab (sessionStorage),
- * takes it out of the address bar, and shows "Chat"; the token route checks the code (lib/server/talk.ts). Once talking is public
- * (NEXT_PUBLIC_TALK_PUBLIC=1, with TALK_PUBLIC=1 on the server) everyone sees the button.
+ * The invite-only switch, browser side. Opening the site with /?talk=<code> keeps the code for this
+ * tab (sessionStorage), takes it out of the address bar, and shows "Chat"; the token route checks
+ * the code (lib/server/talk.ts). Once talking is public (NEXT_PUBLIC_TALK_PUBLIC=1, with
+ * TALK_PUBLIC=1 on the server) everyone sees the button.
  */
 const KEY = "ftv-talk-invite";
 

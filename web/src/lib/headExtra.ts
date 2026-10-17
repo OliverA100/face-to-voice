@@ -16,8 +16,10 @@ import { morphs } from "@/lib/morphs/store";
 import type { NormalRefresher } from "@/lib/morphs/normals";
 import { whenIdle } from "@/lib/whenIdle";
 
-/** Resolves when the extra targets are merged (or there are none, or loading failed: the head works without). Each mount
- *  (loadHeadExtra) makes its own; before the first, it waits. */
+/**
+ * Resolves when the extra targets are merged (or there are none, or loading failed: the head works without). Each mount
+ * (loadHeadExtra) makes its own; before the first, it waits.
+ */
 export let extraReady: Promise<void> = new Promise(() => {});
 
 const partOf = (m: Object3D) => m.parent?.name || m.name;

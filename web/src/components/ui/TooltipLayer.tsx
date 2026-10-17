@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * The app's one tooltip, the same everywhere ): any element with `data-tip="…"` shows it, a
+ * The app's one tooltip, the same everywhere: any element with `data-tip="…"` shows it, a
  * soft warm-grey chip (--surface, a hairline, 13 px --ink-2 text, the list rows' radius, at most 288 px wide: a short
  * hint stays on one line), in place of the browser's own `title` tooltip, which can't be styled. Mounted once
  * (app/layout.tsx), and only one tooltip exists at a time, made when it shows: the ~230 hair swatches cost nothing.
@@ -9,11 +9,13 @@
  * - Hover: after 300 ms (passing over doesn't flash it); moving straight on to another hint switches at once.
  *   Keyboard focus: at once. Gone on leaving, a press, scrolling or Escape. Not on touch (as with `title`).
  * - The pointer can move from the element onto the hint (and read it) without it going (WCAG 1.4.13): it stays while
- *   the pointer is over the element, the hint or the gap between them. It still lets clicks through to what is under it.
+ *   the pointer is over the element, the hint or the gap between them. It still lets clicks through to what is under
+ *   it.
  * - Fixed to the viewport, below the element (a slider row: below its track), or above it when there is no room, kept
- *   8 px inside the edges: inside a scrolling panel (the voice card, the slider panel) a positioned hint would be cut off.
+ *   8 px inside the edges: inside a scrolling panel (the voice card, the slider panel) a positioned hint would be cut
+ *   off.
  * - It is visual only. Name or describe the element itself for screen readers (an aria-label on a swatch,
- *   aria-describedby on a pill).
+ *   aria-describedby on a pill), never with a `title` as well: screen readers would say it twice.
  * - Works on an aria-disabled pill (no pointer events) when `data-tip` sits on a wrapper around it.
  * - While its hint is up, the element has `data-tip-shown`: what the hint covers (a slider's end labels, marked
  *   `data-tip-under`) fades out instead of peeking out from under it (globals.css).
@@ -23,9 +25,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 const TOOLTIP = {
   delayMs: 300, // hover → shown
   gap: 8, // px between the element and the tooltip
-  sliderGap: 7, // … or a slider's track box: a slider row's hint hangs from the track, not the whole row (below its end
-  // labels it would sit 24 px from the slider, further than every other hint); 7 px from the 20 px box is 8 px from the
-  // 18 px thumb, the same as everywhere. It covers the end labels while shown and goes on a press
+  // … or a slider's track box: a slider row's hint hangs from the track, not the whole row (below its end labels it
+  // would sit 24 px from the slider, further than every other hint); 7 px from the 20 px box is 8 px from the 18 px
+  // thumb, the same as everywhere. It covers the end labels while shown and goes on a press
+  sliderGap: 7,
   edge: 8, // px kept from the viewport's edges
 };
 
