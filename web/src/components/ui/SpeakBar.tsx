@@ -5,6 +5,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { RadioGroup } from "@/components/ui/RadioGroup";
+import { BusySwap } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
 import { paintRange, speakRange } from "@/components/ui/panel/rangeFill";
 import { currentEmotion } from "@/lib/emotion";
@@ -135,15 +136,17 @@ export function SpeakBar({ descKey, take, onRetired }: { descKey: string; take?:
             Sync
           </button>
           {/* One pill: Speak, and Stop while a line is generated or plays (the counter says which). Same element and
-              width, so the keyboard focus stays on it and nothing beside it moves. */}
+              width, so the keyboard focus stays on it and nothing beside it moves. While the line is generated the
+              spinner takes the label's place (BusySwap; screen readers still hear "Stop"), and a click still stops. */}
           <button
             type="button"
             onClick={active ? () => speechPlayer.stop() : speak}
             aria-keyshortcuts={active ? "Escape" : undefined}
+            aria-busy={state === "loading"}
             data-step-focus
-            className="pill-secondary h-10 min-w-21 px-5"
+            className="pill-secondary grid h-10 min-w-21 px-5"
           >
-            {active ? "Stop" : "Speak"}
+            <BusySwap busy={state === "loading"}>{active ? "Stop" : "Speak"}</BusySwap>
           </button>
         </div>
       </div>
