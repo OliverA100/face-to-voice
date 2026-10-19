@@ -5,9 +5,10 @@
  * 1.0 == 3σ, so ±0.8 == ±2.4σ), handed mostly to the Feature sliders so they visibly move and can be tweaked from
  * there. The split (data/random.json, pipeline random_split.py): a raw draw w over the head shape sliders becomes
  * Feature values s = w·P plus a raw remainder r = w·Q on the Advanced sliders: the same face within about 1 mm.
- * Eyeball and teeth sliders keep their own draw. Age, the other Feature sliders and the expression sliders go back to
- * rest, unless the caller holds them (Random character holds its Age: the face is fitted at that age); emotion and pose
- * are left alone.
+ * Eyeball sliders keep their own draw. The teeth are never drawn: they stay where they are (at rest, unless set on the
+ * Advanced sliders), and the callers hold them so the face is fitted around them (teethOf). Age, the other Feature
+ * sliders and the expression sliders go back to rest, unless the caller holds them (Random character holds its Age: the
+ * face is fitted at that age); emotion and pose are left alone.
  *
  * Distinctiveness (the panel's slider; randomState.variation, 0 … RANDOM.maxVariation):
  *   below 1  the same face moves toward the average face (0 = the average face)
@@ -60,8 +61,12 @@ let held: Weights = {};
 let asIs: Weights | null = null;
 /** What the draw put on the sliders at the current variation (varyFace moves sliders by the change of this). */
 let lastApplied: Weights = {};
-/** The sliders Distinctiveness scales on a face made by hand: the Features (not Age) and the raw identity sliders. */
-const isShape = (d: SliderDef) => d.kind === "identity" || (d.kind === "semantic" && d.group !== "sem_age");
+/** The teeth sliders: no random face moves them (Advanced sliders only). */
+const isTeeth = (d: SliderDef) => d.group === "raw_teeth";
+/** The teeth as they are now, for a random face's `hold` (Random face, Random character). */
+export const teethOf = (defs: SliderDef[], current: Weights): Weights => Object.fromEntries(defs.filter(isTeeth).map((d) => [d.target, current[d.target] ?? d.default]));
+/** The sliders Distinctiveness scales on a face made by hand: the Features (not Age) and the raw identity sliders (not the teeth). */
+const isShape = (d: SliderDef) => (d.kind === "identity" && !isTeeth(d)) || (d.kind === "semantic" && d.group !== "sem_age");
 
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((fn) => fn());
@@ -121,7 +126,7 @@ function weightsFor(defs: SliderDef[], draw: Record<string, number>, variation: 
   const out: Weights = {};
   for (const d of defs) {
     if (d.target in drawn) out[d.target] = clamp(drawn[d.target], d);
-    else if (d.kind === "identity") out[d.target] = clamp(raw(d.target), d); // eyeballs, teeth: their own draw
+    else if (d.kind === "identity" && !isTeeth(d)) out[d.target] = clamp(raw(d.target), d); // eyeballs: their own draw
     else if (d.kind === "semantic" || d.kind === "expression" || d.kind === "preset") out[d.target] = d.default;
     if (d.target in hold) out[d.target] = clamp(hold[d.target], d);
   }
@@ -308,7 +313,7 @@ export async function randomFaceAsync(defs: SliderDef[], ask: (defs: SliderDef[]
 function draw(defs: SliderDef[], variation: number, hold: Weights): void {
   newState();
   candidate = null;
-  lastDraw = Object.fromEntries(defs.filter((d) => d.kind === "identity").map((d) => [d.target, gaussian()]));
+  lastDraw = Object.fromEntries(defs.filter((d) => d.kind === "identity" && !isTeeth(d)).map((d) => [d.target, gaussian()]));
   asIs = null;
   striking = pickStriking(defs);
   held = hold;

@@ -9,7 +9,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 import { sectionOf, sliders, visibleSliders } from "@/lib/data";
 import { askLimiter, canAsk, geometryKey } from "@/lib/morphs/capsClient";
-import { canVary, onRandomChange, precomputeVariations, randomFace, randomFaceAsync, randomState, VARIATION, variationNotches, varyFace } from "@/lib/morphs/random";
+import { canVary, onRandomChange, precomputeVariations, randomFace, randomFaceAsync, randomState, teethOf, VARIATION, variationNotches, varyFace } from "@/lib/morphs/random";
 import { morphs } from "@/lib/morphs/store";
 import { MOTION } from "@/lib/motion";
 
@@ -116,7 +116,8 @@ function RandomRow() {
   // the face fitted in the caps worker (a distinctive one is seconds of checks on a phone); a newer click overtakes it
   const newRandomFace = async () => {
     const defs = visibleSliders();
-    const w = await randomFaceAsync(defs, askLimiter, randomState.variation).catch(() => randomFace(defs, randomState.variation));
+    const hold = teethOf(defs, morphs.base); // the teeth stay as they are
+    const w = await randomFaceAsync(defs, askLimiter, randomState.variation, hold).catch(() => randomFace(defs, randomState.variation, hold));
     if (w) morphs.tweenTo(w, MOTION.morph);
   };
   const reset = (el: HTMLInputElement) => {

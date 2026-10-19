@@ -44,7 +44,7 @@ import { HAIR_COLOURS, HAIR_DEFAULTS, HAIR_STYLES, hairFileUrl, hairState, hairS
 import { preload, whenRevealed } from "@/lib/headLoad";
 import { finishPieceFade, openPieceFade, pieceFade, runPieceFade } from "@/lib/pieceFade";
 import { askLimiter } from "@/lib/morphs/capsClient";
-import { clearRandomFace, randomFace, randomFaceAsync } from "@/lib/morphs/random";
+import { clearRandomFace, randomFace, randomFaceAsync, teethOf } from "@/lib/morphs/random";
 import { MOTION } from "@/lib/motion";
 import { morphs } from "@/lib/morphs/store";
 import { centrePose } from "@/lib/pose";
@@ -300,7 +300,7 @@ export function randomCharacter(): Promise<void> {
   const old = age >= CHARACTER.old;
   const distinctiveness = rollDistinctiveness();
   // drawn now, fitted to the limiter off the main thread (a distinctive face is seconds of checks on a phone)
-  const defs = visibleSliders(), hold = { [AGE.target]: age };
+  const defs = visibleSliders(), hold = { ...teethOf(defs, morphs.base), [AGE.target]: age }; // the teeth stay as they are
   let face: Weights | null = null;
   const faceReady = randomFaceAsync(defs, askLimiter, distinctiveness, hold)
     .catch(() => randomFace(defs, distinctiveness, hold)) // the worker went wrong: fitted here
