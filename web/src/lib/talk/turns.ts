@@ -1,13 +1,14 @@
 /**
- * The chat card's conversation: the last few turns, the character's and the visitor's, in the order they were said.
+ * The chat card's conversation: the character's turns and the visitor's, in the order they were said.
  * A character turn is one reply (one transcript stream, growing as it is heard); a visitor turn is their line since
  * the character last spoke (lib/talk/heard.ts), growing live, and closed when the character starts its next reply.
  * Pure, so it can be tested without a room.
  */
 export type Turn = { id: number; who: "character" | "you"; text: string };
 
-/** Turns kept: the card shows the newest and fades the older ones. */
-export const KEEP_TURNS = 6;
+/** Turns kept: the whole conversation (a chat is a few minutes; the card scrolls). A cap, so a runaway stream can't
+ *  grow it for ever. */
+export const KEEP_TURNS = 60;
 
 export class Turns {
   private list: Turn[] = [];

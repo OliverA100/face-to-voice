@@ -71,7 +71,8 @@ body {
  *   - their top and bottom edges fade into the panel's white while there is more to scroll that way (a 24 px gradient
  *     pinned to each edge, fading in and out: --dur-2), so it's clear the panel goes on. An overlay, not a mask: a mask
  *     would fade the card's own background and corners too. Under sticky bars (z-index 5; the slider panel's tabs are
- *     z-10) and over the content. --fade-inset: the panel's padding, so the fade still reaches its edges;
+ *     z-10) and over the content. --fade-inset: the panel's padding, so the fade still reaches its edges; --fade-to:
+ *     the colour behind it (the card's white, or the surface inside a tray: the chat);
  *   - reaching their end doesn't scroll the page behind them (overscroll-behavior: contain);
  *   - no visible scrollbar (wheel, touch and keys still scroll): the fades say there's more.
  */
@@ -99,13 +100,13 @@ body {
   top: calc(-1 * var(--fade-inset, 0px));
   margin-top: calc(-1 * var(--fade-inset, 0px));
   margin-bottom: calc(var(--fade-inset, 0px) - 24px);
-  background: linear-gradient(var(--card), transparent);
+  background: linear-gradient(var(--fade-to, var(--card)), transparent);
 }
 .edge-fades::after {
   bottom: calc(-1 * var(--fade-inset, 0px));
   margin-top: calc(var(--fade-inset, 0px) - 24px);
   margin-bottom: calc(-1 * var(--fade-inset, 0px));
-  background: linear-gradient(transparent, var(--card));
+  background: linear-gradient(transparent, var(--fade-to, var(--card)));
 }
 .edge-fades[data-more-top]::before,
 .edge-fades[data-more-bottom]::after {

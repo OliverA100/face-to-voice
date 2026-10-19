@@ -11,7 +11,7 @@
  *             near the end (the character says goodbye itself)
  *   ended     why it ended, and "Have another chat", which starts the next one straight away
  */
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { Alert } from "@/components/ui/Alert";
 import { BALL_IN_FRAME, CHROME, VOICE_STYLE, VOICE_STYLES } from "@/components/ui/loader/chrome";
@@ -19,6 +19,7 @@ import type { ChromeVoice, ChromeVoiceStyle } from "@/components/ui/loader/chrom
 import { LoaderSphere } from "@/components/ui/loader/LoaderSphere";
 import { BusyPill } from "@/components/ui/Spinner";
 import { Status } from "@/components/ui/Status";
+import { useScrollEdges } from "@/components/ui/useScrollEdges";
 import { isLimitError } from "@/lib/limits/open";
 import { outputOf, restOutput, wakeOutput } from "@/lib/lipsync/output";
 import { speechPlayer } from "@/lib/lipsync/player";
@@ -260,6 +261,16 @@ export function LiveTalk({
   const ended = snap.state === "ended";
   const reason = snap.endReason ? ENDED[snap.endReason] : "";
 
+  // The conversation scrolls inside the tray, its edges fading while there's more (.edge-fades). It follows the newest
+  // words unless the visitor has scrolled up to read; scrolling back to the bottom follows again.
+  const scroller = useRef<HTMLDivElement>(null);
+  const following = useRef(true);
+  useScrollEdges(scroller);
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (el && following.current) el.scrollTop = el.scrollHeight;
+  }, [snap.turns]);
+
   return (
     <section aria-label={`Conversation with ${name}`} className="enter flex flex-col gap-3 rounded-tray bg-surface p-4">
       <header className="flex items-center gap-3">
@@ -269,35 +280,41 @@ export function LiveTalk({
         <p className="min-w-0 flex-1 text-label text-ink">{label[snap.state]}</p>
         {!ended && snap.joinedAt && left <= SHOW_LEFT_SECONDS && <span className="enter text-meta tabular-nums text-ink-3">{secondsLeft(left)}</span>}
       </header>
-      {/* the last few turns as bubbles (the character's on the left, yours on the right), newest at the bottom; older
-          ones fade out at the top (no scrolling) */}
-      {snap.turns.length > 0 && (
-        <ol
-          aria-label="Conversation"
-          className="flex max-h-56 flex-col justify-end gap-2 overflow-hidden"
-          style={snap.turns.length > 3 ? { maskImage: "linear-gradient(to bottom, transparent, black 3rem)" } : undefined}
-        >
-          {snap.turns.map((turn, i) => {
-            const age = snap.turns.length - 1 - i; // 0 = the newest
-            const tone = age < 2 ? "text-ink" : age < 3 ? "text-ink-2" : "text-ink-3";
-            const live = age === 0 && !ended && (turn.who === "you" ? snap.state === "listening" : snap.state === "speaking");
-            // a reply cut off mid-sentence ends with "…" rather than on a half word
-            const cut = turn.who === "character" && !live && !/[.!?…"”')]$/.test(turn.text.trim());
-            return turn.who === "character" ? (
-              <li key={turn.id} className={`max-w-[85%] self-start rounded-tray bg-card px-3 py-1.5 text-body ${tone}`}>
-                <span className="sr-only">{name}: </span>
-                {turn.text.trim()}
-                {cut ? "…" : ""}
-              </li>
-            ) : (
-              <li key={turn.id} className={`max-w-[85%] self-end rounded-tray bg-surface-2 px-3 py-1.5 text-body ${live ? "text-ink-2" : tone}`}>
-                <span className="sr-only">You: </span>
-                {turn.text}
-              </li>
-            );
-          })}
-        </ol>
-      )}
+      {/* the turns as bubbles (the character's on the left, yours on the right), newest at the bottom; a focusable
+          region, so the keyboard can scroll it too (empty: hidden, so it takes no gap) */}
+      <div
+        ref={scroller}
+        role="region"
+        aria-label="Conversation"
+        tabIndex={snap.turns.length > 0 ? 0 : undefined}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          following.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+        }}
+        className="edge-fades max-h-56 overflow-y-auto empty:hidden [--fade-to:var(--surface)]"
+      >
+        {snap.turns.length > 0 && (
+          <ol className="flex flex-col gap-2">
+            {snap.turns.map((turn, i) => {
+              const live = i === snap.turns.length - 1 && !ended && (turn.who === "you" ? snap.state === "listening" : snap.state === "speaking");
+              // a reply cut off mid-sentence ends with "…" rather than on a half word
+              const cut = turn.who === "character" && !live && !/[.!?…"”')]$/.test(turn.text.trim());
+              return turn.who === "character" ? (
+                <li key={turn.id} className="max-w-[85%] self-start rounded-tray bg-card px-3 py-2 text-body text-ink">
+                  <span className="sr-only">{name}: </span>
+                  {turn.text.trim()}
+                  {cut ? "…" : ""}
+                </li>
+              ) : (
+                <li key={turn.id} className={`max-w-[85%] self-end rounded-tray bg-surface-2 px-3 py-2 text-body ${live ? "text-ink-2" : "text-ink"}`}>
+                  <span className="sr-only">You: </span>
+                  {turn.text}
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </div>
       {snap.state === "waking" && <p className="text-meta text-ink-3">The first conversation in a while can take up to a minute to start.</p>}
       {snap.needsAudioTap && !ended && (
         <button type="button" onClick={() => session.resumeAudio()} className="pill-secondary h-8 self-start px-3 text-label">
@@ -321,7 +338,7 @@ export function LiveTalk({
         ) : (
           <>
             {/* the label says what it does; no aria-pressed as well ("Unmute, pressed" reads backwards) */}
-            <button type="button" onClick={() => void session.setMuted(!snap.muted)} className="pill-secondary h-10 px-4">
+            <button type="button" onClick={() => void session.setMuted(!snap.muted)} className="pill-secondary h-10 px-5">
               {snap.muted ? "Unmute" : "Mute"}
             </button>
             <button type="button" onClick={() => session.end()} data-step-focus className="pill-primary h-10 px-5">
