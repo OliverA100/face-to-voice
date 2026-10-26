@@ -47,27 +47,37 @@ All the numbers and how they were measured: [docs/ARCHITECTURE.md](docs/ARCHITEC
 ## How it works
 
 ```
- pipeline/ (Python, offline)                     web/ (Next.js, React Three Fiber)
- ───────────────────────────                     ───────────────────────────────────────────────
- GNM Head (253 identity + 383 expression          head.glb + head.extra.glb (morph targets)
-   components, numpy)                               │  sliders write morph weights, no React renders
-   ├─ export: parts, morph targets, meshopt   ──►   │  vertex limiter blocks impossible geometry
-   ├─ semantic sliders solved on the model          │  strand hair + add-ons follow the skin
-   ├─ slider ranges vs adult anthropometry          │  expression, pose, idle life, age wrinkles
-   ├─ limiter data + automated stress test          ▼
-   └─ hair, brows, lashes, beards, glasses      screenshot + look ──► /api/voice/design
-                                                       Claude casts the character (structured output)
-                                                       ElevenLabs Voice Design → 3 previews
-                                                 pick one ──► /api/voice/select (save, voice pool)
-                                                 speak    ──► /api/voice/speak
-                                                       eleven_v4_turbo line, timed by Forced Alignment
-                                                       ──► Web Audio + viseme cues ──► mouth morphs
-                                                 meet     ──► /api/character/profile
-                                                       Claude writes who the character is
-                                                 chat     ──► /api/talk/token ──► LiveKit room
-                                                       agent/ (Node): speech-to-text → Claude Haiku 5.5
-                                                       → ElevenLabs v4 Turbo in the character's voice
-                                                       ──► live lip sync, the reply's mood on the face
+ pipeline/ (Python, offline)
+ ───────────────────────────
+ GNM Head (253 identity + 383 expression components, numpy)
+   ├─ export: parts, morph targets, meshopt
+   ├─ semantic sliders solved on the model
+   ├─ slider ranges vs adult anthropometry
+   ├─ limiter data + automated stress test
+   └─ hair, brows, lashes, beards, glasses
+                     │
+                     ▼
+ web/ (Next.js, React Three Fiber)
+ ─────────────────────────────────
+ head.glb + head.extra.glb (morph targets)
+   │  sliders write morph weights, no React renders
+   │  vertex limiter blocks impossible geometry
+   │  strand hair + add-ons follow the skin
+   │  expression, pose, idle life, age wrinkles
+   ▼
+ screenshot + look ──► /api/voice/design
+          Claude casts the character (structured output)
+          ElevenLabs Voice Design → 3 previews
+ pick one ──► /api/voice/select (save, voice pool)
+ speak    ──► /api/voice/speak
+          eleven_v4_turbo line, timed by Forced Alignment
+          ──► Web Audio + viseme cues ──► mouth morphs
+ meet     ──► /api/character/profile
+          Claude writes who the character is
+ chat     ──► /api/talk/token ──► LiveKit room
+          agent/ (Node): speech-to-text → Claude Haiku 5.5
+          → ElevenLabs v4 Turbo in the character's voice
+          ──► live lip sync, the reply's mood on the face
 ```
 
 **The head.** GNM is linear, so each component bakes into an exact glTF morph target. The 33 **Shape** sliders (jaw
