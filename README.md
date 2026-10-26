@@ -12,7 +12,7 @@ Shape a realistic 3D head, style it and give it an expression. Claude reads the 
 ElevenLabs designs three voices to match, and the head lip-syncs to every line it speaks. Then meet the character and
 talk to them out loud: they answer live, in their own voice, with the face moving as they speak.
 
-![Face to Voice: a character with a high bun, styled in the builder's Style tab](docs/images/face-to-voice-style.jpg)
+![Face to Voice: a character with a high bun, styled in the builder's Style tab](docs/images/face-to-voice-style-tab.jpg)
 
 The head is Google's [GNM Head](https://github.com/google/GNM), a linear statistical model of the human head,
 exported to the browser as glTF morph targets. Everything on top of it (semantic sliders, a geometry limiter, strand
